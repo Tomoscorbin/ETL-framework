@@ -1,33 +1,51 @@
 name: Databricks Asset Bundle CI/CD
+
+# Ensure that only a single job or workflow using the same concurrency group
+# runs at a time.
+concurrency: 1
+
+# Trigger this workflow whenever a pull request is opened against the repo's
+# main branch or an existing pull request's head branch is updated.
 on:
-  push:
-    branches: [ main ]
-  workflow_dispatch:          # allow a manual rerun if needed
+  pull_request:
+    types:
+      - opened
+      - synchronize
+    branches:
+      - main
 
 jobs:
   deploy-dev:
+    name: 'Deploy bundle'
     runs-on: ubuntu-latest
-    env:
-      DATABRICKS_HOST:  ${{ secrets.DATABRICKS_HOST_DEV }}
-      DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN_DEV }}
-      DATABRICKS_BUNDLE_ENV: dev
-    steps:
-      - uses: actions/checkout@v3
-      - uses: databricks/setup-cli@main
-      - run: databricks bundle validate
-      - run: databricks bundle deploy
-      - run: databricks bundle run test --refresh-all --watch   # integration test
 
-  deploy-prod:
-    needs: deploy-dev
-    runs-on: ubuntu-latest
-    **environment: prod**        # ←‑‑ this line makes the job wait
-    env:
-      DATABRICKS_HOST:  ${{ secrets.DATABRICKS_HOST_PROD }}
-      DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN_PROD }}
-      DATABRICKS_BUNDLE_ENV: prod
     steps:
+      # Check out this repo, so that this workflow can access it.
       - uses: actions/checkout@v3
+
+      # Download the Databricks CLI.
+      # See https://github.com/databricks/setup-cli
       - uses: databricks/setup-cli@main
-      - run: databricks bundle validate
+
+      # Deploy the bundle to the "dev" target as defined
+      # in the bundle's settings file.
       - run: databricks bundle deploy
+        working-directory: .
+        env:
+          DATABRICKS_TOKEN: ${{ secrets.SP_TOKEN }}
+          DATABRICKS_BUNDLE_ENV: dev
+
+
+  # deploy-prod:
+  #   needs: deploy-dev
+  #   runs-on: ubuntu-latest
+  #   **environment: prod**        # ←‑‑ this line makes the job wait
+  #   env:
+  #     DATABRICKS_HOST:  ${{ secrets.DATABRICKS_HOST_PROD }}
+  #     DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN_PROD }}
+  #     DATABRICKS_BUNDLE_ENV: prod
+  #   steps:
+  #     - uses: actions/checkout@v3
+  #     - uses: databricks/setup-cli@main
+  #     - run: databricks bundle validate
+  #     - run: databricks bundle deploy

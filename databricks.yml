@@ -15,9 +15,9 @@ targets:
     workspace:
       host: https://dbc-d833a3e1-6ac9.cloud.databricks.com
   
-  staging:
-    workspace:
-      host: https://dbc-d833a3e1-6ac9.cloud.databricks.com
+  # staging:
+  #   workspace:
+  #     host: https://dbc-d833a3e1-6ac9.cloud.databricks.com
 
   # The 'prod' target, used for production deployment.
   prod:

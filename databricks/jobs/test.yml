@@ -22,3 +22,8 @@ resources:
           environment_key: default
           spark_python_task:
             python_file: ../../src/test.py
+
+        - task_key: test_2
+          environment_key: default
+          spark_python_task:
+            python_file: ../../src/test.py

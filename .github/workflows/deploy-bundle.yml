@@ -2,7 +2,7 @@ name: Databricks Asset Bundle CI/CD
 
 # Ensure that only a single job or workflow using the same concurrency group
 # runs at a time.
-concurrency: 1
+concurrency: promotion
 
 # Trigger this workflow whenever a pull request is opened against the repo's
 # main branch or an existing pull request's head branch is updated.
@@ -10,8 +10,6 @@ on:
   pull_request:          # fast CI for feature branches
   push:
     branches: main
-
-concurrency: promotion
 
 jobs:
   deploy-dev:

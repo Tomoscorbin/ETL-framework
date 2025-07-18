@@ -29,17 +29,17 @@ jobs:
           DATABRICKS_BUNDLE_ENV: dev
 
 
-  deploy-prod:
-    needs: deploy-dev
-    runs-on: ubuntu-latest
+  # deploy-prod:
+  #   needs: deploy-dev
+  #   runs-on: ubuntu-latest
 
-    steps:
-      - uses: actions/checkout@v3
-      - uses: databricks/setup-cli@main
-      - run: databricks bundle validate
-      - run: databricks bundle deploy
+  #   steps:
+  #     - uses: actions/checkout@v3
+  #     - uses: databricks/setup-cli@main
+  #     - run: databricks bundle validate
+  #     - run: databricks bundle deploy
 
-    environment: prod
-    env:
-      DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_PAT }}
-      DATABRICKS_BUNDLE_ENV: prod
+  #   environment: prod
+  #   env:
+  #     DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_PAT }}
+  #     DATABRICKS_BUNDLE_ENV: prod

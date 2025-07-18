@@ -7,10 +7,21 @@ concurrency: promotion
 # Trigger this workflow whenever a pull request is opened against the repo's
 # main branch or an existing pull request's head branch is updated.
 on:
+  pull_request:
   push:
     branches: main
 
 jobs:
+
+  ci:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: databricks/setup-cli@main
+      - run: databricks bundle validate   
+
+
   deploy-dev:
     name: 'Deploy bundle'
     runs-on: ubuntu-latest

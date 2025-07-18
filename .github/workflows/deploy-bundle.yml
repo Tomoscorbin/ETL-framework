@@ -33,6 +33,7 @@ jobs:
 
       - name: Linting checks
         run: ./lint.sh
+        working-directory: .
 
       - uses: databricks/setup-cli@main
       - run: databricks bundle validate   

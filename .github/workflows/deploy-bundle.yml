@@ -1,22 +1,32 @@
-name: Databricks Asset Bundle CI/CD
+name: DABs Deployment
 
 # Ensure that only a single job or workflow using the same concurrency group
 # runs at a time.
-concurrency: 1
+concurrency: promotion
 
 # Trigger this workflow whenever a pull request is opened against the repo's
 # main branch or an existing pull request's head branch is updated.
 on:
   pull_request:
-    types:
-      - opened
-      - synchronize
-    branches:
-      - main
+  push:
+    branches: main
 
 jobs:
+
+  ci:
+    name: 'CI'
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: databricks/setup-cli@main
+      - run: databricks bundle validate   
+        env:
+          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_PAT }}
+
   deploy-dev:
-    name: 'Deploy bundle'
+    name: 'Dev deployment'
+    if: github.event_name != 'pull_request' 
     runs-on: ubuntu-latest
 
     steps:
@@ -27,7 +37,6 @@ jobs:
         env:
           DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_PAT }}
           DATABRICKS_BUNDLE_ENV: dev
-
 
   deploy-prod:
     needs: deploy-dev
@@ -41,5 +50,5 @@ jobs:
 
     environment: prod
     env:
-      DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN_PROD }}
+      DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_PAT }}
       DATABRICKS_BUNDLE_ENV: prod

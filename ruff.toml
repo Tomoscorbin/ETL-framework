@@ -1,0 +1,48 @@
+target-version = "py311"
+
+[format]
+docstring-code-format = true
+
+[lint]
+select = [
+    "A",    # flake8-builtins           shadowed builtins
+    "ARG",  # flake8-unused-arguments   unused arguments
+    "B",    # flake8-bugbear            various bugs and design problems
+    "C4",   # flake8-comprehensions     list/set/dict comprehensions
+    "D",    # pydocstyle                docstring linting
+    "E",    # pycodestyle               PEP 8 style conventions
+    "ERA",  # eradicate                 commented-out code
+    "F",    # pyflakes                  various errors
+    "I",    # isort                     import order
+    "INP",  # flake8-no-pep420          missing `__init__.py`s
+    "PT",   # flake8-pytest-style       test style
+    "PTH",  # flake8-use-pathlib        pathlib over os or open
+    "RET",  # flake8-return             return statement style
+    "S",    # flake8-bandit             security
+    "SIM",  # flake8-simplify           code simplification
+    "TD",   # flake8-todos              TODO comment style
+    "UP",   # pyupgrade                 syntax modernization
+]
+
+ignore = [
+    "D100",  # missing docstring in public module
+    "D104",  # missing docstring in public package e.g. `__init__.py`
+    "D205",  # missing blank line after summary
+    "D212",  # multi line summary first line
+    "N812",  # allow uppercase import aliases such as `from pyspark.sql import functions as F`
+    "S608",  # allow formatting SQL strings such as `f"SELECT * FROM {table}"`
+    "D415",  # add closing punctuation
+]
+
+[lint.per-file-ignores]
+"tests/*" = [
+    "S101",  # allow `assert` in tests
+    "D",     # docstring linting not required in tests
+]
+"scripts/*" = [
+    "INP001", # allow no `__init__.py`
+    "T201" # allow `print` in scripts
+]
+
+[lint.pydocstyle]
+convention = "google"

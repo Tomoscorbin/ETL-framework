@@ -32,7 +32,7 @@ jobs:
         working-directory: .
 
       - name: Linting checks
-        run: lint.sh
+        run: ./lint.sh
         working-directory: .
 
       - uses: databricks/setup-cli@main

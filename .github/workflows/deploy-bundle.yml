@@ -41,5 +41,5 @@ jobs:
 
     environment: prod
     env:
-      DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN_PROD }}
+      DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_PAT }}
       DATABRICKS_BUNDLE_ENV: prod

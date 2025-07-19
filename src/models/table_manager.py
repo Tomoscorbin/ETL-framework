@@ -122,7 +122,7 @@ class DeltaTableManager:
     def _set_column_comment(self, column_name: str, comment: str, spark: SparkSession) -> None:
         spark.sql(
             f"ALTER TABLE {self.delta_table.full_name}"
-            f"CHANGE COLUMN {column_name} COMMENT '{comment}';"
+            f" CHANGE COLUMN {column_name} COMMENT '{comment}';"
         )
 
     def _set_column_comments(self, spark: SparkSession) -> None:
@@ -151,7 +151,7 @@ class DeltaTableManager:
         if properties_to_set:
             spark.sql(
                 f"ALTER TABLE {self.delta_table.full_name}"
-                f"SET TBLPROPERTIES ({', '.join(properties_to_set)});"
+                f" SET TBLPROPERTIES ({', '.join(properties_to_set)});"
             )
 
     def _add_missing_columns(self, spark: SparkSession) -> None:
@@ -173,7 +173,7 @@ class DeltaTableManager:
             operation = "DROP" if column.is_nullable else "SET"
             spark.sql(
                 f"ALTER TABLE {self.delta_table.full_name}"
-                f"ALTER COLUMN {column.name} {operation} NOT NULL"
+                f" ALTER COLUMN {column.name} {operation} NOT NULL"
             )
 
     def _ensure_primary_keys(self, spark: SparkSession) -> None:

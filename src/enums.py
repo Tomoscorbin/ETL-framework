@@ -14,6 +14,7 @@ class Medallion(StrEnum):
     BRONZE = "bronze"
     SILVER = "silver"
     GOLD = "gold"
+    METADATA = "metadata"
 
 
 class DeltaTableProperty(StrEnum):

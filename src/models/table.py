@@ -2,11 +2,14 @@ from dataclasses import dataclass, field
 from typing import ClassVar
 
 import pyspark.sql.types as T
-from pyspark.sql import SparkSession
+from pyspark.sql import DataFrame, SparkSession
+from databricks.labs.dqx.rule import DQRule
+
 
 from src.enums import DeltaTableProperty
 from src.models.column import DeltaColumn
 from src.models.table_manager import DeltaTableManager
+from src.model.writer import DeltaWriter
 
 
 @dataclass(frozen=True)
@@ -23,6 +26,7 @@ class DeltaTable:
     columns: list[DeltaColumn]
     comment: str = ""
     delta_properties: dict[str, str] = field(default_factory=dict)
+    checks: list[DQRule] = []
 
     @property
     def full_name(self) -> str:
@@ -58,3 +62,9 @@ class DeltaTable:
     def check_exists(self, spark: SparkSession) -> bool:
         """Checks if the table already exists."""
         return spark.catalog.tableExists(self.full_name)
+    
+    def overwrite(self, dataframe: DataFrame) -> None:
+        """Overwrite the table with the given dataframe."""
+        DeltaWriter(delta_table=self, dataframe=dataframe).overwrite()
+
+

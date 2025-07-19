@@ -5,7 +5,6 @@ from pyspark.sql import SparkSession
 from src.models.column import DeltaColumn
 
 
-
 class DeltaTableManager:
     """Delta Table DDL Manager."""
 

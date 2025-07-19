@@ -1,5 +1,5 @@
 target-version = "py311"
-line-length = 120
+line-length = 100
 
 [format]
 docstring-code-format = true

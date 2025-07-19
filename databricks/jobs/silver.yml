@@ -1,19 +1,26 @@
 resources:
   jobs:
-    ddl:
+    silver:
       environments:
         - environment_key: default
           spec:
             environment_version: 3
             dependencies: 
               - databricks-labs-dqx
-      name: ddl
+      name: silver
+      schedule:
+        # Run every day at 8:30 AM
+        quartz_cron_expression: '44 30 8 * * ?'
+        timezone_id: UTC
       email_notifications:
         on_failure:
           - tom_corbin1@hotmail.com
 
       tasks:
-        - task_key: run_ddl
+        - task_key: transaction
           environment_key: default
           spark_python_task:
-            python_file: ../../src/ddl/run_ddl.py
+            python_file: ../../src/silver/transaction.py
+            parameters:
+            - "--job_id={{job.id}}"
+            - "--run_id={{job.run_id}}"

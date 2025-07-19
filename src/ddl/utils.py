@@ -20,7 +20,9 @@ def _find_modules_in_package(package: ModuleType, recurse: bool = False) -> list
     return modules
 
 
-def _get_all_delta_tables_in_module(module: ModuleType, instance_type: type[DeltaTable]) -> list[DeltaTable]:
+def _get_all_delta_tables_in_module(
+    module: ModuleType, instance_type: type[DeltaTable]
+) -> list[DeltaTable]:
     tables = []
     for attr in dir(module):
         obj = getattr(module, attr)
@@ -30,7 +32,9 @@ def _get_all_delta_tables_in_module(module: ModuleType, instance_type: type[Delt
     return tables
 
 
-def _ensure_delta_tables_exists(tables_to_create: Iterable[DeltaTable], spark: SparkSession) -> None:
+def _ensure_delta_tables_exists(
+    tables_to_create: Iterable[DeltaTable], spark: SparkSession
+) -> None:
     tables_with_exceptions = []
     for delta_table in tables_to_create:
         try:

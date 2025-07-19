@@ -46,7 +46,6 @@ jobs:
     env:
       DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_PAT }}
       DATABRICKS_BUNDLE_ENV: dev
-      working-directory: .
     steps:
       - uses: actions/checkout@v3
       - uses: databricks/setup-cli@main

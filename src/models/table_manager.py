@@ -1,19 +1,14 @@
-from typing import TYPE_CHECKING
-
 import pyspark.sql.types as T
 from delta import DeltaTable as dt
 from pyspark.sql import SparkSession
 
 from src.models.column import DeltaColumn
 
-if TYPE_CHECKING:
-    from src.models.table import DeltaTable
-
 
 class DeltaTableManager:
     """Delta Table DDL Manager."""
 
-    def __init__(self, delta_table: DeltaTable):
+    def __init__(self, delta_table: "DeltaTable"):
         self.delta_table = delta_table
 
     def ensure(self, spark: SparkSession) -> None:  # pragma: no cover

@@ -105,7 +105,14 @@ class DeltaTableManager:
             spark.sql(f"COMMENT ON TABLE {self.delta_table.full_name} IS '{expected_comment}';")
 
     def _set_column_comment(self, column_name: str, comment: str, spark: SparkSession) -> None:
+<<<<<<< Updated upstream
         spark.sql(f"ALTER TABLE {self.delta_table.full_name} CHANGE COLUMN {column_name} COMMENT '{comment}';")
+=======
+        spark.sql(
+            f"ALTER TABLE {self.delta_table.full_name}"
+            f" CHANGE COLUMN {column_name} COMMENT '{comment}';"
+        )
+>>>>>>> Stashed changes
 
     def _set_column_comments(self, spark: SparkSession) -> None:
         existing_column_comments = self._get_existing_column_comments(spark)
@@ -128,7 +135,14 @@ class DeltaTableManager:
         ]
 
         if properties_to_set:
+<<<<<<< Updated upstream
             spark.sql(f"ALTER TABLE {self.delta_table.full_name} SET TBLPROPERTIES ({', '.join(properties_to_set)});")
+=======
+            spark.sql(
+                f"ALTER TABLE {self.delta_table.full_name}"
+                f" SET TBLPROPERTIES ({', '.join(properties_to_set)});"
+            )
+>>>>>>> Stashed changes
 
     def _add_missing_columns(self, spark: SparkSession) -> None:
         missing_columns = self._identify_missing_columns(spark)
@@ -145,7 +159,14 @@ class DeltaTableManager:
         columns = self._identify_columns_with_nullability_changes(spark)
         for column in columns:
             operation = "DROP" if column.is_nullable else "SET"
+<<<<<<< Updated upstream
             spark.sql(f"ALTER TABLE {self.delta_table.full_name} ALTER COLUMN {column.name} {operation} NOT NULL;")
+=======
+            spark.sql(
+                f"ALTER TABLE {self.delta_table.full_name}"
+                f" ALTER COLUMN {column.name} {operation} NOT NULL"
+            )
+>>>>>>> Stashed changes
 
     def _ensure_primary_keys(self, spark: SparkSession) -> None:
         if self.delta_table.primary_key_column_names == self._get_existing_primary_key_column_names(spark):

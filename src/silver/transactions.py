@@ -4,8 +4,8 @@ from pathlib import Path
 sys.path.append(str(Path().absolute().parents[1]))
 
 from src import settings
-from table import DeltaColumn, DeltaTable
-from table_manager import DeltaTableManager
+from src.models.table import DeltaColumn, DeltaTable
+from src.models.table_manager import DeltaTableManager
 import pyspark.sql.types as T
 
 

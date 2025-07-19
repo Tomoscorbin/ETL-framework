@@ -1,8 +1,12 @@
 from pyspark.sql import SparkSession
 import pyspark.sql.types as T
 from delta import DeltaTable
+from typing import TYPE_CHECKING
 
-from src.models.table import DeltaColumn, DeltaTable
+
+from src.models.column import DeltaColumn
+if TYPE_CHECKING:
+    from src.models.table import DeltaTable
 
 
 class DeltaTableManager():
@@ -70,10 +74,6 @@ class DeltaTableManager():
             """  # noqa: E501
         ).collect()
         return [row["column_name"] for row in rows]
-
-        
-    def _check_exists(self, spark: SparkSession) -> bool:
-        return spark.catalog.tableExists(self.full_name)
     
 
     def _identify_missing_columns(self, spark: SparkSession) -> list[DeltaColumn]:
@@ -103,7 +103,7 @@ class DeltaTableManager():
     
 
     def _create_if_not_exists(self, spark: SparkSession) -> None:
-        if self.delta_table._check_exists(spark):
+        if self.delta_table.check_exists(spark):
             return
         
         delta_table_builder = DeltaTable.createIfNotExists(spark)
@@ -197,7 +197,7 @@ class DeltaTableManager():
 
 
     def _ensure_primary_keys(self, spark: SparkSession) -> None:
-        if self.primary_key_column_names == self._get_existing_primary_key_column_names(spark):
+        if self.delta_table.primary_key_column_names == self._get_existing_primary_key_column_names(spark):
             return
         
         spark.sql(f"ALTER TABLE {self.delta_table.full_name} DROP PRIMARY KEY IF EXISTS;")
@@ -209,7 +209,7 @@ class DeltaTableManager():
             f"pk_{self.delta_table.catalog_name}_{self.delta_table.schema_name}_{self.delta_table.table_name}"
         )
         spark.sql(
-            f"ALTER TABLE {self.delta_tablefull_name}"
+            f"ALTER TABLE {self.delta_table.full_name}"
             f" ADD CONSTRAINT {primary_key_name}"
             f" PRIMARY KEY ({', '.join(self.delta_table.primary_key_column_names)});"
         )

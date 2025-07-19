@@ -5,6 +5,7 @@ from typing import Iterable
 from types import ModuleType
 
 from src.models.table import DeltaTable
+from src.logger import LOGGER
 
 
 def _find_modules_in_package(
@@ -20,11 +21,13 @@ def _find_modules_in_package(
     return modules
 
 def _get_all_delta_tables_in_module(module: ModuleType, instance_type: type[DeltaTable]) -> list[DeltaTable]:
-    return [
-        getattr(module, attribute)
-        for attribute in dir(module)
-        if isinstance(getattr(module, attribute), instance_type)
-    ]
+    tables = []
+    for attr in dir(module):
+        obj = getattr(module, attr)
+        is_match = isinstance(obj, instance_type)
+        if is_match:
+            tables.append(obj)
+    return tables
 
 def _ensure_delta_tables_exists(
     tables_to_create: Iterable[DeltaTable],
@@ -33,9 +36,11 @@ def _ensure_delta_tables_exists(
     tables_with_exceptions = []
     for delta_table in tables_to_create:
         try:
-            delta_table.ensure(spark)
+            getattr(delta_table,"ensure")(spark)
+            LOGGER.info("DDL build: %s ✓", delta_table.full_name)
         except Exception as e:
-            tables_with_exceptions.append((delta_table, e))
+            LOGGER.error("DDL build: %s ✗ (%s)", delta_table.full_name, e)
+            tables_with_exceptions.append(delta_table.full_name)
     
     if tables_with_exceptions:
         raise RuntimeError(f"Failed to ensure tables: {tables_with_exceptions}")
@@ -55,8 +60,8 @@ def ensure_all_schemas(schema_names: Iterable[str], catalog_name: str, spark: Sp
 def ensure_all_delta_tables(package: ModuleType, spark: SparkSession) -> None:
     tables_to_create = []
     for module in _find_modules_in_package(package=package, recurse=True):
-        module_objects = _get_all_delta_tables_in_module(module=module, instance_type=DeltaTable)
-        tables_to_create.extend(module_objects)
+        delta_tables = _get_all_delta_tables_in_module(module=module, instance_type=DeltaTable)
+        tables_to_create.extend(delta_tables)
 
     _ensure_delta_tables_exists(
         tables_to_create=tables_to_create,

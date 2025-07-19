@@ -1,7 +1,7 @@
 import sys
 from pathlib import Path
 
-sys.path.append(str(Path().absolute().parent.parent))
+sys.path.append(str(Path().absolute().parents[1]))
 
 from pyspark.sql import SparkSession
 

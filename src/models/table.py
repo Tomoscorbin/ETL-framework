@@ -1,28 +1,15 @@
 from dataclasses import dataclass, field
-from typing import ClassVar, TYPE_CHECKING
+from typing import ClassVar
 
-import pyspark.sql.types as T
 from pyspark.sql import DataFrame, SparkSession
+import pyspark.sql.types as T
 
+from src.models.column import DeltaColumn
 from src.enums import DeltaTableProperty
-
-if TYPE_CHECKING:
-    from src.models.table_manager import DeltaTableManager
+from src.models.table_manager import DeltaTableManager
 
 
-@dataclass(frozen=True)
-class DeltaColumn:
-    """Represents a Delta Table column."""
-    name: str
-    data_type: T.DataType
-    comment: str = ""
-    is_primary_key: bool = False
-    is_nullable: bool = True
 
-    @property
-    def struct_field(self) -> T.StructField:
-        """PySpark `StructField` representation of a column."""
-        return T.StructField(self.name, self.data_type, True)
 
 
 @dataclass(frozen=True)
@@ -69,6 +56,9 @@ class DeltaTable:
 
     def ensure(self, spark: SparkSession) -> None:
         DeltaTableManager(delta_table=self).ensure(spark)
+
+    def check_exists(self, spark: SparkSession) -> bool:
+        return spark.catalog.tableExists(self.full_name)
     
 
 

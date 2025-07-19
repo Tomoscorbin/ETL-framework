@@ -1,9 +1,12 @@
 from dataclasses import dataclass
+
 import pyspark.sql.types as T
+
 
 @dataclass(frozen=True)
 class DeltaColumn:
     """Represents a Delta Table column."""
+
     name: str
     data_type: T.DataType
     comment: str = ""

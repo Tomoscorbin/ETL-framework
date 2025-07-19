@@ -1,4 +1,5 @@
 target-version = "py311"
+line-length = 120
 
 [format]
 docstring-code-format = true
@@ -32,6 +33,9 @@ ignore = [
     "N812",  # allow uppercase import aliases such as `from pyspark.sql import functions as F`
     "S608",  # allow formatting SQL strings such as `f"SELECT * FROM {table}"`
     "D415",  # add closing punctuation
+    "TD002", # Missing author in TODO
+    "TD003", # TD003 Missing issue link for TODO
+    "D107",  # Missing docstring in `__init__`
 ]
 
 [lint.per-file-ignores]

@@ -1,16 +1,15 @@
 import importlib
 import pkgutil
-from pyspark.sql import SparkSession
-from typing import Iterable
+from collections.abc import Iterable
 from types import ModuleType
 
-from src.models.table import DeltaTable
+from pyspark.sql import SparkSession
+
 from src.logger import LOGGER
+from src.models.table import DeltaTable
 
 
-def _find_modules_in_package(
-    package: ModuleType, recurse: bool = False
-) -> list[ModuleType]:
+def _find_modules_in_package(package: ModuleType, recurse: bool = False) -> list[ModuleType]:
     modules = []
     for _, name, is_package in pkgutil.iter_modules(path=package.__path__):
         module = importlib.import_module(name=f"{package.__name__}.{name}")
@@ -19,6 +18,7 @@ def _find_modules_in_package(
         else:
             modules.append(module)
     return modules
+
 
 def _get_all_delta_tables_in_module(module: ModuleType, instance_type: type[DeltaTable]) -> list[DeltaTable]:
     tables = []
@@ -29,41 +29,42 @@ def _get_all_delta_tables_in_module(module: ModuleType, instance_type: type[Delt
             tables.append(obj)
     return tables
 
-def _ensure_delta_tables_exists(
-    tables_to_create: Iterable[DeltaTable],
-    spark: SparkSession
-) -> None:
+
+def _ensure_delta_tables_exists(tables_to_create: Iterable[DeltaTable], spark: SparkSession) -> None:
     tables_with_exceptions = []
     for delta_table in tables_to_create:
         try:
-            getattr(delta_table,"ensure")(spark)
+            delta_table.ensure(spark)
             LOGGER.info("DDL build: %s ✓", delta_table.full_name)
         except Exception as e:
             LOGGER.error("DDL build: %s ✗ (%s)", delta_table.full_name, e)
             tables_with_exceptions.append(delta_table.full_name)
-    
+
     if tables_with_exceptions:
         raise RuntimeError(f"Failed to ensure tables: {tables_with_exceptions}")
+
 
 def _create_schema(schema_name: str, catalog_name: str, spark: SparkSession) -> None:
     qualified_schema_name = f"{catalog_name}.{schema_name}"
     spark.sql(f"CREATE SCHEMA IF NOT EXISTS {qualified_schema_name}")
 
+
 def _ensure_schema(schema_name: str, catalog_name: str, spark: SparkSession) -> None:
     _create_schema(schema_name=schema_name, catalog_name=catalog_name, spark=spark)
     # TODO: set permissions on schemas
 
+
 def ensure_all_schemas(schema_names: Iterable[str], catalog_name: str, spark: SparkSession) -> None:
+    """Ensure all schemas exist in Unity Catalog."""
     for schema_name in schema_names:
         _ensure_schema(schema_name=schema_name, catalog_name=catalog_name, spark=spark)
 
+
 def ensure_all_delta_tables(package: ModuleType, spark: SparkSession) -> None:
+    """Ensure all delta tables exist in Unity Catalog."""
     tables_to_create = []
     for module in _find_modules_in_package(package=package, recurse=True):
         delta_tables = _get_all_delta_tables_in_module(module=module, instance_type=DeltaTable)
         tables_to_create.extend(delta_tables)
 
-    _ensure_delta_tables_exists(
-        tables_to_create=tables_to_create,
-        spark=spark
-    )
+    _ensure_delta_tables_exists(tables_to_create=tables_to_create, spark=spark)

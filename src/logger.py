@@ -67,9 +67,7 @@ class ColourConsoleFormatter(DefaultConsoleFormatter):
         logging.INFO: ConsoleFormat.BLUE,
         logging.WARNING: ConsoleFormat.YELLOW,
         logging.ERROR: ConsoleFormat.RED,
-        logging.CRITICAL: ConsoleFormat.BOLD
-        + ConsoleFormat.HIGHLIGHT_RED
-        + ConsoleFormat.BLACK,
+        logging.CRITICAL: ConsoleFormat.BOLD + ConsoleFormat.HIGHLIGHT_RED + ConsoleFormat.BLACK,
     }
 
     def _formatted_mesage(self, record: logging.LogRecord) -> str:

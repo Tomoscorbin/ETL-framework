@@ -1,10 +1,12 @@
 from enum import StrEnum
 
+
 class Catalog(StrEnum):
-    "Catalog name in Unity Catalog."
+    """Catalog name in Unity Catalog."""
 
     DEV = "dev"
     PROD = "prod"
+
 
 class Medallion(StrEnum):
     """Layer in the medallion architecture."""
@@ -13,7 +15,8 @@ class Medallion(StrEnum):
     SILVER = "silver"
     GOLD = "gold"
 
+
 class DeltaTableProperty(StrEnum):
     """Delta Table properties."""
-    
+
     COLUMN_MAPPING_MODE = "delta.columnMapping.mode"

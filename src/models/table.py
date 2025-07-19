@@ -1,20 +1,18 @@
 from dataclasses import dataclass, field
 from typing import ClassVar
 
-from pyspark.sql import DataFrame, SparkSession
 import pyspark.sql.types as T
+from pyspark.sql import SparkSession
 
-from src.models.column import DeltaColumn
 from src.enums import DeltaTableProperty
+from src.models.column import DeltaColumn
 from src.models.table_manager import DeltaTableManager
-
-
-
 
 
 @dataclass(frozen=True)
 class DeltaTable:
     """Represents a Delta Table."""
+
     default_delta_properties: ClassVar[dict[str, str]] = {
         DeltaTableProperty.COLUMN_MAPPING_MODE: "name",
     }
@@ -40,7 +38,7 @@ class DeltaTable:
     def schema(self) -> T.StructType:
         """PySpark `StructType` representation of the table schema."""
         return T.StructType(fields=[column.struct_field for column in self.columns])
-    
+
     @property
     def expected_delta_properties(self) -> dict[str, str]:
         """The expected Delta Table properties.
@@ -52,25 +50,11 @@ class DeltaTable:
     def primary_key_column_names(self) -> list[str]:
         """Names of primary keys."""
         return [column.name for column in self.columns if column.is_primary_key]
-    
 
     def ensure(self, spark: SparkSession) -> None:
+        """Ensure the table exists with the correct features."""
         DeltaTableManager(delta_table=self).ensure(spark)
 
     def check_exists(self, spark: SparkSession) -> bool:
+        """Checks if the table already exists."""
         return spark.catalog.tableExists(self.full_name)
-    
-
-
-    # def overwrite(self, df: DataFrame) -> None:
-    #     """
-    #     Overwrites the Delta Table with the given DataFrame.
-
-    #     Args:
-    #         df (DataFrame): DataFrame to overwrite the Delta Table with.
-
-    #     Returns: None
-    #     """
-    #     df.select(self.column_names).write.saveAsTable(
-    #         name=self.full_name, format="delta", mode="overwrite"
-    #     )

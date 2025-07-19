@@ -6,7 +6,7 @@ resources:
           spec:
             environment_version: 3
 
-      name: test
+      name: ddl
 
       schedule:
         # Run every day at 8:30 AM
@@ -18,7 +18,7 @@ resources:
           - tom_corbin1@hotmail.com
 
       tasks:
-        - task_key: test
+        - task_key: run_ddl
           environment_key: default
           spark_python_task:
             python_file: ../../src/ddl/run_ddl.py

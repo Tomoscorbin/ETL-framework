@@ -6,6 +6,13 @@ class Catalog(StrEnum):
     DEV = "dev"
     PROD = "prod"
 
+class Medallion(StrEnum):
+    """Layer in the medallion architecture."""
+
+    BRONZE = "bronze"
+    SILVER = "silver"
+    GOLD = "gold"
+
 class DeltaTableProperty(StrEnum):
     """Delta Table properties."""
     

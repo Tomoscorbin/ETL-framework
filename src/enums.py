@@ -23,7 +23,7 @@ class DeltaTableProperty(StrEnum):
     COLUMN_MAPPING_MODE = "delta.columnMapping.mode"
 
 
-class DQFailureType(StrEnum):
+class DQFailureLevel(StrEnum):
     """Failure type for DQX."""
 
     ERRORS = "_errors"

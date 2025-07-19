@@ -25,7 +25,7 @@ transaction = DeltaTable(
         DeltaColumn(name="transaction_type", data_type=T.StringType(), is_nullable=False),
         DeltaColumn(name="mcc", data_type=T.StringType(), is_nullable=False),
     ],
-    checks=[
+    rules=[
         DQRowRule(
             criticality="error",
             check_func=check_funcs.is_in_list,

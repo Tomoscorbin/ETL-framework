@@ -8,7 +8,7 @@ from pyspark.sql import DataFrame
 from databricks.labs.dqx.engine import DQEngine  # type: ignore
 from databricks.sdk import WorkspaceClient
 from src import settings
-from src.enums import DQFailureType
+from src.enums import DQFailureLevel
 from src.logger import LOGGER
 
 if TYPE_CHECKING:
@@ -27,10 +27,10 @@ class DQHandler:
     def __init__(self, delta_table: "DeltaTable", dataframe: DataFrame):
         self.delta_table = delta_table
         self.dataframe = dataframe
-        self.checks = delta_table.checks
+        self.rules = delta_table.rules
 
     def _apply_checks(self) -> DataFrame | None:
-        _, quarantine_df = self.dq_engine.apply_checks_and_split(self.dataframe, self.checks)
+        _, quarantine_df = self.dq_engine.apply_checks_and_split(self.dataframe, self.rules)
         return quarantine_df
 
     @staticmethod
@@ -74,15 +74,15 @@ class DQHandler:
 
     def apply_and_save_checks(self):
         """Runs data quality checks on the DataFrame and handles any failures."""
-        if not self.checks:
+        if not self.rules:
             return
 
         quarantine_df = self._apply_checks()
         if quarantine_df.isEmpty():
             return
 
-        errors_df = self._get_failures(quarantine_df, DQFailureType.ERRORS)
-        warnings_df = self._get_failures(quarantine_df, DQFailureType.WARNINGS)
+        errors_df = self._get_failures(quarantine_df, DQFailureLevel.ERRORS)
+        warnings_df = self._get_failures(quarantine_df, DQFailureLevel.WARNINGS)
         unioned_df = errors_df.unionByName(warnings_df)
 
         dq_summary_df = self._add_job_ids_to_summary_df(unioned_df)

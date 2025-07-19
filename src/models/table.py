@@ -25,7 +25,7 @@ class DeltaTable:
     columns: list[DeltaColumn]
     comment: str = ""
     delta_properties: dict[str, str] = field(default_factory=dict)
-    checks: list[DQRule] = field(default_factory=list)
+    rules: list[DQRule] = field(default_factory=list)
 
     @property
     def full_name(self) -> str:

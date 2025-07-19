@@ -2,10 +2,7 @@ from pyspark.sql import SparkSession
 import pyspark.sql.types as T
 from delta import DeltaTable
 
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from src.models.table import DeltaColumn, DeltaTable
+from src.models.table import DeltaColumn, DeltaTable
 
 
 class DeltaTableManager():

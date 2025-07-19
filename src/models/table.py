@@ -4,7 +4,7 @@ from typing import ClassVar, TYPE_CHECKING
 import pyspark.sql.types as T
 from pyspark.sql import DataFrame, SparkSession
 
-from enums import DeltaTableProperty
+from src.enums import DeltaTableProperty
 
 if TYPE_CHECKING:
     from src.models.table_manager import DeltaTableManager

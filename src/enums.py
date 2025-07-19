@@ -14,9 +14,17 @@ class Medallion(StrEnum):
     BRONZE = "bronze"
     SILVER = "silver"
     GOLD = "gold"
+    METADATA = "metadata"
 
 
 class DeltaTableProperty(StrEnum):
     """Delta Table properties."""
 
     COLUMN_MAPPING_MODE = "delta.columnMapping.mode"
+
+
+class DQFailureType(StrEnum):
+    """Failure type for DQX."""
+
+    ERRORS = "_errors"
+    WARNINGS = "_warnings"

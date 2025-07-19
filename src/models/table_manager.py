@@ -1,8 +1,13 @@
+from typing import TYPE_CHECKING
+
 import pyspark.sql.types as T
 from delta import DeltaTable as dt
 from pyspark.sql import SparkSession
 
 from src.models.column import DeltaColumn
+
+if TYPE_CHECKING:
+    from src.models.table import DeltaTable
 
 
 class DeltaTableManager:
@@ -10,6 +15,9 @@ class DeltaTableManager:
 
     def __init__(self, delta_table: "DeltaTable"):
         self.delta_table = delta_table
+        self.catalog_name = delta_table.catalog_name
+        self.schema_name = delta_table.schema_name
+        self.table_name = delta_table.table_name
 
     def ensure(self, spark: SparkSession) -> None:  # pragma: no cover
         """Ensure that the table:
@@ -43,19 +51,22 @@ class DeltaTableManager:
         return set(self._get_existing_schema(spark).fieldNames())
 
     def _get_existing_column_comments(self, spark: SparkSession) -> dict[str, str]:
-        return {field.name: field.metadata.get("comment", "") for field in self._get_existing_schema(spark)}
+        return {
+            field.name: field.metadata.get("comment", "")
+            for field in self._get_existing_schema(spark)
+        }
 
     def _get_existing_primary_key_column_names(self, spark: SparkSession) -> list[str]:
         rows = spark.sql(
             f"""
             SELECT key_column_usage.column_name
-            FROM   {self.delta_table.catalog_name}.INFORMATION_SCHEMA.key_column_usage
+            FROM   {self.catalog_name}.INFORMATION_SCHEMA.key_column_usage
             WHERE  EXISTS (
                      SELECT *
-                     FROM   {self.delta_table.catalog_name}.INFORMATION_SCHEMA.table_constraints
-                     WHERE  table_constraints.table_catalog = '{self.delta_table.catalog_name}'
-                     AND    table_constraints.table_schema = '{self.delta_table.schema_name}'
-                     AND    table_constraints.table_name = '{self.delta_table.table_name}'
+                     FROM   {self.catalog_name}.INFORMATION_SCHEMA.table_constraints
+                     WHERE  table_constraints.table_catalog = '{self.catalog_name}'
+                     AND    table_constraints.table_schema = '{self.schema_name}'
+                     AND    table_constraints.table_name = '{self.table_name}'
                      AND    table_constraints.constraint_catalog = key_column_usage.constraint_catalog
                      AND    table_constraints.constraint_schema = key_column_usage.constraint_schema
                      AND    table_constraints.constraint_name = key_column_usage.constraint_name
@@ -69,7 +80,11 @@ class DeltaTableManager:
 
     def _identify_missing_columns(self, spark: SparkSession) -> list[DeltaColumn]:
         existing_column_names = self._get_existing_column_names(spark)
-        return [column for column in self.delta_table.columns if column.name not in existing_column_names]
+        return [
+            column
+            for column in self.delta_table.columns
+            if column.name not in existing_column_names
+        ]
 
     def _identify_extra_column_names(self, spark: SparkSession) -> list[str]:
         existing_column_names = self._get_existing_column_names(spark)
@@ -105,7 +120,10 @@ class DeltaTableManager:
             spark.sql(f"COMMENT ON TABLE {self.delta_table.full_name} IS '{expected_comment}';")
 
     def _set_column_comment(self, column_name: str, comment: str, spark: SparkSession) -> None:
-        spark.sql(f"ALTER TABLE {self.delta_table.full_name} CHANGE COLUMN {column_name} COMMENT '{comment}';")
+        spark.sql(
+            f"ALTER TABLE {self.delta_table.full_name}"
+            f"CHANGE COLUMN {column_name} COMMENT '{comment}';"
+        )
 
     def _set_column_comments(self, spark: SparkSession) -> None:
         existing_column_comments = self._get_existing_column_comments(spark)
@@ -114,11 +132,14 @@ class DeltaTableManager:
                 continue
             expected_comment = column.comment or ""
             if expected_comment != existing_column_comments[column.name]:
-                self._set_column_comment(column_name=column.name, comment=expected_comment, spark=spark)
+                self._set_column_comment(
+                    column_name=column.name, comment=expected_comment, spark=spark
+                )
 
     def _ensure_delta_properties(self, spark: SparkSession) -> None:
         existing_properties = {
-            row["key"]: row["value"] for row in spark.sql(f"SHOW TBLPROPERTIES {self.delta_table.full_name};").collect()
+            row["key"]: row["value"]
+            for row in spark.sql(f"SHOW TBLPROPERTIES {self.delta_table.full_name};").collect()
         }
 
         properties_to_set = [
@@ -128,11 +149,16 @@ class DeltaTableManager:
         ]
 
         if properties_to_set:
-            spark.sql(f"ALTER TABLE {self.delta_table.full_name} SET TBLPROPERTIES ({', '.join(properties_to_set)});")
+            spark.sql(
+                f"ALTER TABLE {self.delta_table.full_name}"
+                f"SET TBLPROPERTIES ({', '.join(properties_to_set)});"
+            )
 
     def _add_missing_columns(self, spark: SparkSession) -> None:
         missing_columns = self._identify_missing_columns(spark)
-        columns_to_add = ", ".join([f"{column.name} {column.data_type.simpleString()}" for column in missing_columns])
+        columns_to_add = ", ".join(
+            [f"{column.name} {column.data_type.simpleString()}" for column in missing_columns]
+        )
         if columns_to_add:
             spark.sql(f"ALTER TABLE {self.delta_table.full_name} ADD COLUMNS ({columns_to_add});")
 
@@ -145,10 +171,15 @@ class DeltaTableManager:
         columns = self._identify_columns_with_nullability_changes(spark)
         for column in columns:
             operation = "DROP" if column.is_nullable else "SET"
-            spark.sql(f"ALTER TABLE {self.delta_table.full_name} ALTER COLUMN {column.name} {operation} NOT NULL;")
+            spark.sql(
+                f"ALTER TABLE {self.delta_table.full_name}"
+                f"ALTER COLUMN {column.name} {operation} NOT NULL"
+            )
 
     def _ensure_primary_keys(self, spark: SparkSession) -> None:
-        if self.delta_table.primary_key_column_names == self._get_existing_primary_key_column_names(spark):
+        if self.delta_table.primary_key_column_names == self._get_existing_primary_key_column_names(
+            spark
+        ):
             return
 
         spark.sql(f"ALTER TABLE {self.delta_table.full_name} DROP PRIMARY KEY IF EXISTS;")
@@ -156,9 +187,7 @@ class DeltaTableManager:
         if not self.delta_table.primary_key_column_names:
             return
 
-        primary_key_name = (
-            f"pk_{self.delta_table.catalog_name}_{self.delta_table.schema_name}_{self.delta_table.table_name}"
-        )
+        primary_key_name = f"pk_{self.catalog_name}_{self.schema_name}_{self.table_name}"
         spark.sql(
             f"ALTER TABLE {self.delta_table.full_name}"
             f" ADD CONSTRAINT {primary_key_name}"

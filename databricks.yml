@@ -17,17 +17,11 @@ targets:
     workspace:
       host: https://dbc-d833a3e1-6ac9.cloud.databricks.com
 
-  # The 'prod' target, used for production deployment.
   prod:
-    # We use 'mode: production' to indicate this is a production deployment.
-    # Doing so enables strict verification of the settings below.
     mode: production
     workspace:
       host: https://dbc-d833a3e1-6ac9.cloud.databricks.com
-      # We only have a single deployment copy for production, so we use a shared path.
       root_path: /Shared/.bundle/prod/${bundle.name}
     run_as:
-      # This runs as tom_corbin1@hotmail.com in production. We could also use a service principal here
-      # using service_principal_name (see https://docs.databricks.com/dev-tools/bundles/permissions.html).
       user_name: tom_corbin1@hotmail.com
     

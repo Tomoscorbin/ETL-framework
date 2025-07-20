@@ -1,0 +1,22 @@
+resources:
+  jobs:
+    data_quality_alerts:
+      name: data_quality_alerts
+      tasks:
+        - task_key: display_failures
+          sql_task:
+            file:
+              path: ../../src/metadata/display_failures.sql
+            warehouse_id: ${var.warehouse_id}
+
+        - task_key: check_failures
+          depends_on:
+            - task_key: display_failures
+          sql_task:
+            file:
+              path: ../../src/metadata/check_failures.sql
+            warehouse_id: ${var.warehouse_id}
+
+      email_notifications:
+        on_failure:
+          - tom_corbin1@hotmail.com

@@ -6,6 +6,7 @@ jobs:
   lint:
     name: "Lint"
     runs-on: ubuntu-latest
+    working_directory: .
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v4

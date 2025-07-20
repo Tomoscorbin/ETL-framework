@@ -52,7 +52,7 @@ class DQHandler:
             )
         )
 
-    def _write_dq_summary(self, summary_df: DataFrame) -> None:
+    def _save_checks_to_table(self, summary_df: DataFrame) -> None:
         summary_df.write.saveAsTable(name=self.dq_table_name, mode="append", format="delta")
 
     def _add_metadata_columns(self, dq_summary_df: DataFrame) -> DataFrame:
@@ -65,29 +65,28 @@ class DQHandler:
             }
         )
 
+    def _handle_warnings(self, quarantine_df: DataFrame) -> None:
+        warnings_df = self._get_failures(quarantine_df, DQFailureSeverity.WARNINGS)
+        if not warnings_df.isEmpty():
+            LOGGER.warning(f"DQ warning(s) detected for {self.delta_table.full_name}.")
+            self._save_checks_to_table(warnings_df)
+
+    def _handle_errors(self, quarantine_df: DataFrame) -> None:
+        errors_df = self._get_failures(quarantine_df, DQFailureSeverity.ERRORS)
+        if not errors_df.isEmpty():
+            self._save_checks_to_table(errors_df)
+            message = f"DQ ERROR(s) detected for {self.delta_table.full_name}."
+            LOGGER.error(message)
+            raise RuntimeError(message)
+
     def apply_and_save_checks(self):
         """Runs data quality checks on the DataFrame and handles any failures."""
         if not self.rules:
             return
 
         quarantine_df = self._apply_checks()
-        if quarantine_df.isEmpty():
-            return
-
-        errors_df = self._get_failures(quarantine_df, DQFailureSeverity.ERRORS)
-        warnings_df = self._get_failures(quarantine_df, DQFailureSeverity.WARNINGS)
-        unioned_df = errors_df.unionByName(warnings_df)
-
-        dq_summary_df = self._add_metadata_columns(unioned_df)
-        self._write_dq_summary(dq_summary_df)
-
-        if not warnings_df.isEmpty():
-            LOGGER.warning(f"DQ warning(s) detected for {self.delta_table.full_name}.")
-
-        if not errors_df.isEmpty():
-            message = f"DQ ERROR(s) detected for {self.delta_table.full_name}."
-            LOGGER.error(message)
-            raise RuntimeError(message)
+        self._handle_warnings(quarantine_df)
+        self._handle_errors(quarantine_df)
 
     @staticmethod
     def _get_job_ids() -> tuple[Any, Any]:

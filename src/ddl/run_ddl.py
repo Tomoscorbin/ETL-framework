@@ -6,14 +6,11 @@ sys.path.append(str(Path().absolute().parents[1]))
 from pyspark.sql import SparkSession
 
 import src
-from src import settings
-from src.ddl.utils import ensure_all_delta_tables, ensure_all_schemas
-from src.enums import Medallion
+from src.ddl.utils import ensure_all_delta_tables
 
 
 def run_ddl(spark: SparkSession) -> None:
     """Orchestrate DDL operations."""
-    ensure_all_schemas(schema_names=Medallion, catalog_name=settings.CATALOG, spark=spark)
     ensure_all_delta_tables(package=src, spark=spark)
 
 

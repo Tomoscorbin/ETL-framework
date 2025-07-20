@@ -48,22 +48,6 @@ def _ensure_delta_tables_exists(
         raise RuntimeError(f"Failed to ensure tables: {tables_with_exceptions}")
 
 
-def _create_schema(schema_name: str, catalog_name: str, spark: SparkSession) -> None:
-    qualified_schema_name = f"{catalog_name}.{schema_name}"
-    spark.sql(f"CREATE SCHEMA IF NOT EXISTS {qualified_schema_name}")
-
-
-def _ensure_schema(schema_name: str, catalog_name: str, spark: SparkSession) -> None:
-    _create_schema(schema_name=schema_name, catalog_name=catalog_name, spark=spark)
-    # TODO: set permissions on schemas
-
-
-def ensure_all_schemas(schema_names: Iterable[str], catalog_name: str, spark: SparkSession) -> None:
-    """Ensure all schemas exist in Unity Catalog."""
-    for schema_name in schema_names:
-        _ensure_schema(schema_name=schema_name, catalog_name=catalog_name, spark=spark)
-
-
 def ensure_all_delta_tables(package: ModuleType, spark: SparkSession) -> None:
     """Ensure all delta tables exist in Unity Catalog."""
     tables_to_create = []

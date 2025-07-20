@@ -17,7 +17,7 @@ if TYPE_CHECKING:
 
 class DQHandler:
     """
-    Runs Databricks Labs DQx checks on a DataFrame, writes failures to a Delta
+    Runs Databricks Labs DQx checks on a DataFrame, writes failures to a
     DQ table, and aborts the pipeline when ERROR-level failures occur.
     """
 
@@ -42,7 +42,7 @@ class DQHandler:
                 "failure.columns",
                 "failure.function",
                 "failure.run_time",
-                F.lit(severity_stripped).alias("severity")
+                F.lit(severity_stripped).alias("severity"),
             )
             .distinct()
         )
@@ -68,14 +68,12 @@ class DQHandler:
             warnings_df = self._add_metadata_columns(warnings_df)
             self._save_checks_to_table(warnings_df)
 
-
     def _handle_errors(self, quarantine_df: DataFrame) -> None:
         errors_df = self._get_failures(quarantine_df, DQFailureSeverity.ERRORS)
         if not errors_df.isEmpty():
             errors_df = self._add_metadata_columns(errors_df)
             self._save_checks_to_table(errors_df)
             raise RuntimeError(f"DQ ERROR(s) detected for {self.delta_table.full_name}.")
-
 
     def apply_and_save_checks(self):
         """Runs data quality checks on the DataFrame and handles any failures."""
@@ -85,7 +83,6 @@ class DQHandler:
         quarantine_df = self._apply_checks()
         self._handle_warnings(quarantine_df)
         self._handle_errors(quarantine_df)
-
 
     @staticmethod
     def _get_job_ids() -> tuple[Any, Any]:

@@ -23,7 +23,7 @@ transaction = DeltaTable(
         DeltaColumn(name="card_id", data_type=T.LongType(), is_nullable=False),
         DeltaColumn(name="amount", data_type=T.DecimalType(6, 2), is_nullable=False),
         DeltaColumn(name="transaction_type", data_type=T.StringType(), is_nullable=False),
-        DeltaColumn(name="mcc", data_type=T.StringType(), is_nullable=False),
+        DeltaColumn(name="mcc", data_type=T.LongType(), is_nullable=False),
     ],
     rules=[
         DQRowRule(

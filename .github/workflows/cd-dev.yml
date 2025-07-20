@@ -4,7 +4,9 @@ on:
   push:
     branches: main
 
+jobs:
   deploy-bundle:
+    name: "Deploy bundle"
     runs-on: ubuntu-latest
     env:
       DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_PAT }}

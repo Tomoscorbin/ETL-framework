@@ -24,17 +24,14 @@ class DQHandler:
     dq_engine = DQEngine(WorkspaceClient())
     dq_table_name = f"{settings.CATALOG}.metadata.data_quality_checks"
 
-
     def __init__(self, delta_table: "DeltaTable", dataframe: DataFrame):
         self.delta_table = delta_table
         self.dataframe = dataframe
         self.rules = delta_table.rules
 
-
     def _apply_checks(self) -> DataFrame | None:
         _, quarantine_df = self.dq_engine.apply_checks_and_split(self.dataframe, self.rules)
         return quarantine_df
-
 
     def _get_failures(self, quarantine_df: DataFrame, severity: str) -> DataFrame:
         severity_stripped = severity.replace("_", "")
@@ -55,10 +52,8 @@ class DQHandler:
             )
         )
 
-
     def _write_dq_summary(self, summary_df: DataFrame) -> None:
         summary_df.write.saveAsTable(name=self.dq_table_name, mode="append", format="delta")
-
 
     def _add_metadata_columns(self, dq_summary_df: DataFrame) -> DataFrame:
         job_id, run_id = self._get_job_ids()
@@ -69,7 +64,6 @@ class DQHandler:
                 "date": F.current_date(),
             }
         )
-
 
     def apply_and_save_checks(self):
         """Runs data quality checks on the DataFrame and handles any failures."""
@@ -94,7 +88,6 @@ class DQHandler:
             message = f"DQ ERROR(s) detected for {self.delta_table.full_name}."
             LOGGER.error(message)
             raise RuntimeError(message)
-
 
     @staticmethod
     def _get_job_ids() -> tuple[Any, Any]:

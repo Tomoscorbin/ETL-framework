@@ -18,7 +18,7 @@ transaction = DeltaTable(
     catalog_name=settings.CATALOG,
     columns=[
         DeltaColumn(name="id", data_type=T.LongType(), is_primary_key=True, is_nullable=False),
-        DeltaColumn(name="timestamp", data_type=T.DateType(), is_nullable=False),
+        DeltaColumn(name="timestamp", data_type=T.TimestampType(), is_nullable=False),
         DeltaColumn(name="client_id", data_type=T.LongType(), is_nullable=False),
         DeltaColumn(name="card_id", data_type=T.LongType(), is_nullable=False),
         DeltaColumn(name="amount", data_type=T.DecimalType(6, 2), is_nullable=False),

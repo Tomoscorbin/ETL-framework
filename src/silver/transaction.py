@@ -23,7 +23,6 @@ transaction = DeltaTable(
         DeltaColumn(name="transaction_type", data_type=T.StringType(), is_nullable=False),
         DeltaColumn(name="mcc", data_type=T.StringType(), is_nullable=False),
     ],
-
 )
 
 

@@ -1,13 +1,13 @@
 resources:
   jobs:
-    silver:
+    etl_silver:
       environments:
         - environment_key: default
           spec:
             environment_version: 3
             dependencies: 
               - databricks-labs-dqx
-      name: silver
+      name: etl_silver
       schedule:
         # Run every day at 8:30 AM
         quartz_cron_expression: '44 30 8 * * ?'

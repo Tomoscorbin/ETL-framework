@@ -14,6 +14,7 @@ data_quality_checks = DeltaTable(
     catalog_name=settings.CATALOG,
     columns=[
         DeltaColumn(name="date", data_type=T.DateType(), is_nullable=False),
+        DeltaColumn(name="severity", data_type=T.StringType(), is_nullable=False),
         DeltaColumn(name="table_name", data_type=T.StringType(), is_nullable=False),
         DeltaColumn(name="check_name", data_type=T.StringType(), is_nullable=False),
         DeltaColumn(name="columns", data_type=T.ArrayType(T.StringType()), is_nullable=False),

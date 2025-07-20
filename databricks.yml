@@ -2,6 +2,7 @@ bundle:
   name: etl-demo
 
 include:
+  - databricks/*.yml
   - databricks/jobs/*.yml
 
 targets:

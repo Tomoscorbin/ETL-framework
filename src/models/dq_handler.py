@@ -8,7 +8,7 @@ from pyspark.sql import DataFrame
 from databricks.labs.dqx.engine import DQEngine  # type: ignore
 from databricks.sdk import WorkspaceClient
 from src import settings
-from src.enums import DQFailureLevel
+from src.enums import DQFailureSeverity
 from src.logger import LOGGER
 
 if TYPE_CHECKING:
@@ -33,10 +33,10 @@ class DQHandler:
         _, quarantine_df = self.dq_engine.apply_checks_and_split(self.dataframe, self.rules)
         return quarantine_df
 
-    @staticmethod
-    def _get_failures(quarantine_df: DataFrame, failure_type: str) -> DataFrame:
+    def _get_failures(self, quarantine_df: DataFrame, severity: str) -> DataFrame:
+        severity_stripped = severity.replace("_", "")
         return (
-            quarantine_df.select(F.explode(F.col(failure_type)).alias("failure"))
+            quarantine_df.select(F.explode(F.col(severity)).alias("failure"))
             .select(
                 F.col("failure.name").alias("check_name"),
                 "failure.columns",
@@ -44,14 +44,14 @@ class DQHandler:
                 "failure.run_time",
             )
             .distinct()
+            .withColumns({
+                "severity": F.lit(severity_stripped),
+                 "table_name": F.lit(self.delta_table.full_name)
+            })
         )
 
     def _write_dq_summary(self, summary_df: DataFrame) -> None:
-        (
-            summary_df.withColumn(
-                "table_name", F.lit(self.delta_table.full_name)
-            ).write.saveAsTable(name=self.dq_table_name, mode="append", format="delta")
-        )
+        summary_df.write.saveAsTable(name=self.dq_table_name, mode="append", format="delta")
 
     @staticmethod
     def _get_job_ids() -> tuple[Any, Any]:
@@ -62,7 +62,7 @@ class DQHandler:
 
         return args.job_id, args.run_id
 
-    def _add_job_ids_to_summary_df(self, dq_summary_df: DataFrame) -> DataFrame:
+    def _add_metadata_columns(self, dq_summary_df: DataFrame) -> DataFrame:
         job_id, run_id = self._get_job_ids()
         return dq_summary_df.withColumns(
             {
@@ -81,11 +81,11 @@ class DQHandler:
         if quarantine_df.isEmpty():
             return
 
-        errors_df = self._get_failures(quarantine_df, DQFailureLevel.ERRORS)
-        warnings_df = self._get_failures(quarantine_df, DQFailureLevel.WARNINGS)
+        errors_df = self._get_failures(quarantine_df, DQFailureSeverity.ERRORS)
+        warnings_df = self._get_failures(quarantine_df, DQFailureSeverity.WARNINGS)
         unioned_df = errors_df.unionByName(warnings_df)
 
-        dq_summary_df = self._add_job_ids_to_summary_df(unioned_df)
+        dq_summary_df = self._add_metadata_columns(unioned_df)
         self._write_dq_summary(dq_summary_df)
 
         if not warnings_df.isEmpty():

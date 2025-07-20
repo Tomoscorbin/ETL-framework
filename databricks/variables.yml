@@ -1,0 +1,5 @@
+variables:
+  warehouse_id:
+    description: "SQL warehouse"
+    lookup:
+      warehouse: "Serverless Starter Warehouse"

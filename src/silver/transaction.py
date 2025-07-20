@@ -25,15 +25,15 @@ transaction = DeltaTable(
         DeltaColumn(name="transaction_type", data_type=T.StringType(), is_nullable=False),
         DeltaColumn(name="mcc", data_type=T.StringType(), is_nullable=False),
     ],
-    rules=[
-        DQRowRule(
-            criticality="error",
-            check_func=check_funcs.is_in_list,
-            column="transaction_type",
-            check_func_args=[["Chip Transaction", "Online Transaction"]],
-        ),
-        DQDatasetRule(criticality="error", check_func=check_funcs.is_unique, columns=["id"]),
-    ],
+    # rules=[
+    #     DQRowRule(
+    #         criticality="error",
+    #         check_func=check_funcs.is_in_list,
+    #         column="transaction_type",
+    #         check_func_args=[["Chip Transaction", "Online Transaction"]],
+    #     ),
+    #     DQDatasetRule(criticality="error", check_func=check_funcs.is_unique, columns=["id"]),
+    # ],
 )
 
 

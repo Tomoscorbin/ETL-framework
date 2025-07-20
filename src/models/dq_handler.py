@@ -55,9 +55,9 @@ class DQHandler:
     def _save_checks_to_table(self, summary_df: DataFrame) -> None:
         summary_df.write.saveAsTable(name=self.dq_table_name, mode="append", format="delta")
 
-    def _add_metadata_columns(self, dq_summary_df: DataFrame) -> DataFrame:
+    def _add_metadata_columns(self, dq_checks_df: DataFrame) -> DataFrame:
         job_id, run_id = self._get_job_ids()
-        return dq_summary_df.withColumns(
+        return dq_checks_df.withColumns(
             {
                 "job_id": F.lit(job_id).cast(T.LongType()),
                 "run_id": F.lit(run_id).cast(T.LongType()),
@@ -69,11 +69,13 @@ class DQHandler:
         warnings_df = self._get_failures(quarantine_df, DQFailureSeverity.WARNINGS)
         if not warnings_df.isEmpty():
             LOGGER.warning(f"DQ warning(s) detected for {self.delta_table.full_name}.")
+            warnings_df = self._add_metadata_columns(warnings_df)
             self._save_checks_to_table(warnings_df)
 
     def _handle_errors(self, quarantine_df: DataFrame) -> None:
         errors_df = self._get_failures(quarantine_df, DQFailureSeverity.ERRORS)
         if not errors_df.isEmpty():
+            errors_df = self._add_metadata_columns(errors_df)
             self._save_checks_to_table(errors_df)
             message = f"DQ ERROR(s) detected for {self.delta_table.full_name}."
             LOGGER.error(message)

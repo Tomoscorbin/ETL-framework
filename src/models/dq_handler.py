@@ -42,14 +42,9 @@ class DQHandler:
                 "failure.columns",
                 "failure.function",
                 "failure.run_time",
+                F.lit(severity_stripped).alias("severity")
             )
             .distinct()
-            .withColumns(
-                {
-                    "severity": F.lit(severity_stripped),
-                    "table_name": F.lit(self.delta_table.full_name),
-                }
-            )
         )
 
     def _save_checks_to_table(self, summary_df: DataFrame) -> None:
@@ -59,6 +54,7 @@ class DQHandler:
         job_id, run_id = self._get_job_ids()
         return dq_checks_df.withColumns(
             {
+                "table_name": F.lit(self.delta_table.full_name),
                 "job_id": F.lit(job_id).cast(T.LongType()),
                 "run_id": F.lit(run_id).cast(T.LongType()),
                 "date": F.current_date(),

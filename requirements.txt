@@ -1,7 +1,0 @@
-ruff==0.12.0
-mypy==1.17.0
-delta-spark==4.0.0
-pyarrow==21.0.0
-pyspark==4.0.0
-databricks-labs-dqx==0.7.0
-Sphinx==8.2.3

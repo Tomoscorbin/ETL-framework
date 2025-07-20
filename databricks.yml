@@ -1,24 +1,21 @@
 bundle:
-  name: etl-demo
+  name: etl-framework
 
 include:
   - databricks/*.yml
   - databricks/jobs/*.yml
 
 targets:
-  # The 'dev' target, for development purposes. This target is the default.
+  # The manual dev target, for development purposes. This target is the default.
+  manual:
+      mode: development
+      default: true
+      workspace:
+        host: https://dbc-d833a3e1-6ac9.cloud.databricks.com
+
   dev:
-    # We use 'mode: development' to indicate this is a personal development copy:
-    # - Deployed resources get prefixed with '[dev user_name]'
-    # - Any job schedules and triggers are paused by default
-    mode: development
-    default: true
     workspace:
       host: https://dbc-d833a3e1-6ac9.cloud.databricks.com
-  
-  # staging:
-  #   workspace:
-  #     host: https://dbc-d833a3e1-6ac9.cloud.databricks.com
 
   # The 'prod' target, used for production deployment.
   prod:

@@ -7,8 +7,6 @@ import pyspark.sql.functions as F
 import pyspark.sql.types as T
 from pyspark.sql import Column
 
-from databricks.labs.dqx import check_funcs  # type: ignore
-from databricks.labs.dqx.rule import DQDatasetRule, DQRowRule  # type: ignore
 from src import settings
 from src.models.table import DeltaColumn, DeltaTable
 
@@ -24,15 +22,6 @@ transaction = DeltaTable(
         DeltaColumn(name="amount", data_type=T.DecimalType(6, 2), is_nullable=False),
         DeltaColumn(name="transaction_type", data_type=T.StringType(), is_nullable=False),
         DeltaColumn(name="mcc", data_type=T.StringType(), is_nullable=False),
-    ],
-    rules=[
-        DQRowRule(
-            criticality="error",
-            check_func=check_funcs.is_in_list,
-            column="transaction_type",
-            check_func_args=[["Chip Transaction", "Online Transaction"]],
-        ),
-        DQDatasetRule(criticality="error", check_func=check_funcs.is_unique, columns=["id"]),
     ],
 )
 

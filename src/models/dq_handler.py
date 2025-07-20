@@ -55,15 +55,6 @@ class DQHandler:
     def _write_dq_summary(self, summary_df: DataFrame) -> None:
         summary_df.write.saveAsTable(name=self.dq_table_name, mode="append", format="delta")
 
-    @staticmethod
-    def _get_job_ids() -> tuple[Any, Any]:
-        p = ArgumentParser()
-        p.add_argument("--job_id", dest="job_id", default=None)
-        p.add_argument("--run_id", dest="run_id", default=None)
-        args, _ = p.parse_known_args()
-
-        return args.job_id, args.run_id
-
     def _add_metadata_columns(self, dq_summary_df: DataFrame) -> DataFrame:
         job_id, run_id = self._get_job_ids()
         return dq_summary_df.withColumns(
@@ -97,3 +88,12 @@ class DQHandler:
             message = f"DQ ERROR(s) detected for {self.delta_table.full_name}."
             LOGGER.error(message)
             raise RuntimeError(message)
+
+    @staticmethod
+    def _get_job_ids() -> tuple[Any, Any]:
+        p = ArgumentParser()
+        p.add_argument("--job_id", dest="job_id", default=None)
+        p.add_argument("--run_id", dest="run_id", default=None)
+        args, _ = p.parse_known_args()
+
+        return args.job_id, args.run_id

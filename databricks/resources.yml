@@ -1,0 +1,11 @@
+resources:
+  schemas:
+    bronze:
+      name: bronze
+      catalog_name: ${bundle.target}
+    silver:
+      name: silver
+      catalog_name: ${bundle.target}
+    gold:
+      name: gold
+      catalog_name: ${bundle.target}

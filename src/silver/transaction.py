@@ -27,7 +27,7 @@ transaction = DeltaTable(
     ],
     rules=[
         DQRowRule(
-            criticality="warning",
+            criticality="warn",
             check_func=check_funcs.is_in_list,
             column="transaction_type",
             check_func_args=[["Correct value"]],

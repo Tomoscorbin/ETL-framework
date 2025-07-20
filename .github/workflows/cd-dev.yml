@@ -1,0 +1,32 @@
+name: CD
+concurrency: promotion
+on:
+  push:
+    branches: main
+
+  deploy-bundle:
+    runs-on: ubuntu-latest
+    env:
+      DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_PAT }}
+      DATABRICKS_BUNDLE_ENV: dev
+    steps:
+      - uses: actions/checkout@v3
+      - uses: databricks/setup-cli@main
+      - run: databricks bundle deploy
+      - run: databricks bundle run ddl
+
+
+  # deploy-prod:
+  #   needs: deploy-dev
+  #   runs-on: ubuntu-latest
+
+  #   steps:
+  #     - uses: actions/checkout@v3
+  #     - uses: databricks/setup-cli@main
+  #     - run: databricks bundle validate
+  #     - run: databricks bundle deploy
+
+  #   environment: prod
+  #   env:
+  #     DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_PAT }}
+  #     DATABRICKS_BUNDLE_ENV: prod

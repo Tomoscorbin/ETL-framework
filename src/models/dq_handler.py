@@ -44,10 +44,12 @@ class DQHandler:
                 "failure.run_time",
             )
             .distinct()
-            .withColumns({
-                "severity": F.lit(severity_stripped),
-                 "table_name": F.lit(self.delta_table.full_name)
-            })
+            .withColumns(
+                {
+                    "severity": F.lit(severity_stripped),
+                    "table_name": F.lit(self.delta_table.full_name),
+                }
+            )
         )
 
     def _write_dq_summary(self, summary_df: DataFrame) -> None:

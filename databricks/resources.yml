@@ -9,3 +9,6 @@ resources:
     gold:
       name: gold
       catalog_name: ${bundle.target}
+    metadata:
+      name: metadata
+      catalog_name: ${bundle.target}

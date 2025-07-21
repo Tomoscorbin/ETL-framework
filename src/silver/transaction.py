@@ -26,13 +26,13 @@ transaction = DeltaTable(
         DeltaColumn(name="mcc", data_type=T.LongType(), is_nullable=False),
     ],
     rules=[
+        DQDatasetRule(criticality="error", check_func=check_funcs.is_unique, columns=["id"]),
         DQRowRule(
             criticality="warn",
             check_func=check_funcs.is_in_list,
             column="transaction_type",
             check_func_args=[["Correct value"]],
         ),
-        DQDatasetRule(criticality="error", check_func=check_funcs.is_unique, columns=["id"]),
     ],
 )
 

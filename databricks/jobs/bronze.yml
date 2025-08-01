@@ -1,7 +1,7 @@
 resources:
   jobs:
-    silver_etl:
-      name: silver_etl
+    bronze_etl:
+      name: bronze_etl
       environments:
         - environment_key: default
           spec:
@@ -9,10 +9,7 @@ resources:
             dependencies:
               - databricks-labs-dqx
       tasks:
-        - task_key: transaction
+        - task_key: transaction_data
           environment_key: default
           spark_python_task:
-            python_file: ../../src/silver/transaction.py
-            parameters:
-              - "--job_id={{job.id}}"
-              - "--run_id={{job.run_id}}"
+            python_file: ../../src/bronze/transaction_data.py

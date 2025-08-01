@@ -8,7 +8,8 @@ from pyspark.sql import DataFrame
 from databricks.labs.dqx.engine import DQEngine  # type: ignore
 from databricks.sdk import WorkspaceClient
 from src import settings
-from src.enums import DQFailureSeverity
+from src.constants import DATA_QUALITY_TABLE_NAME
+from src.enums import DQFailureSeverity, Medallion
 from src.logger import LOGGER
 
 if TYPE_CHECKING:
@@ -21,8 +22,8 @@ class DQHandler:
     DQ table, and aborts the pipeline when ERROR-level failures occur.
     """
 
-    dq_engine = DQEngine(WorkspaceClient())
-    dq_table_name = f"{settings.CATALOG}.metadata.data_quality_checks"
+    dq_engine: DQEngine = DQEngine(WorkspaceClient())
+    dq_table_name: str = f"{settings.CATALOG}.{Medallion.METADATA}.{DATA_QUALITY_TABLE_NAME}"
 
     def __init__(self, delta_table: "DeltaTable", dataframe: DataFrame):
         self.delta_table = delta_table

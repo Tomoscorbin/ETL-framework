@@ -2,7 +2,7 @@ from typing import TYPE_CHECKING
 
 from pyspark.sql import DataFrame
 
-from src.models.dq_handler import DQHandler
+from src.models.data_quality_handler import DQHandler
 
 if TYPE_CHECKING:
     from src.models.table import DeltaTable

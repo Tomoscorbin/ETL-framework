@@ -15,6 +15,6 @@ def run_ddl(spark: SparkSession) -> None:
 
 
 if __name__ == "__main__":
-    from src.settings import spark
+    from src.runtime import spark
 
     run_ddl(spark)

@@ -8,6 +8,18 @@ class Catalog(StrEnum):
     PROD = "prod"
 
 
+class SourceCatalog(StrEnum):
+    """Source catalog name in Unity Catalog."""
+
+    SOURCE = "source"
+
+
+class SourceSchema(StrEnum):
+    """Source schema name in Unity Catalog."""
+
+    RAW = "raw"
+
+
 class Medallion(StrEnum):
     """Layer in the medallion architecture."""
 

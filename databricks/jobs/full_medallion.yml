@@ -1,0 +1,17 @@
+resources:
+  jobs:
+    full_medallion:
+      name: full_medallion
+      schedule:
+        quartz_cron_expression: '0 30 8 * * ?'
+        timezone_id: UTC
+      tasks:
+        - task_key: bronze
+          run_job_task:
+            job_id: ${resources.jobs.bronze_etl.id}
+
+        - task_key: silver
+          run_job_task:
+            job_id: ${resources.jobs.silver_etl.id}
+          depends_on:
+            - task_key: bronze

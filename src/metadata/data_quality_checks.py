@@ -6,11 +6,13 @@ sys.path.append(str(Path().absolute().parents[1]))
 import pyspark.sql.types as T
 
 from src import settings
+from src.constants import DATA_QUALITY_TABLE_NAME
+from src.enums import Medallion
 from src.models.table import DeltaColumn, DeltaTable
 
-data_quality_checks = DeltaTable(
-    table_name="data_quality_checks",
-    schema_name="metadata",
+data_quality_checks: DeltaTable = DeltaTable(
+    table_name=DATA_QUALITY_TABLE_NAME,
+    schema_name=Medallion.METADATA,
     catalog_name=settings.CATALOG,
     columns=[
         DeltaColumn(name="date", data_type=T.DateType(), is_nullable=False),

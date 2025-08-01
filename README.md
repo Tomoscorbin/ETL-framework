@@ -40,3 +40,6 @@ DABS integrates with GitHub Actions to validate and deploy these YAML configurat
 ### 7. Software Engineering Standards
 Structured configuration (settings.py), enum-managed constants (enums.py), and centralized logging (logger.py) enforce maintainability and readability.
 Abstractions like DeltaTable and DeltaWriter isolate complexity and support reusable logic across pipelines.
+
+
+*Note: This project is an evolving demo framework. Some elements are partially implemented or stubbed for demonstration purposes.*

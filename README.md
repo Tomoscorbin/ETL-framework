@@ -1,5 +1,6 @@
-# ETL-demo
-A demo-grade ETL framework emphasising high-standard data engineering practices: CI/CD with GitHub Actions, medallion layering, testing, data quality, documentation, and Infrastructure as Code with DABS.
+# ETL-framework
+
+A demo ETL framework emphasising high-standard data engineering practices: CI/CD with GitHub Actions, medallion layering, testing, data quality, documentation, and Infrastructure as Code with DABS.
 
 # #🚦 Principles & Practices
 ### 1. Medallion Architecture (Bronze → Silver → Gold)

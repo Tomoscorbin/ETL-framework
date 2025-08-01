@@ -42,4 +42,4 @@ A demo ETL framework emphasising high-standard data engineering practices: CI/CD
 - Abstractions like DeltaTable and DeltaWriter isolate complexity and support reusable logic across pipelines.
 
 
-*Note: This project is an evolving demo framework. Some elements are partially implemented or stubbed for demonstration purposes.*
+*Note: This is an ongoing demo framework. Some elements are partially implemented or stubbed for demonstration purposes.*

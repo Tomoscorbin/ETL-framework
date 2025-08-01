@@ -26,7 +26,7 @@ Promote to prod upon successful dev deployments.
 
 ### 4. Testing & Code Quality
 Includes unit tests and integration tests, validating transforms, quality logic, and infrastructure using Pytest.
-Enforces linting with Pylint and static typing with MyPy.
+Enforces linting with Ruff and static typing with MyPy.
 
 ### 5. Documentation
 Fully Sphinx-documented (docs/) with autodoc configuration.

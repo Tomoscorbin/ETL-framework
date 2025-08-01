@@ -2,7 +2,7 @@
 
 A demo ETL framework emphasising high-standard data engineering practices: CI/CD with GitHub Actions, medallion layering, testing, data quality, documentation, and Infrastructure as Code with DABS.
 
-# #🚦 Principles & Practices
+## Principles & Practices🚦
 ### Medallion Architecture (Bronze → Silver → Gold) 🪙 
 - Structured layering from raw ingestion to clean and consumable datasets. Bronze stores raw, Silver applies transformations and joins, and Gold produces analytics-ready outputs. This enables traceability and maintainability.
 

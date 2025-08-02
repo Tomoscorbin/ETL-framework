@@ -1,5 +1,0 @@
-transaction_source:
-  catalog: ${SOURCE_CATALOG}
-  schema: raw
-  table: transactions_data
-  description: Raw transaction data from source

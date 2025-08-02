@@ -8,7 +8,7 @@ resources:
       tasks:
         - task_key: bronze
           run_job_task:
-            job_id: ${resources.jobs.bronze_etl.id}
+            job_id: ${resources.jobs.bronze_ingest.id}
 
         - task_key: silver
           run_job_task:

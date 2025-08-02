@@ -48,16 +48,23 @@ product = DeltaTable(
 )
 
 
+DIGITS_ONLY_REGEX: str = r"^\d+$"
+
+
 def main(spark: SparkSession) -> None:
     """Execute the pipeline."""
     source_table_name = f"{settings.CATALOG}.{Medallion.BRONZE}.products"
     raw_products_df = spark.table(source_table_name)
 
-    products_cleaned_df = raw_products_df.select(
-        "product_name",
-        F.col("product_id").cast(T.IntegerType()).alias("product_id"),
-        F.col("aisle_id").cast(T.IntegerType()).alias("aisle_id"),
-        F.col("department_id").cast(T.IntegerType()).alias("department_id"),
+    products_cleaned_df = (
+        raw_products_df.select(
+            "product_name",
+            F.col("product_id").cast(T.IntegerType()).alias("product_id"),
+            F.col("aisle_id").cast(T.IntegerType()).alias("aisle_id"),
+            F.col("department_id").cast(T.IntegerType()).alias("department_id"),
+        )
+        .filter(F.col("aisle_id").rlike(DIGITS_ONLY_REGEX))
+        .filter(F.col("department_id").rlike(DIGITS_ONLY_REGEX))
     )
 
     product.overwrite(products_cleaned_df)

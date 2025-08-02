@@ -1,6 +1,6 @@
 # ETL-framework 🏗️
 
-A demo ETL framework designed to showcase high-quality data engineering principles and practices. This project isn’t production-grade—it’s a reference implementation that brings together key patterns like medallion architecture, data quality enforcement, CI/CD with GitHub Actions, Infrastructure as Code (IaC) using Databricks Asset Bundles (DABs), automated documentation, and more. It's intended as a learning tool and best practice guide, demonstrating how to build reliable, maintainable, and secure data pipelines using modern tooling and engineering standards.
+A demo ETL framework designed to showcase high-quality data engineering principles and practices. This project isn’t production-grade - it’s a reference implementation that brings together key patterns like medallion architecture, data quality enforcement, CI/CD with GitHub Actions, Infrastructure as Code (IaC) using Databricks Asset Bundles (DABs), automated documentation, and more. It's intended as a learning tool and best practice guide, demonstrating how to build reliable, maintainable, and secure data pipelines using modern tooling and engineering standards.
 
 The pipeline is simulating a real-world online grocery analytics scenario: The business has asked for a dashboard to help category managers and supply chain analysts make better decisions around product placement, replenishment, and promotional effectiveness. They want to answer questions like:
 - Which products drive the most repeat purchases and should be prioritised?

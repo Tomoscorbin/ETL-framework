@@ -1,4 +1,5 @@
 from argparse import ArgumentParser
+from functools import cached_property
 from typing import TYPE_CHECKING, Any, cast
 
 import pyspark.sql.functions as F
@@ -22,13 +23,20 @@ class DQHandler:
     DQ table, and aborts the pipeline when ERROR-level failures occur.
     """
 
-    dq_engine: DQEngine = DQEngine(WorkspaceClient())
     dq_table_name: str = f"{settings.CATALOG}.{Medallion.METADATA}.{DATA_QUALITY_TABLE_NAME}"
 
     def __init__(self, delta_table: "DeltaTable", dataframe: DataFrame):
         self.delta_table = delta_table
         self.dataframe = dataframe
         self.rules = delta_table.rules
+
+    @cached_property
+    def dq_engine(self) -> DQEngine:
+        """
+        Instantiate a DQEngine on first access and cache it for this handler.
+        Keeps Spark from spinning up at import time.
+        """
+        return DQEngine(WorkspaceClient())
 
     def _apply_checks(self) -> DataFrame:
         _, quarantine_df = self.dq_engine.apply_checks_and_split(self.dataframe, self.rules)

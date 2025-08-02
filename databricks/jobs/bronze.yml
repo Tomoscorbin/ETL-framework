@@ -1,7 +1,7 @@
 resources:
   jobs:
-    bronze_etl:
-      name: bronze_etl
+    bronze_ingest:
+      name: bronze_ingest
       environments:
         - environment_key: default
           spec:
@@ -9,7 +9,7 @@ resources:
             dependencies:
               - databricks-labs-dqx
       tasks:
-        - task_key: transaction_data
+        - task_key: ingest
           environment_key: default
           spark_python_task:
-            python_file: ../../src/bronze/transaction_data.py
+            python_file: ../../src/bronze/ingest.py

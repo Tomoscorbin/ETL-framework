@@ -52,7 +52,7 @@ jobs:
         working-directory: .
 
       - name: Run tests
-        run: | # fail under 1% for development purposes 
+        run: | # fail under 1% for demo purposes 
           python -m pytest --include-spark-tests --cov=src 
           coverage xml --fail-under=1
             

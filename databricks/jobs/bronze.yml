@@ -1,6 +1,6 @@
 resources:
   jobs:
-    bronze_etl:
+    bronze_ingest:
       name: bronze_ingest
       environments:
         - environment_key: default

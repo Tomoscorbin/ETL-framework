@@ -5,7 +5,7 @@ import yaml
 from src import settings
 
 
-def load_table_config(table_key: str) -> dict:
+def load_table_config(table_key: str) -> dict[str, str]:
     """Load and resolve the source table config for the given key."""
     config_path = Path(__file__).parent / "source_tables.yml"
     with config_path.open("r") as f:
@@ -17,7 +17,7 @@ def load_table_config(table_key: str) -> dict:
     return _resolve_catalog_variables(full_config[table_key])
 
 
-def _resolve_catalog_variables(conf: dict) -> dict:
+def _resolve_catalog_variables(conf: dict[str, str]) -> dict[str, str]:
     """Resolve catalog, schema, and optional description from a config dict."""
     return {
         "catalog": _resolve(conf.get("catalog"), default=settings.SOURCE_CATALOG),
@@ -37,6 +37,6 @@ def _resolve(value: str | None, default: str) -> str:
     return value
 
 
-def get_fully_qualified_name(conf: dict) -> str:
+def get_fully_qualified_name(conf: dict[str, str]) -> str:
     """Return the full table name from a config in catalog.schema.table format."""
     return f"{conf['catalog']}.{conf['schema']}.{conf['table']}"

@@ -9,7 +9,8 @@ from pyspark.sql import SparkSession
 from src import settings
 from src.bronze.config.utils import get_fully_qualified_name, load_table_config
 from src.enums import Medallion
-from src.models.table import DeltaColumn, DeltaTable
+from src.models.column import DeltaColumn
+from src.models.table import DeltaTable
 
 bronze_transaction_data = DeltaTable(
     catalog_name=settings.CATALOG,
@@ -33,7 +34,7 @@ bronze_transaction_data = DeltaTable(
 )
 
 
-def main(spark: SparkSession):
+def main(spark: SparkSession) -> None:
     """Execute the pipeline."""
     conf = load_table_config("transaction_source")
     source_table_name = get_fully_qualified_name(conf)

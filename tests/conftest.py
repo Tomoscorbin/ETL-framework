@@ -7,7 +7,6 @@ from pyspark.sql import SparkSession
 _SPARK_FIXTURE_NAME = "spark_fixture"
 
 
-
 def quiet_py4j() -> None:
     """Turn down Spark logging during the test context."""
     logging.getLogger("py4j").setLevel(logging.WARN)

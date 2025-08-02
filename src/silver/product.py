@@ -56,8 +56,8 @@ def main(spark: SparkSession) -> None:
     source_table_name = f"{settings.CATALOG}.{Medallion.BRONZE}.products"
     raw_products_df = spark.table(source_table_name)
 
-    is_numeric_aisle_id = ~F.col("aisle_id").rlike(NUMERIC_ONLY_REGEX)
-    is_numeric_department_id = ~F.col("department_id").rlike(NUMERIC_ONLY_REGEX)
+    is_numeric_aisle_id = F.col("aisle_id").rlike(NUMERIC_ONLY_REGEX)
+    is_numeric_department_id = F.col("department_id").rlike(NUMERIC_ONLY_REGEX)
 
     products_cleaned_df = (
         raw_products_df.select(

@@ -9,7 +9,7 @@ if TYPE_CHECKING:
 
 
 class DeltaWriter:
-    """Delta Table writer."""
+    """Handles standardized writing of DataFrames to Delta Tables."""
 
     def __init__(self, delta_table: "DeltaTable", dataframe: DataFrame):
         self.delta_table = delta_table

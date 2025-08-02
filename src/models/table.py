@@ -65,3 +65,7 @@ class DeltaTable:
     def overwrite(self, dataframe: DataFrame) -> None:
         """Overwrite the table with the given dataframe."""
         DeltaWriter(delta_table=self, dataframe=dataframe).overwrite()
+
+    def read(self, spark: SparkSession) -> DataFrame:
+        """Read the DeltaTable as a Spark DataFrame."""
+        return spark.table(self.full_name)

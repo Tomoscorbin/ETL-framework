@@ -16,4 +16,4 @@ class DeltaColumn:
     @property
     def struct_field(self) -> T.StructField:
         """PySpark `StructField` representation of a column."""
-        return T.StructField(self.name, self.data_type, False)
+        return T.StructField(self.name, self.data_type, self.is_nullable)

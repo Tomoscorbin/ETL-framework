@@ -5,12 +5,15 @@ sys.path.append(str(Path().absolute().parents[1]))
 
 import pyspark.sql.functions as F
 import pyspark.sql.types as T
-from pyspark.sql import SparkSession
+from pyspark.sql import DataFrame, SparkSession
 
 from src import settings
 from src.enums import Medallion
 from src.models.column import DeltaColumn, ForeignKey
 from src.models.table import DeltaTable
+
+NUMERIC_ONLY_REGEX: str = r"^\d+$"
+
 
 product = DeltaTable(
     table_name="product",
@@ -48,19 +51,12 @@ product = DeltaTable(
 )
 
 
-NUMERIC_ONLY_REGEX: str = r"^\d+$"
-
-
-def main(spark: SparkSession) -> None:
-    """Execute the pipeline."""
-    source_table_name = f"{settings.CATALOG}.{Medallion.BRONZE}.products"
-    raw_products_df = spark.table(source_table_name)
-
+def clean_products(df: DataFrame) -> DataFrame:
+    """Alias, cast, and filter out non-numeric IDs."""
     is_numeric_aisle_id = F.col("aisle_id").rlike(NUMERIC_ONLY_REGEX)
     is_numeric_department_id = F.col("department_id").rlike(NUMERIC_ONLY_REGEX)
-
-    products_cleaned_df = (
-        raw_products_df
+    return (
+        df
         .filter(is_numeric_aisle_id)
         .filter(is_numeric_department_id)
         .select(
@@ -71,6 +67,13 @@ def main(spark: SparkSession) -> None:
         )
     )
 
+
+def main(spark: SparkSession) -> None:
+    """Execute the pipeline."""
+    source_table_name = f"{settings.CATALOG}.{Medallion.BRONZE}.products"
+    raw_products_df = spark.table(source_table_name)
+
+    products_cleaned_df = clean_products(raw_products_df)
     product.overwrite(products_cleaned_df)
 
 

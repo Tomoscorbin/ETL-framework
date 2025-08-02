@@ -5,7 +5,7 @@ sys.path.append(str(Path().absolute().parents[1]))
 
 import pyspark.sql.functions as F
 import pyspark.sql.types as T
-from pyspark.sql import SparkSession
+from pyspark.sql import DataFrame, SparkSession
 
 from src import settings
 from src.enums import Medallion
@@ -34,16 +34,20 @@ department = DeltaTable(
 )
 
 
+def clean_departments(df: DataFrame) -> DataFrame:
+    """Alias and cast columns."""
+    return df.select(
+        F.col("department_id").cast(T.IntegerType()).alias("department_id"),
+        F.col("department").alias("department_name"),
+    )
+
+
 def main(spark: SparkSession) -> None:
     """Execute the pipeline."""
     source_table_name = f"{settings.CATALOG}.{Medallion.BRONZE}.departments"
     raw_departments_df = spark.table(source_table_name)
 
-    departments_cleaned_df = raw_departments_df.select(
-        F.col("department_id").cast(T.IntegerType()).alias("department_id"),
-        F.col("department").alias("department_name"),
-    )
-
+    departments_cleaned_df = clean_departments(raw_departments_df)
     department.overwrite(departments_cleaned_df)
 
 

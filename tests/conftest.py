@@ -1,5 +1,4 @@
 import logging
-import os
 
 import pytest
 from pyspark.sql import SparkSession
@@ -7,9 +6,6 @@ from pyspark.sql import SparkSession
 # Names of fixture that require Spark to be available
 _SPARK_FIXTURE_NAME = "spark_fixture"
 
-
-def is_on_databricks() -> bool:
-    return os.getenv("DATABRICKS_RUNTIME_VERSION", None) is not None
 
 
 def quiet_py4j() -> None:

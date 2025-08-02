@@ -12,6 +12,9 @@ from src.enums import Medallion
 from src.models.column import DeltaColumn, ForeignKey
 from src.models.table import DeltaTable
 
+NUMERIC_ONLY_REGEX: str = r"^\d+$"
+
+
 product = DeltaTable(
     table_name="product",
     schema_name=Medallion.SILVER,
@@ -46,9 +49,6 @@ product = DeltaTable(
         ),
     ],
 )
-
-
-NUMERIC_ONLY_REGEX: str = r"^\d+$"
 
 
 def main(spark: SparkSession) -> None:

@@ -12,8 +12,8 @@ from src.enums import Medallion
 from src.models.column import DeltaColumn
 from src.models.table import DeltaTable
 
-aisles = DeltaTable(
-    table_name="aisles",
+aisle = DeltaTable(
+    table_name="aisle",
     schema_name=Medallion.SILVER,
     catalog_name=settings.CATALOG,
     columns=[
@@ -36,13 +36,15 @@ aisles = DeltaTable(
 
 def main(spark: SparkSession) -> None:
     """Execute the pipeline."""
-    raw_aisles_df = spark.table(f"{settings.CATALOG}.{Medallion.BRONZE}.aisles")
+    source_table_name = f"{settings.CATALOG}.{Medallion.BRONZE}.aisles"
+    raw_aisles_df = spark.table(source_table_name)
+    
     aisles_cleaned_df = raw_aisles_df.select(
         F.col("aisle_id").cast(T.IntegerType()).alias("aisle_id"),
         F.col("aisle").alias("aisle_name"),
     )
 
-    aisles.overwrite(aisles_cleaned_df)
+    aisle.overwrite(aisles_cleaned_df)
 
 
 if __name__ == "__main__":

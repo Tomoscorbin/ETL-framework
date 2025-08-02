@@ -5,7 +5,7 @@ sys.path.append(str(Path().absolute().parents[1]))
 
 import pyspark.sql.functions as F
 import pyspark.sql.types as T
-from pyspark.sql import SparkSession
+from pyspark.sql import DataFrame, SparkSession
 
 from src import settings
 from src.enums import Medallion
@@ -34,16 +34,20 @@ aisle = DeltaTable(
 )
 
 
+def clean_aisles(df: DataFrame) -> DataFrame:
+    """Alias and cast columns."""
+    return df.select(
+        F.col("aisle_id").cast(T.IntegerType()).alias("aisle_id"),
+        F.col("aisle").alias("aisle_name"),
+    )
+
+
 def main(spark: SparkSession) -> None:
     """Execute the pipeline."""
     source_table_name = f"{settings.CATALOG}.{Medallion.BRONZE}.aisles"
     raw_aisles_df = spark.table(source_table_name)
 
-    aisles_cleaned_df = raw_aisles_df.select(
-        F.col("aisle_id").cast(T.IntegerType()).alias("aisle_id"),
-        F.col("aisle").alias("aisle_name"),
-    )
-
+    aisles_cleaned_df = clean_aisles(raw_aisles_df)
     aisle.overwrite(aisles_cleaned_df)
 
 

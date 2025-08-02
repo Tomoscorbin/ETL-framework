@@ -5,7 +5,7 @@ sys.path.append(str(Path().absolute().parents[1]))
 
 import pyspark.sql.functions as F
 import pyspark.sql.types as T
-from pyspark.sql import SparkSession
+from pyspark.sql import DataFrame, SparkSession
 
 from src import settings
 from src.enums import Medallion
@@ -64,12 +64,9 @@ order = DeltaTable(
 )
 
 
-def main(spark: SparkSession) -> None:
-    """Execute the pipeline."""
-    source_table_name = f"{settings.CATALOG}.{Medallion.BRONZE}.orders"
-    raw_orders_df = spark.table(source_table_name)
-
-    orders_cleaned_df = raw_orders_df.select(
+def clean_orders(df: DataFrame) -> DataFrame:
+    """Alias and cast columns."""
+    return df.select(
         F.col("order_id").cast(T.IntegerType()).alias("order_id"),
         F.col("user_id").cast(T.IntegerType()).alias("user_id"),
         F.col("eval_set").alias("evaluation_set"),
@@ -79,6 +76,13 @@ def main(spark: SparkSession) -> None:
         F.col("days_since_prior_order").cast(T.IntegerType()).alias("days_since_prior_order"),
     )
 
+
+def main(spark: SparkSession) -> None:
+    """Execute the pipeline."""
+    source_table_name = f"{settings.CATALOG}.{Medallion.BRONZE}.orders"
+    raw_orders_df = spark.table(source_table_name)
+
+    orders_cleaned_df = clean_orders(raw_orders_df)
     order.overwrite(orders_cleaned_df)
 
 

@@ -5,7 +5,7 @@ sys.path.append(str(Path().absolute().parents[1]))
 
 import pyspark.sql.functions as F
 import pyspark.sql.types as T
-from pyspark.sql import SparkSession
+from pyspark.sql import DataFrame, SparkSession
 
 from src import settings
 from src.enums import Medallion
@@ -66,10 +66,15 @@ def main(spark: SparkSession) -> None:
             F.col("aisle_id").cast(T.IntegerType()).alias("aisle_id"),
             F.col("department_id").cast(T.IntegerType()).alias("department_id"),
         )
-        .filter(is_numeric_aisle_id)
-        .filter(is_numeric_department_id)
     )
 
+
+def main(spark: SparkSession) -> None:
+    """Execute the pipeline."""
+    source_table_name = f"{settings.CATALOG}.{Medallion.BRONZE}.products"
+    raw_products_df = spark.table(source_table_name)
+
+    products_cleaned_df = clean_products(raw_products_df)
     product.overwrite(products_cleaned_df)
 
 

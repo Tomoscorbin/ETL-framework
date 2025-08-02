@@ -48,13 +48,16 @@ product = DeltaTable(
 )
 
 
-DIGITS_ONLY_REGEX: str = r"^\d+$"
+NUMERIC_ONLY_REGEX: str = r"^\d+$"
 
 
 def main(spark: SparkSession) -> None:
     """Execute the pipeline."""
     source_table_name = f"{settings.CATALOG}.{Medallion.BRONZE}.products"
     raw_products_df = spark.table(source_table_name)
+
+    is_numeric_aisle_id = ~F.col("aisle_id").rlike(NUMERIC_ONLY_REGEX)
+    is_numeric_department_id = ~F.col("department_id").rlike(NUMERIC_ONLY_REGEX)
 
     products_cleaned_df = (
         raw_products_df.select(
@@ -63,8 +66,8 @@ def main(spark: SparkSession) -> None:
             F.col("aisle_id").cast(T.IntegerType()).alias("aisle_id"),
             F.col("department_id").cast(T.IntegerType()).alias("department_id"),
         )
-        .filter(F.col("aisle_id").rlike(DIGITS_ONLY_REGEX))
-        .filter(F.col("department_id").rlike(DIGITS_ONLY_REGEX))
+        .filter(is_numeric_aisle_id)
+        .filter(is_numeric_department_id)
     )
 
     product.overwrite(products_cleaned_df)

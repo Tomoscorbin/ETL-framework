@@ -55,8 +55,8 @@ orders = DeltaTable(
             comment="Hour of the day the order was placed",
         ),
         DeltaColumn(
-            name="days_since_prior",
-            data_type=T.DoubleType(),
+            name="days_since_prior_order",
+            data_type=T.IntegerType(),
             comment="Days elapsed since the customer's previous order",
         ),
     ],
@@ -73,7 +73,7 @@ def main(spark: SparkSession) -> None:
         F.col("order_number").cast(T.IntegerType()).alias("order_number"),
         F.col("order_dow").cast(T.IntegerType()).alias("order_day_of_week"),
         F.col("order_hour_of_day").cast(T.IntegerType()).alias("order_hour"),
-        F.col("days_since_prior_order").cast(T.DoubleType()).alias("days_since_prior"),
+        F.col("days_since_prior_order").cast(T.IntegerType()).alias("days_since_prior_order"),
     )
 
     orders.overwrite(orders_cleaned_df)

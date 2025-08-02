@@ -1,5 +1,5 @@
 from argparse import ArgumentParser
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 import pyspark.sql.functions as F
 import pyspark.sql.types as T
@@ -30,9 +30,9 @@ class DQHandler:
         self.dataframe = dataframe
         self.rules = delta_table.rules
 
-    def _apply_checks(self) -> DataFrame | None:
+    def _apply_checks(self) -> DataFrame:
         _, quarantine_df = self.dq_engine.apply_checks_and_split(self.dataframe, self.rules)
-        return quarantine_df
+        return cast(DataFrame, quarantine_df)  # DQX isn't yet typed
 
     def _get_failures(self, quarantine_df: DataFrame, severity: str) -> DataFrame:
         severity_stripped = severity.replace("_", "")
@@ -76,7 +76,7 @@ class DQHandler:
             self._save_checks_to_table(errors_df)
             raise RuntimeError(f"DQ ERROR(s) detected for {self.delta_table.full_name}.")
 
-    def apply_and_save_checks(self):
+    def apply_and_save_checks(self) -> None:
         """Runs data quality checks on the DataFrame and handles any failures."""
         if not self.rules:
             return

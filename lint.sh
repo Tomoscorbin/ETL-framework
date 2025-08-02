@@ -62,7 +62,7 @@ else
   ruff_format_exit_code=$?
 
   echo "Running ${mag}mypy${end} check..."
-  python -m mypy .
+  python -m mypy
   mypy_exit_code=$?
 
   echo "${cyn}ruff_check_exit_code: $ruff_check_exit_code"

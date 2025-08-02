@@ -8,7 +8,8 @@ import pyspark.sql.types as T
 from src import settings
 from src.constants import DATA_QUALITY_TABLE_NAME
 from src.enums import Medallion
-from src.models.table import DeltaColumn, DeltaTable
+from src.models.column import DeltaColumn
+from src.models.table import DeltaTable
 
 data_quality_checks: DeltaTable = DeltaTable(
     table_name=DATA_QUALITY_TABLE_NAME,

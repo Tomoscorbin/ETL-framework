@@ -15,7 +15,7 @@ class DeltaWriter:
         self.delta_table = delta_table
         self.dataframe = dataframe
 
-    def _apply_and_save_checks(self):
+    def _apply_and_save_checks(self) -> None:
         DQHandler(self.delta_table, self.dataframe).apply_and_save_checks()
 
     def overwrite(self) -> None:

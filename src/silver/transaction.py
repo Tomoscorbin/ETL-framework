@@ -11,7 +11,8 @@ from databricks.labs.dqx import check_funcs  # type: ignore
 from databricks.labs.dqx.rule import DQDatasetRule, DQRowRule  # type: ignore
 from src import settings
 from src.enums import Medallion
-from src.models.table import DeltaColumn, DeltaTable
+from src.models.column import DeltaColumn
+from src.models.table import DeltaTable
 
 transaction = DeltaTable(
     table_name="transaction",
@@ -50,7 +51,7 @@ def currency_to_decimal(
     return symbols_stripped.cast(T.DecimalType(precision, scale))
 
 
-def main(spark: SparkSession):
+def main(spark: SparkSession) -> None:
     """Execute the pipeline."""
     raw_transactions_df = spark.table("source.raw.transactions_data")
     transactions_cleaned_df = raw_transactions_df.select(

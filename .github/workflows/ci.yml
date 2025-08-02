@@ -32,7 +32,7 @@ jobs:
       - run: databricks bundle validate   
         env:
           DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_PAT }}
-          
+
 
   run-tests:
     name: "Tests"
@@ -51,5 +51,7 @@ jobs:
         working-directory: .
 
       - name: Run tests
-        run: python -m pytest --include-spark-tests && coverage xml --fail-under=1 # fail under 1% for development purposes 
+        run: | # fail under 1% for development purposes 
+          python -m pytest --include-spark-tests --cov=src 
+          coverage xml --fail-under=1
             

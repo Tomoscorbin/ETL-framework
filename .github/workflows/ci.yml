@@ -3,16 +3,6 @@ on:
   pull_request:
 jobs:
 
-  validate-bundle:
-    name: "Validate bundle"
-    needs: lint
-    runs-on: ubuntu-latest
-    steps:
-      - uses: databricks/setup-cli@main
-      - run: databricks bundle validate   
-        env:
-          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_PAT }}
-
   lint:
     name: "Lint"
     runs-on: ubuntu-latest
@@ -31,6 +21,18 @@ jobs:
 
       - name: Run linting checks
         run: bash ./lint.sh
+
+
+  validate-bundle:
+    name: "Validate bundle"
+    needs: lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: databricks/setup-cli@main
+      - run: databricks bundle validate   
+        env:
+          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_PAT }}
+          
 
   run-tests:
     name: "Tests"

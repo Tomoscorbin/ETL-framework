@@ -48,7 +48,7 @@ product = DeltaTable(
 )
 
 
-DIGITS_ONLY_REGEX: str = r'^\d+$'
+DIGITS_ONLY_REGEX: str = r"^\d+$"
 
 
 def main(spark: SparkSession) -> None:
@@ -57,8 +57,7 @@ def main(spark: SparkSession) -> None:
     raw_products_df = spark.table(source_table_name)
 
     products_cleaned_df = (
-        raw_products_df
-        .select(
+        raw_products_df.select(
             "product_name",
             F.col("product_id").cast(T.IntegerType()).alias("product_id"),
             F.col("aisle_id").cast(T.IntegerType()).alias("aisle_id"),

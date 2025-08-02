@@ -68,7 +68,7 @@ def main(spark: SparkSession) -> None:
     """Execute the pipeline."""
     source_table_name = f"{settings.CATALOG}.{Medallion.BRONZE}.orders"
     raw_orders_df = spark.table(source_table_name)
-    
+
     orders_cleaned_df = raw_orders_df.select(
         F.col("order_id").cast(T.IntegerType()).alias("order_id"),
         F.col("user_id").cast(T.IntegerType()).alias("user_id"),

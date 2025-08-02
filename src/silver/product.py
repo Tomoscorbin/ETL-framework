@@ -51,21 +51,13 @@ product = DeltaTable(
 )
 
 
-def main(spark: SparkSession) -> None:
-    """Execute the pipeline."""
-    source_table_name = f"{settings.CATALOG}.{Medallion.BRONZE}.products"
-    raw_products_df = spark.table(source_table_name)
-
-    is_numeric_aisle_id = ~F.col("aisle_id").rlike(NUMERIC_ONLY_REGEX)
-    is_numeric_department_id = ~F.col("department_id").rlike(NUMERIC_ONLY_REGEX)
-
-    products_cleaned_df = (
-        raw_products_df.select(
-            "product_name",
-            F.col("product_id").cast(T.IntegerType()).alias("product_id"),
-            F.col("aisle_id").cast(T.IntegerType()).alias("aisle_id"),
-            F.col("department_id").cast(T.IntegerType()).alias("department_id"),
-        )
+def clean_products(df: DataFrame) -> DataFrame:
+    """Alias and cast columns."""
+    return df.select(
+        "product_name",
+        F.col("product_id").cast(T.IntegerType()).alias("product_id"),
+        F.col("aisle_id").cast(T.IntegerType()).alias("aisle_id"),
+        F.col("department_id").cast(T.IntegerType()).alias("department_id"),
     )
 
 

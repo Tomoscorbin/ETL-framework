@@ -60,14 +60,15 @@ def main(spark: SparkSession) -> None:
     is_numeric_department_id = F.col("department_id").rlike(NUMERIC_ONLY_REGEX)
 
     products_cleaned_df = (
-        raw_products_df.select(
+        raw_products_df
+        .filter(is_numeric_aisle_id)
+        .filter(is_numeric_department_id)
+        .select(
             "product_name",
             F.col("product_id").cast(T.IntegerType()).alias("product_id"),
             F.col("aisle_id").cast(T.IntegerType()).alias("aisle_id"),
             F.col("department_id").cast(T.IntegerType()).alias("department_id"),
         )
-        .filter(is_numeric_aisle_id)
-        .filter(is_numeric_department_id)
     )
 
     product.overwrite(products_cleaned_df)

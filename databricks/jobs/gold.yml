@@ -1,0 +1,24 @@
+resources:
+  jobs:
+    gold_etl:
+      name: gold_etl
+      environments:
+        - environment_key: default
+          spec:
+            environment_version: 3
+            dependencies:
+              - databricks-labs-dqx
+      x-job-id-args: &job_id_args
+        - "--job_id={{job.id}}"
+        - "--run_id={{job.run_id}}"
+      tasks:
+        - task_key: product_dimension
+          environment_key: default
+          spark_python_task:
+            python_file: ../../src/gold/product_dimension.py
+            parameters: *job_id_args
+        - task_key: order_fact
+          environment_key: default
+          spark_python_task:
+            python_file: ../../src/gold/order_fact.py
+            parameters: *job_id_args

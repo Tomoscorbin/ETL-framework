@@ -1,6 +1,8 @@
 # ETL-framework 🏗️
 
-A demo ETL framework emphasising high-standard data engineering practices: CI/CD with GitHub Actions, medallion layering, testing, data quality, documentation, and Infrastructure as Code with DABS.
+ A demo ETL framework designed to showcase high-quality data engineering principles and practices. This project isn’t production-grade—it’s a reference implementation that brings together key patterns like medallion architecture, data quality enforcement, CI/CD with GitHub Actions, Infrastructure as Code (IaC) using Databricks Asset Bundles (DABs), and automated documentation.
+
+It’s intended as a learning tool and best practice guide, demonstrating how to build reliable, maintainable, and secure data pipelines using modern tooling and engineering standards.
 
 ## Principles & Practices🚦
 ### Medallion Architecture (Bronze → Silver → Gold) 🪙 

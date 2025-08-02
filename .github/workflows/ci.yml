@@ -27,6 +27,7 @@ jobs:
     name: "Validate bundle"
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
       - uses: databricks/setup-cli@main
       - run: databricks bundle validate
         working-directory: .

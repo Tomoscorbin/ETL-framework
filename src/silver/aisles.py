@@ -22,8 +22,14 @@ aisles = DeltaTable(
             data_type=T.IntegerType(),
             is_primary_key=True,
             is_nullable=False,
+            comment="Unique identifier for an aisle",
         ),
-        DeltaColumn(name="aisle_name", data_type=T.StringType(), is_nullable=False),
+        DeltaColumn(
+            name="aisle_name",
+            data_type=T.StringType(),
+            is_nullable=False,
+            comment="Name of the aisle",
+        ),
     ],
 )
 

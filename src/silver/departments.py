@@ -22,8 +22,14 @@ departments = DeltaTable(
             data_type=T.IntegerType(),
             is_primary_key=True,
             is_nullable=False,
+            comment="Unique identifier for a department",
         ),
-        DeltaColumn(name="department_name", data_type=T.StringType(), is_nullable=False),
+        DeltaColumn(
+            name="department_name",
+            data_type=T.StringType(),
+            is_nullable=False,
+            comment="Name of the department",
+        ),
     ],
 )
 

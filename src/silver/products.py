@@ -22,10 +22,26 @@ products = DeltaTable(
             data_type=T.IntegerType(),
             is_primary_key=True,
             is_nullable=False,
+            comment="Unique identifier for a product",
         ),
-        DeltaColumn(name="product_name", data_type=T.StringType(), is_nullable=False),
-        DeltaColumn(name="aisle_id", data_type=T.IntegerType(), is_nullable=False),
-        DeltaColumn(name="department_id", data_type=T.IntegerType(), is_nullable=False),
+        DeltaColumn(
+            name="product_name",
+            data_type=T.StringType(),
+            is_nullable=False,
+            comment="Name of the product",
+        ),
+        DeltaColumn(
+            name="aisle_id",
+            data_type=T.IntegerType(),
+            is_nullable=False,
+            comment="Identifier of the aisle containing the product",
+        ),
+        DeltaColumn(
+            name="department_id",
+            data_type=T.IntegerType(),
+            is_nullable=False,
+            comment="Identifier of the department for the product",
+        ),
     ],
 )
 

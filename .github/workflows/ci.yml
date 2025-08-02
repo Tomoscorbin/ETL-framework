@@ -34,7 +34,7 @@ jobs:
 
   run-tests:
     name: "Tests"
-    runs_on: ubuntu-latest
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v4
@@ -49,5 +49,5 @@ jobs:
         working-directory: .
 
       - name: Run tests
-        run: python -m pytest --include-spark-tests
+        run: python -m pytest --include-spark-tests && coverage xml --fail-under-10 
             

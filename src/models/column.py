@@ -16,4 +16,8 @@ class DeltaColumn:
     @property
     def struct_field(self) -> T.StructField:
         """PySpark `StructField` representation of a column."""
-        return T.StructField(self.name, self.data_type, False)
+        # Ensure the StructField accurately reflects the column's nullability.
+        # Previously this always set ``nullable`` to ``False`` which meant
+        # nullable columns were incorrectly represented as non-nullable in the
+        # resulting schema.
+        return T.StructField(self.name, self.data_type, self.is_nullable)

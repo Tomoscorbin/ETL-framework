@@ -10,6 +10,7 @@ from src import settings
 from src.enums import Medallion
 from src.models.column import DeltaColumn
 from src.models.table import DeltaTable
+from src.silver.order import order
 
 order_fact = DeltaTable(
     table_name="order_fact",
@@ -58,7 +59,8 @@ order_fact = DeltaTable(
 
 def main(spark: SparkSession) -> None:
     """Build the order fact table."""
-    orders_df = spark.table(f"{settings.CATALOG}.{Medallion.SILVER}.order").select(
+    order_df = order.read(spark)
+    order_df_selected = order_df.select(
         "order_id",
         "user_id",
         "order_number",
@@ -67,7 +69,7 @@ def main(spark: SparkSession) -> None:
         "days_since_prior_order",
     )
 
-    order_fact.overwrite(orders_df)
+    order_fact.overwrite(order_df_selected)
 
 
 if __name__ == "__main__":

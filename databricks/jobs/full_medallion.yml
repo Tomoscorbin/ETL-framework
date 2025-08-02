@@ -15,3 +15,4 @@ resources:
             job_id: ${resources.jobs.silver_etl.id}
           depends_on:
             - task_key: bronze
+            

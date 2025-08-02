@@ -8,11 +8,33 @@ resources:
             environment_version: 3   # serverless runtime
             dependencies:
               - databricks-labs-dqx
+
+      # reusable anchor for the parameters
+      x-job-id-args: &job_id_args
+        - "--job_id={{job.id}}"
+        - "--run_id={{job.run_id}}"
+
       tasks:
-        - task_key: transaction
+        - task_key: aisle
           environment_key: default
           spark_python_task:
-            python_file: ../../src/silver/transaction.py
-            parameters:
-              - "--job_id={{job.id}}"
-              - "--run_id={{job.run_id}}"
+            python_file: ../../src/silver/aisle.py
+            parameters: *job_id_args
+
+        - task_key: department
+          environment_key: default
+          spark_python_task:
+            python_file: ../../src/silver/department.py
+            parameters: *job_id_args
+
+        - task_key: order
+          environment_key: default
+          spark_python_task:
+            python_file: ../../src/silver/order.py
+            parameters: *job_id_args
+
+        - task_key: product
+          environment_key: default
+          spark_python_task:
+            python_file: ../../src/silver/product.py
+            parameters: *job_id_args

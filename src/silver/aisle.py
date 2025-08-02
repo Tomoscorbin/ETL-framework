@@ -12,23 +12,23 @@ from src.enums import Medallion
 from src.models.column import DeltaColumn
 from src.models.table import DeltaTable
 
-departments = DeltaTable(
-    table_name="departments",
+aisle = DeltaTable(
+    table_name="aisle",
     schema_name=Medallion.SILVER,
     catalog_name=settings.CATALOG,
     columns=[
         DeltaColumn(
-            name="department_id",
+            name="aisle_id",
             data_type=T.IntegerType(),
             is_primary_key=True,
             is_nullable=False,
-            comment="Unique identifier for a department",
+            comment="Unique identifier for an aisle",
         ),
         DeltaColumn(
-            name="department_name",
+            name="aisle_name",
             data_type=T.StringType(),
             is_nullable=False,
-            comment="Name of the department",
+            comment="Name of the aisle",
         ),
     ],
 )
@@ -36,13 +36,15 @@ departments = DeltaTable(
 
 def main(spark: SparkSession) -> None:
     """Execute the pipeline."""
-    raw_departments_df = spark.table(f"{settings.CATALOG}.{Medallion.BRONZE}.departments")
-    departments_cleaned_df = raw_departments_df.select(
-        F.col("department_id").cast(T.IntegerType()).alias("department_id"),
-        F.col("department").alias("department_name"),
+    source_table_name = f"{settings.CATALOG}.{Medallion.BRONZE}.aisles"
+    raw_aisles_df = spark.table(source_table_name)
+
+    aisles_cleaned_df = raw_aisles_df.select(
+        F.col("aisle_id").cast(T.IntegerType()).alias("aisle_id"),
+        F.col("aisle").alias("aisle_name"),
     )
 
-    departments.overwrite(departments_cleaned_df)
+    aisle.overwrite(aisles_cleaned_df)
 
 
 if __name__ == "__main__":

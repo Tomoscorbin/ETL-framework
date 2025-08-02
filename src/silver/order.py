@@ -12,8 +12,8 @@ from src.enums import Medallion
 from src.models.column import DeltaColumn, ForeignKey
 from src.models.table import DeltaTable
 
-orders = DeltaTable(
-    table_name="orders",
+order = DeltaTable(
+    table_name="order",
     schema_name=Medallion.SILVER,
     catalog_name=settings.CATALOG,
     columns=[
@@ -58,7 +58,7 @@ orders = DeltaTable(
         DeltaColumn(
             name="days_since_prior_order",
             data_type=T.IntegerType(),
-            comment="Days elapsed since the customer's previous order",
+            comment="Days elapsed since the previous order",
         ),
     ],
 )
@@ -66,7 +66,9 @@ orders = DeltaTable(
 
 def main(spark: SparkSession) -> None:
     """Execute the pipeline."""
-    raw_orders_df = spark.table(f"{settings.CATALOG}.{Medallion.BRONZE}.orders")
+    source_table_name = f"{settings.CATALOG}.{Medallion.BRONZE}.orders"
+    raw_orders_df = spark.table(source_table_name)
+
     orders_cleaned_df = raw_orders_df.select(
         F.col("order_id").cast(T.IntegerType()).alias("order_id"),
         F.col("user_id").cast(T.IntegerType()).alias("user_id"),
@@ -77,7 +79,7 @@ def main(spark: SparkSession) -> None:
         F.col("days_since_prior_order").cast(T.IntegerType()).alias("days_since_prior_order"),
     )
 
-    orders.overwrite(orders_cleaned_df)
+    order.overwrite(orders_cleaned_df)
 
 
 if __name__ == "__main__":

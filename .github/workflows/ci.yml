@@ -25,11 +25,11 @@ jobs:
 
   validate-bundle:
     name: "Validate bundle"
-    needs: lint
     runs-on: ubuntu-latest
     steps:
       - uses: databricks/setup-cli@main
-      - run: databricks bundle validate   
+      - run: databricks bundle validate
+        working-directory: .
         env:
           DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_PAT }}
 

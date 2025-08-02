@@ -1,0 +1,18 @@
+[run]
+branch = True
+omit = 
+    .venv/*
+    src/runtime.py
+    tests/*
+
+[report]
+show_missing = True
+skip_covered = True
+skip_empty = True
+sort = -Miss
+include_namespace_packages = True
+exclude_also = 
+    if __name__ == "__main__":
+
+[xml]
+output = coverage.xml

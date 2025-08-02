@@ -1,3 +1,15 @@
 
 .databricks
 .vscode
+
+# Byte-compiled / optimized files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# unit tests / coverage reports
+.coverage*
+htmlcov/
+coverage.xml
+.cache
+.pytest_cache

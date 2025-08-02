@@ -9,7 +9,7 @@ from pyspark.sql import SparkSession
 
 from src import settings
 from src.enums import Medallion
-from src.models.column import DeltaColumn
+from src.models.column import DeltaColumn, ForeignKey
 from src.models.table import DeltaTable
 
 products = DeltaTable(
@@ -35,12 +35,14 @@ products = DeltaTable(
             data_type=T.IntegerType(),
             is_nullable=False,
             comment="Identifier of the aisle containing the product",
+            foreign_key=ForeignKey(table_name="aisles", column_name="aisle_id"),
         ),
         DeltaColumn(
             name="department_id",
             data_type=T.IntegerType(),
             is_nullable=False,
             comment="Identifier of the department for the product",
+            foreign_key=ForeignKey(table_name="departments", column_name="department_id"),
         ),
     ],
 )

@@ -9,7 +9,7 @@ from pyspark.sql import SparkSession
 
 from src import settings
 from src.enums import Medallion
-from src.models.column import DeltaColumn
+from src.models.column import DeltaColumn, ForeignKey
 from src.models.table import DeltaTable
 
 orders = DeltaTable(
@@ -29,6 +29,7 @@ orders = DeltaTable(
             data_type=T.IntegerType(),
             is_nullable=False,
             comment="Identifier for the user who placed the order",
+            foreign_key=ForeignKey(table_name="users", column_name="user_id"),
         ),
         DeltaColumn(
             name="evaluation_set",

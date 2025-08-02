@@ -54,7 +54,7 @@ class DQHandler:
     def _add_metadata_columns(self, dq_checks_df: DataFrame) -> DataFrame:
         job_id, run_id = self._get_job_ids()
         return dq_checks_df.withColumns(
-            { 
+            {
                 "table_name": F.lit(self.delta_table.full_name),
                 "job_id": F.lit(job_id).cast(T.LongType()),
                 "run_id": F.lit(run_id).cast(T.LongType()),

@@ -19,6 +19,7 @@ product = DeltaTable(
     table_name="product",
     schema_name=Medallion.SILVER,
     catalog_name=settings.CATALOG,
+    comment="Reference data for products with aisle and department identifiers",
     columns=[
         DeltaColumn(
             name="product_id",

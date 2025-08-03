@@ -15,6 +15,7 @@ data_quality_checks: DeltaTable = DeltaTable(
     table_name=DATA_QUALITY_TABLE_NAME,
     schema_name=Medallion.METADATA,
     catalog_name=settings.CATALOG,
+    comment="Audit log of data quality check results",
     columns=[
         DeltaColumn(name="date", data_type=T.DateType(), is_nullable=False),
         DeltaColumn(name="severity", data_type=T.StringType(), is_nullable=False),

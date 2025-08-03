@@ -16,6 +16,7 @@ department = DeltaTable(
     table_name="department",
     schema_name=Medallion.SILVER,
     catalog_name=settings.CATALOG,
+    comment="Reference data for departments",
     columns=[
         DeltaColumn(
             name="department_id",

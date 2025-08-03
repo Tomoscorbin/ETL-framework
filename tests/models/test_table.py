@@ -18,6 +18,7 @@ def delta_table(example_columns):
         table_name="my_table",
         schema_name="public",
         catalog_name="main",
+        comment="Table used for unit tests",
         columns=example_columns,
     )
 

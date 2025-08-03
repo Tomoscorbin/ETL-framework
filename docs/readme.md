@@ -1,2 +1,2 @@
 # Project Overview
-..README.md
+../README.md

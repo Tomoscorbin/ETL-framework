@@ -65,7 +65,7 @@ def clean_products(df: DataFrame) -> DataFrame:
             F.col("aisle_id").cast(T.IntegerType()).alias("aisle_id"),
             F.col("department_id").cast(T.IntegerType()).alias("department_id"),
         )
-
+    )
 
 def main(spark: SparkSession) -> None:
     """Execute the pipeline."""

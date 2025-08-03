@@ -61,4 +61,4 @@ We are using a Kaggle [Instacart Online Grocery dataset](https://www.kaggle.com/
 
 
 
-*Note: This is an ongoing demo framework. Some elements—especially ingestion—are partially implemented or stubbed for demonstration purposes.*
+*Note: This is an ongoing demo framework. Some elements-like ingestion-are partially implemented or stubbed for demonstration purposes.*

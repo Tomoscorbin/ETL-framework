@@ -4,6 +4,8 @@ from delta import DeltaTable as dt
 from pyspark.sql import DataFrame
 
 from src.models.data_quality_handler import DQHandler
+from src.logger import LOGGER
+
 
 if TYPE_CHECKING:
     from src.models.table import DeltaTable
@@ -34,6 +36,7 @@ class DeltaWriter:
         self.dataframe.select(self.delta_table.column_names).write.saveAsTable(
             name=self.delta_table.full_name, mode="overwrite", format="delta"
         )
+        LOGGER.info(f"Table {self.delta_table.full_name} overwritten.")
 
     def merge(self) -> None:
         """
@@ -60,3 +63,4 @@ class DeltaWriter:
             .whenNotMatchedInsertAll()
             .execute()
         )
+        LOGGER.info(f"Table {self.delta_table.full_name} merged.")

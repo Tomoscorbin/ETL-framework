@@ -98,3 +98,9 @@ def main(spark: SparkSession) -> None:
     final_df = derive_timeliness_metrics(latest_successful_runs_df)
 
     timeliness.merge(final_df)
+
+
+if __name__ == "__main__":
+    from src.runtime import spark
+
+    main(spark)

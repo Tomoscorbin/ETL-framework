@@ -52,13 +52,19 @@ product = DeltaTable(
 
 
 def clean_products(df: DataFrame) -> DataFrame:
-    """Alias and cast columns."""
-    return df.select(
-        "product_name",
-        F.col("product_id").cast(T.IntegerType()).alias("product_id"),
-        F.col("aisle_id").cast(T.IntegerType()).alias("aisle_id"),
-        F.col("department_id").cast(T.IntegerType()).alias("department_id"),
-    )
+    """Alias, cast, and filter columns."""
+    aisle_id_is_numeric = F.col("aisle_id").rlike(NUMERIC_ONLY_REGEX)
+    department_id_is_numeric = F.col("department_id").rlike(NUMERIC_ONLY_REGEX)
+    return (
+        df
+        .filter(aisle_id_is_numeric)
+        .filter(department_id_is_numeric)
+        .select(
+            "product_name",
+            F.col("product_id").cast(T.IntegerType()).alias("product_id"),
+            F.col("aisle_id").cast(T.IntegerType()).alias("aisle_id"),
+            F.col("department_id").cast(T.IntegerType()).alias("department_id"),
+        )
 
 
 def main(spark: SparkSession) -> None:

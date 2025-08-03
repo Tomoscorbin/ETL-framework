@@ -20,6 +20,10 @@ We are using a Kaggle [Instacart Online Grocery dataset](https://www.kaggle.com/
 - Table health is continuously monitored using Lakehouse Monitoring, with support for profiling and drift detection over time.
 - Failures trigger Databricks SQL alerts, ensuring awareness of ata quality issues.
 
+### Data Modeling 🧩
+- Organizes the gold layer into relational star schemas using Kimball's dimensional modeling approach.
+- Separates fact tables from dimension tables and promotes conformed dimensions for consistent analytics.
+
 ### CI / CD with GitHub Actions & Databricks Asset Bundles 🔁
 - Run unit tests & linting on pull requests.
 - Validate Databricks Asset Bundle YAML to catch infra/configuration errors early.
@@ -57,4 +61,4 @@ We are using a Kaggle [Instacart Online Grocery dataset](https://www.kaggle.com/
 
 
 
-*Note: This is an ongoing demo framework. Some elements are partially implemented or stubbed for demonstration purposes.*
+*Note: This is an ongoing demo framework. Some elements—especially ingestion—are partially implemented or stubbed for demonstration purposes.*

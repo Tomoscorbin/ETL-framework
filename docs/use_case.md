@@ -13,12 +13,14 @@ The demo leverages the public [Instacart Online Grocery Dataset](https://www.kag
 - Reorder indicators and sequence numbers
 
 These files are ingested from raw CSV into the Lakehouse using the Databricks File System (DBFS) to simulate landing data from an operational store.
+Because ingestion isn't a priority for this demo, the ingestion component is intentionally lightweight and not production-ready.
 
 ## Engineering Goals
 
 This repository demonstrates how a production‑ready data pipeline could be delivered using modern engineering practices:
 
 - **Medallion architecture** to build bronze, silver and gold layers with clear contracts between them.
+- **Dimensional modeling** to shape the gold layer into a relational star schema following Kimball principles.
 - **Automated data quality** checks that stop bad data from progressing through the pipeline.
 - **CI/CD with Databricks Asset Bundles** so infrastructure and code are version‑controlled and deployed together.
 - **Comprehensive testing and type checking** via `pytest`, `ruff` and `mypy`.
@@ -29,6 +31,10 @@ This repository demonstrates how a production‑ready data pipeline could be del
 1. **Ingestion (Bronze):** Raw Instacart CSV files are copied to DBFS and written to Delta tables without transformation.
 2. **Cleansing and Enrichment (Silver):** Records are validated, cleaned and enriched with additional attributes such as aisle and department names.
 3. **Aggregation (Gold):** Business‑ready tables such as daily product sales or promotion performance are produced for direct consumption by downstream analytics tools.
+
+## Data Model
+
+The gold layer organises data into a relational star schema based on Kimball dimensional modelling. Fact tables capture measurable events like orders or order_items, while dimension tables provide descriptive context for products, customers and time. This structure supports conformed dimensions and efficient joins for analytics.
 
 ## Dashboard Delivery
 

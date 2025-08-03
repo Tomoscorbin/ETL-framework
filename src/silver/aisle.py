@@ -16,6 +16,7 @@ aisle = DeltaTable(
     table_name="aisle",
     schema_name=Medallion.SILVER,
     catalog_name=settings.CATALOG,
+    comment="Reference data for aisles",
     columns=[
         DeltaColumn(
             name="aisle_id",

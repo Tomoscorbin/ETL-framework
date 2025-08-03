@@ -16,6 +16,7 @@ order_fact = DeltaTable(
     table_name="order_fact",
     schema_name=Medallion.GOLD,
     catalog_name=settings.CATALOG,
+    comment="Fact table capturing core metrics for each order",
     columns=[
         DeltaColumn(
             name="order_id",

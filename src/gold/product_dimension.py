@@ -19,6 +19,7 @@ product_dimension = DeltaTable(
     table_name="product_dimension",
     schema_name=Medallion.GOLD,
     catalog_name=settings.CATALOG,
+    comment="Dimension table combining product, aisle, and department details",
     columns=[
         DeltaColumn(
             name="product_id",

@@ -16,6 +16,7 @@ order = DeltaTable(
     table_name="order",
     schema_name=Medallion.SILVER,
     catalog_name=settings.CATALOG,
+    comment="Cleaned order data capturing user and timing details",
     columns=[
         DeltaColumn(
             name="order_id",

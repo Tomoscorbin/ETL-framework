@@ -1,0 +1,13 @@
+resources:
+  jobs:
+    slo:
+      name: slo
+      tasks:
+        - task_key: timeliness
+          sql_task:
+            file:
+              path: ../../src/metadata/slo/timeliness.sql
+            warehouse_id: ${var.warehouse_id}
+      parameters:
+        - name: full_medallion_job_id
+          default: ${resources.jobs.full_medallion.id}

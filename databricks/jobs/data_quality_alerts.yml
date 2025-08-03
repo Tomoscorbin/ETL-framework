@@ -6,7 +6,7 @@ resources:
         - task_key: display_failures
           sql_task:
             file:
-              path: ../../src/metadata/display_failures.sql
+              path: ../../src/metadata/data_quality/display_failures.sql
             warehouse_id: ${var.warehouse_id}
 
         - task_key: check_failures
@@ -14,7 +14,7 @@ resources:
             - task_key: display_failures
           sql_task:
             file:
-              path: ../../src/metadata/check_failures.sql
+              path: ../../src/metadata/data_quality/check_failures.sql
             warehouse_id: ${var.warehouse_id}
 
       email_notifications:

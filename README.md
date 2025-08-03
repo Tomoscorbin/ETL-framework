@@ -7,7 +7,7 @@ The pipeline is simulating a real-world online grocery analytics scenario: The b
 - Which promotions are actually increasing reorder rates or basket sizes?
 - How do sales patterns vary across departments and days of the week?
 
-We are using a Kaggle [Instacart Online Grocery dataset](https://www.kaggle.com/datasets/yasserh/instacart-online-grocery-basket-analysis-dataset) as a proxy for real transactional source data from an online grocer. See [Use Case](docs/use_case.md) for more info.
+We are using a Kaggle [Instacart Online Grocery dataset](https://www.kaggle.com/datasets/yasserh/instacart-online-grocery-basket-analysis-dataset) as a proxy for real transactional source data from an online grocer. See [Use Case](https://tomoscorbin.github.io/ETL-framework/use_case.html) for more info.
 
 
 ## Principles & Practices🚦

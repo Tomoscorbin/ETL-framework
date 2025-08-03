@@ -1,4 +1,4 @@
-# Instacart Analytics Dashboard Use Case
+# Use Case
 
 ## Business Context
 

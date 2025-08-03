@@ -40,3 +40,10 @@ class DQFailureSeverity(StrEnum):
 
     ERRORS = "_errors"
     WARNINGS = "_warnings"
+
+
+class ResultState(StrEnum):
+    """Databricks job run result state."""
+
+    SUCCEEDED = "SUCCEEDED"
+    ERROR = "ERROR"

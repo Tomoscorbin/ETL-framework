@@ -1,28 +1,26 @@
 # Service-Level Objectives
 
 These SLOs govern the pipeline that produces the Gold tables consumed by the weekday dashboard.
-Stakeholders have agreed that a two-day data lag (D-2) fully meets their reporting needs.
-Yesterday’s numbers are considered preliminary and handled ad-hoc when required.
 
 ## 1. Objectives at a Glance
 | ID      | Objective        | What We Care About                                       | Hard Target                                                        |
 | ------- | ---------------- | -------------------------------------------------------- | ------------------------------------------------------------------ |
-| **T-1** | **Timeliness**   | Data for **calendar day D-2** is ready for the dashboard | Gold committed **≤ 09:00 Europe/London** every business day        |
+| **T-1** | **Timeliness**   | Data for **calendar day D1** is ready for the dashboard  | Gold committed **≤ 09:00 Europe/London** every business day        |
 | **C-1** | **Completeness** | All expected entities & mandatory attributes are present | • 100 % business-key coverage<br>• 0 NULLs in non-nullable columns |
 | **Q-1** | **Quality**      | Only valid data reaches consumers                        | • 0 duplicate primary keys<br>• 0 negative sales values            |
 | **Q-2** | **Warn Triage**  | “Yellow” DQ warnings get human eyes promptly             | P95 **time-to-acknowledge ≤ 4 h** (business hours)                 |
 
 ### Precedence Rule — Quality > Timeliness  
 If **Q-1** breaches, the run blocks even if that means missing the 09:00 cut-off.  
-Integrity always beats freshness. **Because we deliver D-2 data, a blocked run still gives us almost a full day to fix the issue before the next deadline** - 
-but we formally suspend the Timeliness SLO for that day and start Time-to-Recovery tracking (see § 6).
+Stakeholders have agreed that quality is more important that freshness. In the event
+of a **Q-1** breach, we formally suspend the Timeliness SLO for that day and start Time-to-Recovery tracking (see § 6).
 
 ## 2 Timeliness (T-1)
-The pipeline must produce the Gold tables by 09:00 Europe/London business day.
+The pipeline must produce the Gold tables by 09:00 Europe/London every business day.
 
 | Item            | Spec                                                                                                                                                 |
 | --------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **SLI**         | `ready_by_09 = 1` when the last Gold table commit for day **D** finishes ≤ 09:00 local; else `0`.                                                    |
+| **SLI**         | `ready_by_09 = True` when the last Gold table commit for day **D** finishes ≤ 09:00 local; else `False`.                                             |
 | **Target**      | **≥ 99 % of UK business days** (≤ 1 miss per 30 days).                                                                                               |
 | **Measurement** | Pipeline writes `ready_ts` to `sli_freshness`; a nightly query evaluates `ready_by_09`.                                                              |
 | **Escalation**  | Miss without a Quality breach → Sev-2 incident, post-mortem by next business day. <br>Miss due to Quality breach → handled under Quality SLOs below. |

@@ -3,8 +3,8 @@ resources:
     full_medallion:
       name: full_medallion
       schedule:
-        quartz_cron_expression: '0 30 8 * * ?'
-        timezone_id: UTC
+        quartz_cron_expression: "0 0 6 ? * MON-FRI" # 6am every weekday
+        timezone_id: "Europe/London"
       tasks:
         - task_key: bronze
           run_job_task:

@@ -1,0 +1,14 @@
+resources:
+  jobs:
+    slo_tracking:
+      name: slo_tracking
+      environments: ${var.default_serverless_cluster}
+      schedule:
+        quartz_cron_expression: "0 0 9 ? * MON-FRI"
+        timezone_id: "Europe/London"
+
+      tasks:
+        - task_key: timeliness
+          environment_key: default
+          spark_python_task:
+            python_file: ../../src/metadata/slo/timeliness.py

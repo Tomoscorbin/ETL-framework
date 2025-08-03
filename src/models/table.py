@@ -62,10 +62,14 @@ class DeltaTable:
         """Checks if the table already exists."""
         return spark.catalog.tableExists(self.full_name)
 
+    def read(self, spark: SparkSession) -> DataFrame:
+        """Read the DeltaTable as a Spark DataFrame."""
+        return spark.table(self.full_name)
+
     def overwrite(self, dataframe: DataFrame) -> None:
         """Overwrite the table with the given dataframe."""
         DeltaWriter(delta_table=self, dataframe=dataframe).overwrite()
 
-    def read(self, spark: SparkSession) -> DataFrame:
-        """Read the DeltaTable as a Spark DataFrame."""
-        return spark.table(self.full_name)
+    def merge(self, dataframe: DataFrame) -> None:
+        """Merge the given dataframe into table."""
+        DeltaWriter(delta_table=self, dataframe=dataframe).merge()

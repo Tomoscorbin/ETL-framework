@@ -1,0 +1,14 @@
+definition: &base_serverless_cluster_definition
+  - environment_key: default
+    spec:
+      environment_version: 3
+      dependencies:
+        - databricks-labs-dqx
+
+# Because anchors can only exist in the same file as the alias,
+# we need to [ab]use DABs variables to perform overrides
+variables:
+  default_serverless_cluster:
+    description: Default serverless cluster
+    type: complex
+    default: *base_serverless_cluster_definition

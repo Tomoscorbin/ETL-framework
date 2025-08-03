@@ -3,9 +3,8 @@ from typing import TYPE_CHECKING
 from delta import DeltaTable as dt
 from pyspark.sql import DataFrame
 
-from src.models.data_quality_handler import DQHandler
 from src.logger import LOGGER
-
+from src.models.data_quality_handler import DQHandler
 
 if TYPE_CHECKING:
     from src.models.table import DeltaTable

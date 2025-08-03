@@ -71,10 +71,10 @@ def get_latest_successful_runs(
     job_id_to_track: str,
 ) -> DataFrame:
     """Return the latest successful runs of the job we want to track."""
-    job_to_track = F.col("job_id") == job_id_to_track
-    todays_runs = F.col("period_end_time").cast("date") == F.current_date()
+    is_job_to_track = F.col("job_id") == job_id_to_track
+    has_runs_today = F.col("period_end_time").cast("date") == F.current_date()
     has_succesful_runs = F.col("result_state") == ResultState.SUCCEEDED
-    return runs_df.filter(job_to_track).filter(todays_runs).filter(has_succesful_runs)
+    return runs_df.filter(is_job_to_track & has_runs_today & has_succesful_runs)
 
 
 def derive_timeliness_metrics(latest_successful_runs_df: DataFrame) -> DataFrame:

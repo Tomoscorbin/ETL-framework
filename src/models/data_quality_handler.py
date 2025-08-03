@@ -17,6 +17,12 @@ if TYPE_CHECKING:
     from src.models.table import DeltaTable
 
 
+class DataQualityError(RuntimeError):
+    """Raised when a data-quality rule must block the pipeline."""
+
+    pass
+
+
 class DQHandler:
     """
     Runs Databricks Labs DQx checks on a DataFrame, writes failures to a
@@ -82,7 +88,7 @@ class DQHandler:
         if not errors_df.isEmpty():
             errors_df = self._add_metadata_columns(errors_df)
             self._save_checks_to_table(errors_df)
-            raise RuntimeError(f"DQ ERROR(s) detected for {self.delta_table.full_name}.")
+            raise DataQualityError(f"DQ ERROR(s) detected for {self.delta_table.full_name}.")
 
     def apply_and_save_checks(self) -> None:
         """Runs data quality checks on the DataFrame and handles any failures."""

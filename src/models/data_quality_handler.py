@@ -19,6 +19,7 @@ if TYPE_CHECKING:
 
 class DataQualityError(RuntimeError):
     """Raised when a data-quality rule must block the pipeline."""
+
     pass
 
 

@@ -56,8 +56,7 @@ def clean_products(df: DataFrame) -> DataFrame:
     aisle_id_is_numeric = F.col("aisle_id").rlike(NUMERIC_ONLY_REGEX)
     department_id_is_numeric = F.col("department_id").rlike(NUMERIC_ONLY_REGEX)
     return (
-        df
-        .filter(aisle_id_is_numeric)
+        df.filter(aisle_id_is_numeric)
         .filter(department_id_is_numeric)
         .select(
             "product_name",
@@ -66,6 +65,7 @@ def clean_products(df: DataFrame) -> DataFrame:
             F.col("department_id").cast(T.IntegerType()).alias("department_id"),
         )
     )
+
 
 def main(spark: SparkSession) -> None:
     """Execute the pipeline."""

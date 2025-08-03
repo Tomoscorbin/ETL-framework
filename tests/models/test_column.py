@@ -1,22 +1,37 @@
+from dataclasses import FrozenInstanceError
+
+import pytest
 from pyspark.sql import types as T
 
 from src.models.column import DeltaColumn, ForeignKey
 
 
-class TestStructField:
-    def test_struct_field_non_nullable(self):
-        input_column = DeltaColumn(name="foo", data_type=T.StringType(), is_nullable=False)
-        expected = T.StructField(name="foo", dataType=T.StringType(), nullable=False)
-        actual = input_column.struct_field
-        assert expected == actual
+@pytest.mark.parametrize(
+    ("name", "dtype", "nullable"),
+    [
+        ("foo", T.StringType(), False),  # non-nullable string
+        ("bar", T.IntegerType(), True),  # nullable int
+        ("ts", T.TimestampType(), True),  # nullable string
+    ],
+)
+def test_struct_field_values(name, dtype, nullable):
+    col = DeltaColumn(name=name, data_type=dtype, is_nullable=nullable)
 
-    def test_foreign_key(self):
-        fk = ForeignKey(table_name="bar", column_name="id")
-        column = DeltaColumn(name="foo_id", data_type=T.IntegerType(), foreign_key=fk)
-        assert column.foreign_key == fk
+    sf = col.struct_field
 
-    def test_struct_field_nullable(self):
-        input_column = DeltaColumn(name="foo", data_type=T.StringType(), is_nullable=True)
-        expected = T.StructField(name="foo", dataType=T.StringType(), nullable=True)
-        actual = input_column.struct_field
-        assert expected == actual
+    assert isinstance(sf, T.StructField)
+    assert isinstance(sf.dataType, type(dtype))
+    assert sf.name == name
+    assert sf.nullable is nullable
+
+
+def test_foreign_key():
+    fk = ForeignKey(table_name="bar", column_name="id")
+    column = DeltaColumn(name="foo_id", data_type=T.IntegerType(), foreign_key=fk)
+    assert column.foreign_key == fk
+
+
+def test_delta_column_is_frozen():
+    col = DeltaColumn("foo", T.StringType())
+    with pytest.raises(FrozenInstanceError):
+        col.name = "oops"

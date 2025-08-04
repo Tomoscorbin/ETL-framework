@@ -51,13 +51,13 @@ class DQEvaluator:
     def _get_failures(self, quarantine_df: DataFrame, severity: str) -> DataFrame:
         severity_formatted = "_" + severity + "s"  # e.g. _errors
         return (
-            quarantine_df.select(F.explode(F.col(severity)).alias("failure"))
+            quarantine_df.select(F.explode(F.col(severity_formatted)).alias("failure"))
             .select(
                 F.col("failure.name").alias("check_name"),
                 "failure.columns",
                 "failure.function",
                 "failure.run_time",
-                F.lit(severity_formatted).alias("severity"),
+                F.lit(severity).alias("severity"),
             )
             .distinct()
         )

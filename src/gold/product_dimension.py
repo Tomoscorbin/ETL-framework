@@ -10,12 +10,12 @@ from pyspark.sql import DataFrame, SparkSession
 from src import settings
 from src.enums import Medallion
 from src.models.column import DeltaColumn
-from src.models.table import DeltaTable
+from src.models.data_quality_table import DQDeltaTable
 from src.silver.aisle import aisle
 from src.silver.department import department
 from src.silver.product import product
 
-product_dimension = DeltaTable(
+product_dimension = DQDeltaTable(
     table_name="product_dimension",
     schema_name=Medallion.GOLD,
     catalog_name=settings.CATALOG,

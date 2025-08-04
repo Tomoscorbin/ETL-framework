@@ -9,7 +9,7 @@ from pyspark.sql import SparkSession
 from src import settings
 from src.enums import DQFailureSeverity, Medallion
 from src.models.column import DeltaColumn, QualityRule
-from src.models.table import DQDeltaTable
+from src.models.data_quality_table import DQDeltaTable
 from src.silver.order import order
 
 order_fact = DQDeltaTable(
@@ -53,10 +53,7 @@ order_fact = DQDeltaTable(
             name="days_since_prior_order",
             data_type=T.IntegerType(),
             comment="Days elapsed since the previous order",
-            quality_rule=QualityRule(
-                min_value=0,
-                criticality=DQFailureSeverity.ERROR
-            ),
+            quality_rule=QualityRule(min_value=0, criticality=DQFailureSeverity.ERROR),
         ),
     ],
 )

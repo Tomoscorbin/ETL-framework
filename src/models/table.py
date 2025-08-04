@@ -1,15 +1,13 @@
-from collections.abc import Callable, Iterable
 from dataclasses import dataclass, field
-from typing import ClassVar, TypeAlias
+from typing import ClassVar
 
 import pyspark.sql.types as T
 from pyspark.sql import DataFrame, SparkSession
 
 from databricks.labs.dqx.rule import DQRule  # type: ignore
-from src.models.table_builder import DeltaTableBuilder
 from src.enums import DeltaTableProperty
-from src.logger import LOGGER
 from src.models.column import DeltaColumn
+from src.models.table_builder import DeltaTableBuilder
 from src.models.writer import DeltaWriter
 
 
@@ -75,36 +73,3 @@ class DeltaTable:
     def merge(self, dataframe: DataFrame) -> None:
         """Merge the given dataframe into table."""
         DeltaWriter(delta_table=self, dataframe=dataframe).merge()
-
-
-RuleBuilder: TypeAlias = Callable[[DeltaTable], Iterable[DQRule]]
-
-
-@dataclass(frozen=True)
-class DQDeltaTable(DeltaTable):
-    """
-    DeltaTable that auto-derives DQx rules from column metadata.
-    Callers can still pass `rules=` explicitly.
-    """
-
-    # registry of plug-in builder functions
-    _builders: ClassVar[list[RuleBuilder]] = []
-
-    @classmethod
-    def register_builder(cls, fn: RuleBuilder) -> RuleBuilder:
-        """Decorator: `@DQDeltaTable.register_builder`."""
-        cls._builders.append(fn)
-        return fn
-
-    def __post_init__(self) -> None:
-        # we’re frozen, so we use object.__setattr__
-        auto_rules = []
-        for build in self._builders:
-            try:
-                auto_rules.extend(build(self))
-            except Exception as exc:
-                LOGGER.error(f"Rule builder {build.__name__} failed: {exc}")
-
-        # de-dupe: caller-supplied rules win
-        combined = self.rules + [r for r in auto_rules if r not in self.rules]
-        object.__setattr__(self, "rules", combined)

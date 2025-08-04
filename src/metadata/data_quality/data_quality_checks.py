@@ -18,7 +18,7 @@ data_quality_checks: DeltaTable = DeltaTable(
     comment="Audit log of data quality check results",
     columns=[
         DeltaColumn(name="date", data_type=T.DateType(), is_nullable=False),
-        DeltaColumn(name="severity", data_type=T.StringType(), is_nullable=False),
+        DeltaColumn(name="criticality", data_type=T.StringType(), is_nullable=False),
         DeltaColumn(name="table_name", data_type=T.StringType(), is_nullable=False),
         DeltaColumn(name="check_name", data_type=T.StringType(), is_nullable=False),
         DeltaColumn(name="columns", data_type=T.ArrayType(T.StringType()), is_nullable=False),

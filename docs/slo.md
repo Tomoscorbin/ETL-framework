@@ -39,8 +39,11 @@ These SLOs prevent invalid data from reaching consumers. Any breach triggers a h
 | ------------------------- | ----------------- | ------------- | --------------------------------- |
 | **Duplicate PKs**         | `dupe_pk_count`   | **0 per run** | Abort run and alert.              |
 | **Negative sales values** | `neg_sales_count` | **0 per run** | Abort run and alert.              |
-| **Negative sales values** | `neg_sales_count` | **0 per run** | Abort run and alert.              |
 
+The SLO tracker aggregates the `metadata.data_quality_checks` log each day. The
+resulting counts of error-level failures are stored in
+`metadata.quality`, allowing breaches of the Q-1 SLO to be monitored over
+time.
 
 ## 5 Warning-Level DQ Rules (Q-2)
 

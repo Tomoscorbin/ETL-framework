@@ -4,7 +4,7 @@ from typing import Any
 
 import pyspark.sql.types as T
 
-from src.enums import DQFailureSeverity
+from src.enums import DQCriticality
 
 
 @dataclass(frozen=True)
@@ -19,7 +19,7 @@ class ForeignKey:
 class QualityRule:
     """Data quality rule for one column."""
 
-    criticality: str = DQFailureSeverity.ERROR
+    criticality: str = DQCriticality.ERROR
     allowed_values: Sequence[Any] | None = None
     min_value: int | float | None = None
     max_value: int | float | None = None

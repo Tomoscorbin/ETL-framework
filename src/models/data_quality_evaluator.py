@@ -10,7 +10,7 @@ from databricks.labs.dqx.engine import DQEngine  # type: ignore
 from databricks.sdk import WorkspaceClient
 from src import settings
 from src.constants import DATA_QUALITY_TABLE_NAME
-from src.enums import DQFailureSeverity, Medallion
+from src.enums import DQCriticality, Medallion
 from src.logger import LOGGER
 
 if TYPE_CHECKING:
@@ -48,16 +48,16 @@ class DQEvaluator:
         _, quarantine_df = self.dq_engine.apply_checks_and_split(self.dataframe, self.rules)
         return cast(DataFrame, quarantine_df)  # DQX isn't yet typed
 
-    def _get_failures(self, quarantine_df: DataFrame, severity: str) -> DataFrame:
-        severity_formatted = "_" + severity + "s"  # e.g. _errors
+    def _get_failures(self, quarantine_df: DataFrame, criticality: DQCriticality) -> DataFrame:
+        failure_column = criticality.quarantine_column
         return (
-            quarantine_df.select(F.explode(F.col(severity_formatted)).alias("failure"))
+            quarantine_df.select(F.explode(F.col(failure_column)).alias("failure"))
             .select(
                 F.col("failure.name").alias("check_name"),
                 "failure.columns",
                 "failure.function",
                 "failure.run_time",
-                F.lit(severity).alias("severity"),
+                F.lit(criticality).alias("criticality"),
             )
             .distinct()
         )
@@ -77,26 +77,22 @@ class DQEvaluator:
         )
 
     def _handle_warnings(self, quarantine_df: DataFrame) -> None:
-        warnings_df = self._get_failures(quarantine_df, DQFailureSeverity.WARNING)
+        warnings_df = self._get_failures(quarantine_df, DQCriticality.WARN)
         if not warnings_df.isEmpty():
             LOGGER.warning(f"DQ warning(s) detected for {self.delta_table.full_name}.")
             warnings_df = self._add_metadata_columns(warnings_df)
             self._save_checks_to_table(warnings_df)
-        else:
-            LOGGER.info(f"No DQ issues detected for {self.delta_table.full_name}.")
 
     def _handle_errors(self, quarantine_df: DataFrame) -> None:
-        errors_df = self._get_failures(quarantine_df, DQFailureSeverity.ERROR)
+        errors_df = self._get_failures(quarantine_df, DQCriticality.ERROR)
         if not errors_df.isEmpty():
             errors_df = self._add_metadata_columns(errors_df)
             self._save_checks_to_table(errors_df)
             raise DQError(f"DQ ERROR(s) detected for {self.delta_table.full_name}.")
-        LOGGER.info(f"No DQ issues detected for {self.delta_table.full_name}.")
 
     def apply_and_save_checks(self) -> None:
         """Runs data quality checks on the DataFrame and handles any failures."""
         if not self.rules:
-            LOGGER.info(f"No DQ rules defined for {self.delta_table.full_name}.")
             return
 
         quarantine_df = self._apply_checks()

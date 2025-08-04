@@ -12,3 +12,8 @@ resources:
           environment_key: default
           spark_python_task:
             python_file: ../../src/metadata/slo/timeliness.py
+
+        - task_key: quality
+          environment_key: default
+          spark_python_task:
+            python_file: ../../src/metadata/slo/quality.py

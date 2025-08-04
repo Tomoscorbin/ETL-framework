@@ -8,7 +8,7 @@ import pyspark.sql.types as T
 from pyspark.sql import DataFrame, SparkSession
 
 from src import settings
-from src.enums import DQFailureSeverity, Medallion
+from src.enums import DQCriticality, Medallion
 from src.models.column import DeltaColumn, QualityRule
 from src.models.data_quality_table import DQDeltaTable
 from src.silver.aisle import aisle
@@ -51,7 +51,7 @@ product_dimension = DQDeltaTable(
             data_type=T.FloatType(),
             is_nullable=False,
             comment="The price the product sold for",
-            quality_rule=QualityRule(min_value=0, criticality=DQFailureSeverity.ERROR),
+            quality_rule=QualityRule(min_value=0, criticality=DQCriticality.ERROR),
         ),
     ],
 )

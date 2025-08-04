@@ -6,6 +6,9 @@ sys.path.append(str(Path().absolute().parents[1]))
 import pyspark.sql.types as T
 from pyspark.sql import SparkSession
 
+from databricks.labs.dqx import check_funcs  # type: ignore
+from databricks.labs.dqx.rule import DQDatasetRule, DQRowRule  # type: ignore
+
 from src import settings
 from src.enums import Medallion
 from src.models.column import DeltaColumn
@@ -55,6 +58,14 @@ order_fact = DeltaTable(
             comment="Days elapsed since the previous order",
         ),
     ],
+    rules=[
+        DQDatasetRule(
+            criticality="error", 
+            check_func=check_funcs.is_unique, 
+            columns=["id"],
+        ),
+    ],
+
 )
 
 

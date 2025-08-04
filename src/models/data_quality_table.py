@@ -1,4 +1,4 @@
-from collections.abc import Callable, Iterable
+from collections.abc import Callable, Iterable, Iterator
 from dataclasses import dataclass
 from typing import ClassVar, TypeAlias
 
@@ -28,8 +28,13 @@ class DQDeltaTable(DeltaTable):
         return fn
 
     def __post_init__(self) -> None:
-        # we’re frozen, so we use object.__setattr__
-        auto_rules = []
+        """
+        Populate **rules** with auto-derived checks, honouring caller overrides.
+        Mutates the frozen instance in-place so that
+        `self.rules` always contains the complete, de-duplicated rule set after
+        initialisation.
+        """
+        auto_rules: list[DQRule] = []
         for build in self._builders:
             try:
                 auto_rules.extend(build(self))
@@ -38,11 +43,11 @@ class DQDeltaTable(DeltaTable):
 
         # de-dupe: caller-supplied rules win
         combined = self.rules + [r for r in auto_rules if r not in self.rules]
-        object.__setattr__(self, "rules", combined)
+        object.__setattr__(self, "rules", combined)  # we’re frozen, so we use object.__setattr__
 
 
 @DQDeltaTable.register_builder
-def _is_unique(table: DeltaTable):
+def _is_unique(table: DeltaTable) -> Iterator[DQDatasetRule]:
     if table.primary_key_column_names:
         yield DQDatasetRule(
             criticality="error",
@@ -52,7 +57,7 @@ def _is_unique(table: DeltaTable):
 
 
 @DQDeltaTable.register_builder
-def _is_in_list(table: DeltaTable):
+def _is_in_list(table: DeltaTable) -> Iterator[DQRowRule]:
     for col in table.columns:
         quality_rule = col.quality_rule
         if quality_rule and quality_rule.allowed_values:
@@ -60,12 +65,12 @@ def _is_in_list(table: DeltaTable):
                 criticality="error",
                 check_func=check_funcs.is_in_list,
                 column=col.name,
-                check_func_args=[col.allowed_values],
+                check_func_args=[quality_rule.allowed_values],
             )
 
 
 @DQDeltaTable.register_builder
-def _is_in_range(table: DeltaTable):
+def _is_in_range(table: DeltaTable) -> Iterator[DQRowRule]:
     """
     • min only  → `is_not_less_than`
     • max only  → `is_not_greater_than`

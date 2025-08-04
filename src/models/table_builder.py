@@ -10,8 +10,11 @@ if TYPE_CHECKING:
     from src.models.table import DeltaTable
 
 
-class DeltaTableManager:
-    """Delta Table DDL Manager."""
+class DeltaTableBuilder:
+    """
+    Delta Table builder responsible for creating
+    and aligning a Delta table to its declared specification.
+    """
 
     def __init__(self, delta_table: "DeltaTable"):
         self.delta_table = delta_table

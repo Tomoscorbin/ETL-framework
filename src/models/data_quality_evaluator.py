@@ -17,13 +17,13 @@ if TYPE_CHECKING:
     from src.models.table import DeltaTable
 
 
-class DataQualityError(RuntimeError):
+class DQError(RuntimeError):
     """Raised when a data-quality rule must block the pipeline."""
 
     pass
 
 
-class DQHandler:
+class DQEvaluator:
     """
     Runs Databricks Labs DQx checks on a DataFrame, writes failures to a
     DQ table, and aborts the pipeline when ERROR-level failures occur.
@@ -49,7 +49,7 @@ class DQHandler:
         return cast(DataFrame, quarantine_df)  # DQX isn't yet typed
 
     def _get_failures(self, quarantine_df: DataFrame, severity: str) -> DataFrame:
-        severity_stripped = severity.replace("_", "")
+        severity_formatted = "_" + severity + "s"  # e.g. _errors
         return (
             quarantine_df.select(F.explode(F.col(severity)).alias("failure"))
             .select(
@@ -57,7 +57,7 @@ class DQHandler:
                 "failure.columns",
                 "failure.function",
                 "failure.run_time",
-                F.lit(severity_stripped).alias("severity"),
+                F.lit(severity_formatted).alias("severity"),
             )
             .distinct()
         )
@@ -77,22 +77,26 @@ class DQHandler:
         )
 
     def _handle_warnings(self, quarantine_df: DataFrame) -> None:
-        warnings_df = self._get_failures(quarantine_df, DQFailureSeverity.WARNINGS)
+        warnings_df = self._get_failures(quarantine_df, DQFailureSeverity.WARNING)
         if not warnings_df.isEmpty():
             LOGGER.warning(f"DQ warning(s) detected for {self.delta_table.full_name}.")
             warnings_df = self._add_metadata_columns(warnings_df)
             self._save_checks_to_table(warnings_df)
+        else:
+            LOGGER.info(f"No DQ issues detected for {self.delta_table.full_name}.")
 
     def _handle_errors(self, quarantine_df: DataFrame) -> None:
-        errors_df = self._get_failures(quarantine_df, DQFailureSeverity.ERRORS)
+        errors_df = self._get_failures(quarantine_df, DQFailureSeverity.ERROR)
         if not errors_df.isEmpty():
             errors_df = self._add_metadata_columns(errors_df)
             self._save_checks_to_table(errors_df)
-            raise DataQualityError(f"DQ ERROR(s) detected for {self.delta_table.full_name}.")
+            raise DQError(f"DQ ERROR(s) detected for {self.delta_table.full_name}.")
+        LOGGER.info(f"No DQ issues detected for {self.delta_table.full_name}.")
 
     def apply_and_save_checks(self) -> None:
         """Runs data quality checks on the DataFrame and handles any failures."""
         if not self.rules:
+            LOGGER.info(f"No DQ rules defined for {self.delta_table.full_name}.")
             return
 
         quarantine_df = self._apply_checks()

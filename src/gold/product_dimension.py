@@ -35,22 +35,10 @@ product_dimension = DeltaTable(
             comment="Name of the product",
         ),
         DeltaColumn(
-            name="aisle_id",
-            data_type=T.IntegerType(),
-            is_nullable=False,
-            comment="Identifier of the aisle containing the product",
-        ),
-        DeltaColumn(
             name="aisle_name",
             data_type=T.StringType(),
             is_nullable=False,
             comment="Name of the aisle containing the product",
-        ),
-        DeltaColumn(
-            name="department_id",
-            data_type=T.IntegerType(),
-            is_nullable=False,
-            comment="Identifier of the department for the product",
         ),
         DeltaColumn(
             name="department_name",
@@ -88,8 +76,6 @@ def main(spark: SparkSession) -> None:
     product_dim_df = joined_df.select(
         "product_id",
         "product_name",
-        "aisle_id",
-        "department_id",
         F.col("aisle_name").alias("aisle_name"),
         F.col("department_name").alias("department_name"),
     )

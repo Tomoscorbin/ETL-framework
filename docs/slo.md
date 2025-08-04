@@ -58,7 +58,7 @@ Examples:
 | **Time-to-acknowledge warn** (`tt_ack_warn`) | **P95 ≤ 4 h** (business hours) | Rolling 30 days; ≤ 5 % breaches |
 
 
-*(First human “eyes” reaction is captured by the alerting bot and stored for SLI calculation.)*
+*(We track first human acknowledgements manually, recording the timestamp ourselves to support SLI calculation)*
 
 ## 6. Time-to-Recovery (TTR)
 We track how long it takes to recover from any failed pipeline run, regardless of the root cause. This helps us ensure that failures - whether due to data quality issues or infrastructure problems - are resolved fast enough to avoid user impact.

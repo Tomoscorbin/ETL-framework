@@ -5,6 +5,9 @@ resources:
       schedule:
         quartz_cron_expression: "0 0 6 ? * MON-FRI" # 6am every weekday
         timezone_id: "Europe/London"
+      tags:
+        environment: ${bundle.target}
+
       tasks:
         - task_key: bronze
           run_job_task:

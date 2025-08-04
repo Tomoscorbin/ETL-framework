@@ -50,9 +50,9 @@ def _ensure_delta_tables_exists(
 
 def ensure_all_delta_tables(package: ModuleType, spark: SparkSession) -> None:
     """Ensure all delta tables exist in Unity Catalog."""
-    tables_to_create = []
+    tables_to_ensure = []
     for module in _find_modules_in_package(package=package, recurse=True):
         delta_tables = _get_all_delta_tables_in_module(module=module, instance_type=DeltaTable)
-        tables_to_create.extend(delta_tables)
+        tables_to_ensure.extend(delta_tables)
 
-    _ensure_delta_tables_exists(tables_to_create=tables_to_create, spark=spark)
+    _ensure_delta_tables_exists(tables_to_create=tables_to_ensure, spark=spark)

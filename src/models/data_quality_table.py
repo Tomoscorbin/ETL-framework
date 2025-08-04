@@ -62,7 +62,7 @@ def _is_in_list(table: DeltaTable) -> Iterator[DQRowRule]:
         quality_rule = col.quality_rule
         if quality_rule and quality_rule.allowed_values:
             yield DQRowRule(
-                criticality="error",
+                criticality=quality_rule.criticality,
                 check_func=check_funcs.is_in_list,
                 column=col.name,
                 check_func_args=[quality_rule.allowed_values],
@@ -77,14 +77,15 @@ def _is_in_range(table: DeltaTable) -> Iterator[DQRowRule]:
     • both      → `is_between`  (one rule instead of two)
     """
     for col in table.columns:
-        if not col.quality_rule:
+        quality_rule = col.quality_rule
+        if not quality_rule:
             continue
 
-        low, high = col.quality_rule.min_value, col.quality_rule.max_value
+        low, high = quality_rule.min_value, quality_rule.max_value
 
         if low is not None and high is not None:
             yield DQRowRule(
-                criticality="error",
+                criticality=quality_rule.criticality,
                 check_func=check_funcs.is_in_range,
                 column=col.name,
                 check_func_args=[low, high],
@@ -92,7 +93,7 @@ def _is_in_range(table: DeltaTable) -> Iterator[DQRowRule]:
 
         if low is not None:
             yield DQRowRule(
-                criticality="error",
+                criticality=quality_rule.criticality,
                 check_func=check_funcs.is_not_less_than,
                 column=col.name,
                 check_func_args=[low],
@@ -100,7 +101,7 @@ def _is_in_range(table: DeltaTable) -> Iterator[DQRowRule]:
 
         if high is not None:
             yield DQRowRule(
-                criticality="error",
+                criticality=quality_rule.criticality,
                 check_func=check_funcs.is_not_greater_than,
                 column=col.name,
                 check_func_args=[high],

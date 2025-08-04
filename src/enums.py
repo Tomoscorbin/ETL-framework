@@ -47,3 +47,20 @@ class ResultState(StrEnum):
 
     SUCCEEDED = "SUCCEEDED"
     ERROR = "ERROR"
+
+
+from enum import StrEnum
+
+class DQCriticality(StrEnum):
+    """Data quality failure criticality."""
+    ERROR = "error"
+    WARN  = "warn"
+
+    @property
+    def quarantine_column(self) -> str:
+        """Failure columns name for DQX quarantine table."""
+        mapping = {
+            DQCriticality.ERROR: "_errors",
+            DQCriticality.WARN:  "_warnings",
+        }
+        return mapping[self]

@@ -83,7 +83,6 @@ class DQEvaluator:
             warnings_df = self._add_metadata_columns(warnings_df)
             self._save_checks_to_table(warnings_df)
 
-
     def _handle_errors(self, quarantine_df: DataFrame) -> None:
         errors_df = self._get_failures(quarantine_df, DQCriticality.ERROR)
         if not errors_df.isEmpty():

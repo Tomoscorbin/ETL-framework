@@ -43,11 +43,11 @@ def derive_quality_metrics(data_quality_df: DataFrame) -> DataFrame:
     is_today = F.col("date") == F.current_date()
     is_error = F.col("criticality") == DQCriticality.ERROR
     is_warning = F.col("criticality") == DQCriticality.WARN
-    
+
     error_indicator = F.when(is_error, 1).otherwise(0)
     warning_indicator = F.when(is_warning, 1).otherwise(0)
-    error_count = F.sum(error_indicator)
-    warning_count = F.sum(warning_indicator)
+    error_count = F.count(error_indicator)
+    warning_count = F.count(warning_indicator)
 
     todays_failures = data_quality_df.filter(is_today)
     return todays_failures.agg(

@@ -7,7 +7,7 @@ from pyspark.sql import DataFrame, SparkSession
 from databricks.labs.dqx.rule import DQRule  # type: ignore
 from src.enums import DeltaTableProperty
 from src.models.column import DeltaColumn
-from src.models.table_manager import DeltaTableManager
+from src.models.table_builder import DeltaTableBuilder
 from src.models.writer import DeltaWriter
 
 
@@ -56,7 +56,7 @@ class DeltaTable:
 
     def ensure(self, spark: SparkSession) -> None:
         """Ensure the table exists with the correct features."""
-        DeltaTableManager(delta_table=self).ensure(spark)
+        DeltaTableBuilder(delta_table=self).ensure(spark)
 
     def check_exists(self, spark: SparkSession) -> bool:
         """Checks if the table already exists."""

@@ -1,6 +1,10 @@
+from collections.abc import Sequence
 from dataclasses import dataclass
+from typing import Any
 
 import pyspark.sql.types as T
+
+from src.enums import DQFailureSeverity
 
 
 @dataclass(frozen=True)
@@ -9,6 +13,16 @@ class ForeignKey:
 
     table_name: str
     column_name: str
+
+
+@dataclass(frozen=True)
+class QualityRule:
+    """Data quality rule for one column."""
+
+    criticality: str = DQFailureSeverity.ERROR
+    allowed_values: Sequence[Any] | None = None
+    min_value: int | float | None = None
+    max_value: int | float | None = None
 
 
 @dataclass(frozen=True)
@@ -21,6 +35,7 @@ class DeltaColumn:
     is_primary_key: bool = False
     is_nullable: bool = True
     foreign_key: ForeignKey | None = None
+    quality_rule: QualityRule | None = None
 
     @property
     def struct_field(self) -> T.StructField:

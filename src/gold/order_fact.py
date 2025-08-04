@@ -7,12 +7,12 @@ import pyspark.sql.types as T
 from pyspark.sql import SparkSession
 
 from src import settings
-from src.enums import Medallion
-from src.models.column import DeltaColumn
-from src.models.table import DeltaTable
+from src.enums import DQFailureSeverity, Medallion
+from src.models.column import DeltaColumn, QualityRule
+from src.models.data_quality_table import DQDeltaTable
 from src.silver.order import order
 
-order_fact = DeltaTable(
+order_fact = DQDeltaTable(
     table_name="order_fact",
     schema_name=Medallion.GOLD,
     catalog_name=settings.CATALOG,
@@ -53,6 +53,7 @@ order_fact = DeltaTable(
             name="days_since_prior_order",
             data_type=T.IntegerType(),
             comment="Days elapsed since the previous order",
+            quality_rule=QualityRule(min_value=0, criticality=DQFailureSeverity.ERROR),
         ),
     ],
 )

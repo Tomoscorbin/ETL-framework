@@ -4,7 +4,7 @@ from delta import DeltaTable as dt
 from pyspark.sql import DataFrame
 
 from src.logger import LOGGER
-from src.models.data_quality_handler import DQHandler
+from src.models.data_quality_evaluator import DQEvaluator
 
 if TYPE_CHECKING:
     from src.models.table import DeltaTable
@@ -27,7 +27,7 @@ class DeltaWriter:
         return " AND ".join(f"t.{pk} = s.{pk}" for pk in primary_keys)
 
     def _apply_and_save_checks(self) -> None:
-        DQHandler(self.delta_table, self.dataframe).apply_and_save_checks()
+        DQEvaluator(self.delta_table, self.dataframe).apply_and_save_checks()
 
     def overwrite(self) -> None:
         """Overwrite the table with the given dataframe."""

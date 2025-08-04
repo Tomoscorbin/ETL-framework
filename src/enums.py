@@ -38,8 +38,8 @@ class DeltaTableProperty(StrEnum):
 class DQFailureSeverity(StrEnum):
     """Failure severity for DQX."""
 
-    ERRORS = "_errors"
-    WARNINGS = "_warnings"
+    ERROR = "error"
+    WARNING = "warning"
 
 
 class ResultState(StrEnum):

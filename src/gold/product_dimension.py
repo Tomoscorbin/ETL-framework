@@ -10,12 +10,12 @@ from pyspark.sql import DataFrame, SparkSession
 from src import settings
 from src.enums import Medallion
 from src.models.column import DeltaColumn
-from src.models.table import DeltaTable
+from src.models.data_quality_table import DQDeltaTable
 from src.silver.aisle import aisle
 from src.silver.department import department
 from src.silver.product import product
 
-product_dimension = DeltaTable(
+product_dimension = DQDeltaTable(
     table_name="product_dimension",
     schema_name=Medallion.GOLD,
     catalog_name=settings.CATALOG,
@@ -35,22 +35,10 @@ product_dimension = DeltaTable(
             comment="Name of the product",
         ),
         DeltaColumn(
-            name="aisle_id",
-            data_type=T.IntegerType(),
-            is_nullable=False,
-            comment="Identifier of the aisle containing the product",
-        ),
-        DeltaColumn(
             name="aisle_name",
             data_type=T.StringType(),
             is_nullable=False,
             comment="Name of the aisle containing the product",
-        ),
-        DeltaColumn(
-            name="department_id",
-            data_type=T.IntegerType(),
-            is_nullable=False,
-            comment="Identifier of the department for the product",
         ),
         DeltaColumn(
             name="department_name",
@@ -88,8 +76,6 @@ def main(spark: SparkSession) -> None:
     product_dim_df = joined_df.select(
         "product_id",
         "product_name",
-        "aisle_id",
-        "department_id",
         F.col("aisle_name").alias("aisle_name"),
         F.col("department_name").alias("department_name"),
     )

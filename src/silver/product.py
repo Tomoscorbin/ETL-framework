@@ -48,6 +48,12 @@ product = DeltaTable(
             comment="Identifier of the department for the product",
             foreign_key=ForeignKey(table_name="departments", column_name="department_id"),
         ),
+        DeltaColumn(
+            name="sale_amount",
+            data_type=T.FloatType(),
+            is_nullable=False,
+            comment="The price the product sold for",
+        ),
     ],
 )
 
@@ -64,6 +70,7 @@ def clean_products(df: DataFrame) -> DataFrame:
             F.col("product_id").cast(T.IntegerType()).alias("product_id"),
             F.col("aisle_id").cast(T.IntegerType()).alias("aisle_id"),
             F.col("department_id").cast(T.IntegerType()).alias("department_id"),
+            F.col("sale_amount").cast(T.FloatType()).alias("sale_amount"),
         )
     )
 

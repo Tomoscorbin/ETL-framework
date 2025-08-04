@@ -8,8 +8,8 @@ import pyspark.sql.types as T
 from pyspark.sql import DataFrame, SparkSession
 
 from src import settings
-from src.enums import Medallion
-from src.models.column import DeltaColumn
+from src.enums import DQFailureSeverity, Medallion
+from src.models.column import DeltaColumn, QualityRule
 from src.models.data_quality_table import DQDeltaTable
 from src.silver.aisle import aisle
 from src.silver.department import department
@@ -46,6 +46,13 @@ product_dimension = DQDeltaTable(
             is_nullable=False,
             comment="Name of the department for the product",
         ),
+        DeltaColumn(
+            name="sale_amount",
+            data_type=T.FloatType(),
+            is_nullable=False,
+            comment="The price the product sold for",
+            quality_rule=QualityRule(min_value=0, criticality=DQFailureSeverity.ERROR),
+        ),
     ],
 )
 
@@ -76,6 +83,7 @@ def main(spark: SparkSession) -> None:
     product_dim_df = joined_df.select(
         "product_id",
         "product_name",
+        "sale_amount",
         F.col("aisle_name").alias("aisle_name"),
         F.col("department_name").alias("department_name"),
     )

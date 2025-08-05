@@ -10,14 +10,13 @@ import pyspark.sql.types as T
 from pyspark.sql import DataFrame, SparkSession
 
 from src import settings
+from src.constants import JOB_RUNS_FULL_TABLE_NAME, JOBS_FULL_TABLE_NAME
 from src.enums import Medallion, ResultState
 from src.models.column import DeltaColumn
 from src.models.table import DeltaTable
 
 _CUTOFF_HOUR = 9
 _JOB_NAME_TO_TRACK = "full_medallion"
-_JOBS_TABLE_NAME = "system.lakeflow.jobs"
-_JOB_RUNS_TABLE_NAME = "system.lakeflow.job_run_timeline"
 
 
 timeliness = DeltaTable(
@@ -90,8 +89,8 @@ def derive_timeliness_metrics(latest_successful_runs_df: DataFrame) -> DataFrame
 
 def main(spark: SparkSession) -> None:
     """Execute."""
-    jobs_df = spark.table(_JOBS_TABLE_NAME)
-    runs_df = spark.table(_JOB_RUNS_TABLE_NAME)
+    jobs_df = spark.table(JOBS_FULL_TABLE_NAME)
+    runs_df = spark.table(JOB_RUNS_FULL_TABLE_NAME)
 
     job_id_to_track = get_job_id_to_track(jobs_df)
     latest_successful_runs_df = get_latest_successful_runs(runs_df, job_id_to_track)

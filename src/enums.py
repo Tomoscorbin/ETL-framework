@@ -57,7 +57,7 @@ class DQCriticality(StrEnum):
 
     @property
     def quarantine_column(self) -> str:
-        """Failure columns name for DQX quarantine table."""
+        """Failure column names for DQX quarantine table."""
         mapping = {
             DQCriticality.ERROR: "_errors",
             DQCriticality.WARN: "_warnings",

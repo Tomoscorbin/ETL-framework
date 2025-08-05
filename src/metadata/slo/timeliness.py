@@ -47,10 +47,10 @@ timeliness = DeltaTable(
 
 def get_job_id_to_track(jobs_df: DataFrame) -> Any:
     """Get the job ID of the job we want to track."""
-    # use system.lakeflow.jobs to get job ID.
-    # DABs can sometimes create new jobs/IDs, so we take some recent IDs
+    # use system.lakeflow.jobs to get job ID. DABs can sometimes create new jobs/IDs, 
+    # so we take some recent IDs in case the job hasn't run in a few days,
     # and then take the most recent one
-    three_days_ago = F.current_date() - F.expr("INTERVAL 3 DAY")
+    three_days_ago = F.current_date() - F.expr("INTERVAL 5 DAY")
     is_job_to_track = F.col("name") == _JOB_NAME_TO_TRACK
     job_ran_in_last_three_days = F.col("change_time") > three_days_ago
 

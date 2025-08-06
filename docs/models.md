@@ -28,3 +28,19 @@ The project defines Python models that describe key objects within the ETL workf
 - `overwrite(dataframe)` – replace the table's data with the supplied DataFrame.
 - `merge(dataframe)` – upsert the DataFrame into the table using primary keys.
 
+## DeltaColumn
+
+`DeltaColumn` captures the definition and constraints of a single column within a Delta Lake table. It is a frozen dataclass with the following attributes:
+
+- `name` – column name.
+- `data_type` – PySpark data type for the column.
+- `comment` – optional description.
+- `is_primary_key` – whether the column participates in the table's primary key.
+- `is_nullable` – whether `NULL` values are allowed.
+- `foreign_key` – optional `ForeignKey` reference to another table column.
+- `quality_rule` – optional `QualityRule` describing column-level validations.
+
+### Derived properties
+
+- `struct_field` – PySpark `StructField` representation of the column.
+

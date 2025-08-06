@@ -1,4 +1,4 @@
-ETL-Framework documentation
+ETL-Framework Documentation
 ===========================
 
 .. toctree::
@@ -7,7 +7,7 @@ ETL-Framework documentation
 
    readme
    use_case
-   models
-   tooling
    slo
+   tooling
+   models
 

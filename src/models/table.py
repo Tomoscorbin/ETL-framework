@@ -1,3 +1,5 @@
+"""Representation of a Delta table with helper methods."""
+
 from dataclasses import dataclass, field
 from typing import ClassVar
 

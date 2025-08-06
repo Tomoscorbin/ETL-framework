@@ -1,3 +1,5 @@
+"""Logic for creating and aligning Delta tables with their specifications."""
+
 from typing import TYPE_CHECKING
 
 import pyspark.sql.types as T

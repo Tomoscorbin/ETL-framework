@@ -1,3 +1,5 @@
+"""Definition of the data quality checks audit table."""
+
 import sys
 from pathlib import Path
 

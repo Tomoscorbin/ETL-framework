@@ -1,3 +1,5 @@
+"""Builds the product dimension table in the gold layer."""
+
 import sys
 from pathlib import Path
 

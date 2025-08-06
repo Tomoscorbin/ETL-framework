@@ -1,3 +1,5 @@
+"""Data structures representing Delta table columns and quality rules."""
+
 from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import Any

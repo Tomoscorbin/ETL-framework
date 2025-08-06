@@ -1,3 +1,5 @@
+"""Utilities for ingesting raw CSV files into bronze Delta tables."""
+
 import sys
 from pathlib import Path
 

@@ -1,3 +1,5 @@
+"""Entry point for running all DDL operations in the project."""
+
 import sys
 from pathlib import Path
 

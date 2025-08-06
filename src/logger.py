@@ -1,3 +1,5 @@
+"""Logging configuration and helpers."""
+
 import logging
 import typing
 from enum import StrEnum

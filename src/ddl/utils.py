@@ -1,3 +1,5 @@
+"""Helpers for discovering and ensuring Delta tables exist."""
+
 import importlib
 import pkgutil
 from collections.abc import Iterable

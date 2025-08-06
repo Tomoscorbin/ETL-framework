@@ -1,3 +1,5 @@
+"""Enumerations used throughout the ETL framework."""
+
 from enum import StrEnum
 
 

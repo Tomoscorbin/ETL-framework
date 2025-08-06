@@ -1,3 +1,5 @@
+"""Transform source order data into the silver layer."""
+
 import sys
 from pathlib import Path
 

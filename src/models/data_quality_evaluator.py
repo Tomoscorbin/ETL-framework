@@ -1,3 +1,5 @@
+"""Class that runs data-quality checks and persists results using DQx."""
+
 from argparse import ArgumentParser
 from functools import cached_property
 from typing import TYPE_CHECKING, Any, cast

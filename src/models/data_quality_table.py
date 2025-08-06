@@ -1,3 +1,5 @@
+"""DeltaTable subclass that auto-derives DQx rules from column metadata."""
+
 from collections.abc import Callable, Iterable, Iterator
 from dataclasses import dataclass
 from typing import ClassVar, TypeAlias

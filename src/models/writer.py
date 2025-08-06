@@ -1,3 +1,5 @@
+"""Standardised writer for persisting DataFrames to Delta tables."""
+
 from typing import TYPE_CHECKING
 
 from delta import DeltaTable as dt

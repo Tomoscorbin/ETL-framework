@@ -1,3 +1,5 @@
+"""Compute daily data quality metrics from check logs."""
+
 import sys
 from pathlib import Path
 

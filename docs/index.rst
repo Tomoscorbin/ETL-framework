@@ -7,6 +7,7 @@ ETL-Framework documentation
 
    readme
    use_case
+   models
    tooling
    slo
 

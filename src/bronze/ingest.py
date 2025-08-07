@@ -14,8 +14,8 @@ from src.logger import LOGGER
 from src.models.column import DeltaColumn
 from src.models.table import DeltaTable
 
-
 _SOURCE_VOLUME = "/Volumes/source/raw/instacart"
+
 
 def columns_from_schema(schema: T.StructType) -> list[DeltaColumn]:
     """Create :class:`DeltaColumn` definitions from a Spark schema."""

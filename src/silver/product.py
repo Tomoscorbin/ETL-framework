@@ -53,7 +53,8 @@ product = DeltaTable(
             is_nullable=False,
             comment="Identifier of the department for the product",
             foreign_key=ForeignKey(
-                reference_table_full_name=department.full_name, reference_column_name="department_id"
+                reference_table_full_name=department.full_name,
+                reference_column_name="department_id",
             ),
         ),
         DeltaColumn(

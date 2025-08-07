@@ -26,7 +26,7 @@ def test_struct_field_values(name, dtype, nullable):
 
 
 def test_foreign_key():
-    fk = ForeignKey(table_name="bar", column_name="id")
+    fk = ForeignKey(reference_table_full_name="bar", reference_column_name="id")
     column = DeltaColumn(name="foo_id", data_type=T.IntegerType(), foreign_key=fk)
     assert column.foreign_key == fk
 

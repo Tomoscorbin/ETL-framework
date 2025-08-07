@@ -56,6 +56,26 @@ class DeltaTable:
         """Names of primary keys."""
         return [column.name for column in self.columns if column.is_primary_key]
 
+    @property
+    def foreign_key_constraints(self) -> list[dict[str, str]]:
+        """
+        List of foreign key constraints as tuples:
+        (constraint_name, source_column, reference_table_full_name, reference_column)
+        """
+        constraints: list[dict[str, str]] = []
+        for col in self.columns:
+            if col.foreign_key:
+                fk = col.foreign_key
+                constraints.append(
+                    {
+                        "constraint_name": fk.constraint_name(self.table_name),
+                        "source_column": col.name,
+                        "reference_table": fk.reference_table_full_name,
+                        "reference_column": fk.reference_column_name,
+                    }
+                )
+        return constraints
+
     def ensure(self, spark: SparkSession) -> None:
         """Ensure the table exists with the correct features."""
         DeltaTableBuilder(delta_table=self).ensure(spark)

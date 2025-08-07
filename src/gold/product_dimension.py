@@ -49,9 +49,9 @@ product_dimension = DQDeltaTable(
             comment="Name of the department for the product",
         ),
         DeltaColumn(
-            name="sale_amount",
+            name="price",
             data_type=T.FloatType(),
-            is_nullable=False,
+            is_nullable=True,
             comment="The price the product sold for",
             quality_rule=QualityRule(min_value=0, criticality=DQCriticality.ERROR),
         ),
@@ -85,7 +85,7 @@ def main(spark: SparkSession) -> None:
     product_dim_df = joined_df.select(
         "product_id",
         "product_name",
-        "sale_amount",
+        "price",
         F.col("aisle_name").alias("aisle_name"),
         F.col("department_name").alias("department_name"),
     )

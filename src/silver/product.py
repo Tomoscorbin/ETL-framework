@@ -13,6 +13,8 @@ from src import settings
 from src.enums import Medallion
 from src.models.column import DeltaColumn, ForeignKey
 from src.models.table import DeltaTable
+from src.silver.aisle import aisle
+from src.silver.department import department
 
 NUMERIC_ONLY_REGEX: str = r"^\d+$"
 
@@ -41,19 +43,23 @@ product = DeltaTable(
             data_type=T.IntegerType(),
             is_nullable=False,
             comment="Identifier of the aisle containing the product",
-            foreign_key=ForeignKey(table_name="aisles", column_name="aisle_id"),
+            foreign_key=ForeignKey(
+                reference_table_full_name=aisle.full_name, reference_column_name="aisle_id"
+            ),
         ),
         DeltaColumn(
             name="department_id",
             data_type=T.IntegerType(),
             is_nullable=False,
             comment="Identifier of the department for the product",
-            foreign_key=ForeignKey(table_name="departments", column_name="department_id"),
+            foreign_key=ForeignKey(
+                reference_table_full_name=department.full_name, reference_column_name="department_id"
+            ),
         ),
         DeltaColumn(
-            name="sale_amount",
+            name="price",
             data_type=T.FloatType(),
-            is_nullable=False,
+            is_nullable=True,
             comment="The price the product sold for",
         ),
     ],
@@ -72,7 +78,7 @@ def clean_products(df: DataFrame) -> DataFrame:
             F.col("product_id").cast(T.IntegerType()).alias("product_id"),
             F.col("aisle_id").cast(T.IntegerType()).alias("aisle_id"),
             F.col("department_id").cast(T.IntegerType()).alias("department_id"),
-            F.col("sale_amount").cast(T.FloatType()).alias("sale_amount"),
+            F.col("price").cast(T.FloatType()).alias("price"),
         )
     )
 

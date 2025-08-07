@@ -15,6 +15,8 @@ from src.models.column import DeltaColumn
 from src.models.table import DeltaTable
 
 
+_SOURCE_VOLUME = "/Volumes/source/raw/instacart"
+
 def columns_from_schema(schema: T.StructType) -> list[DeltaColumn]:
     """Create :class:`DeltaColumn` definitions from a Spark schema."""
     return [
@@ -23,7 +25,7 @@ def columns_from_schema(schema: T.StructType) -> list[DeltaColumn]:
     ]
 
 
-def ingest_csv_directory(spark: SparkSession, directory: str) -> None:
+def main(spark: SparkSession, directory: str) -> None:
     """
     Ingest all CSV files within ``directory`` into bronze Delta tables.
     Each CSV file becomes a Delta table with the same name as the file stem.
@@ -53,12 +55,7 @@ def ingest_csv_directory(spark: SparkSession, directory: str) -> None:
         LOGGER.info("Completed CSV ingestion from %s", directory)
 
 
-def main(spark: SparkSession) -> None:
-    """Execute ingestion pipeline."""
-    ingest_csv_directory(spark, directory="/Volumes/source/raw/instacart")
-
-
 if __name__ == "__main__":
     from src.runtime import spark
 
-    main(spark)
+    main(spark, _SOURCE_VOLUME)

@@ -13,6 +13,7 @@ from src import settings
 from src.enums import Medallion
 from src.models.column import DeltaColumn, ForeignKey
 from src.models.table import DeltaTable
+from src.silver.product import product
 
 order = DeltaTable(
     table_name="order",
@@ -32,13 +33,15 @@ order = DeltaTable(
             data_type=T.IntegerType(),
             is_nullable=False,
             comment="Identifier for the user who placed the order",
-            foreign_key=ForeignKey(table_name="users", column_name="user_id"),
         ),
         DeltaColumn(
-            name="evaluation_set",
-            data_type=T.StringType(),
-            is_nullable=False,
-            comment="Dataset split label for the order",
+            name="product_id",
+            data_type=T.IntegerType(),
+            is_nullable=True,
+            comment="Unique identifier for a product",
+            foreign_key=ForeignKey(
+                reference_table_full_name=product.full_name, reference_column_name="product_id"
+            ),
         ),
         DeltaColumn(
             name="order_number",
@@ -72,7 +75,7 @@ def clean_orders(df: DataFrame) -> DataFrame:
     return df.select(
         F.col("order_id").cast(T.IntegerType()).alias("order_id"),
         F.col("user_id").cast(T.IntegerType()).alias("user_id"),
-        F.col("eval_set").alias("evaluation_set"),
+        F.col("product_id").cast(T.IntegerType()).alias("product_id"),
         F.col("order_number").cast(T.IntegerType()).alias("order_number"),
         F.col("order_dow").cast(T.IntegerType()).alias("order_day_of_week"),
         F.col("order_hour_of_day").cast(T.IntegerType()).alias("order_hour"),

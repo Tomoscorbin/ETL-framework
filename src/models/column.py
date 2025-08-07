@@ -7,14 +7,28 @@ from typing import Any
 import pyspark.sql.types as T
 
 from src.enums import DQCriticality
+from src.models.utils import split_qualified_name
 
 
 @dataclass(frozen=True)
 class ForeignKey:
     """Represents a foreign key constraint."""
 
-    table_name: str
-    column_name: str
+    reference_table_full_name: str
+    reference_column_name: str
+
+    def constraint_name(self, source_table_name: str) -> str:
+        """
+        Naming convention:
+          fk_<catalog>_<source_table>_<reference_table>_<reference_column>
+        """
+        catalog_name, _, reference_table_name = split_qualified_name(self.reference_table_full_name)
+        return (
+            f"fk_{catalog_name}"
+            f"_{source_table_name}"
+            f"_{reference_table_name}"
+            f"_{self.reference_column_name}"
+        )
 
 
 @dataclass(frozen=True)

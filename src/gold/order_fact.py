@@ -10,7 +10,8 @@ from pyspark.sql import SparkSession
 
 from src import settings
 from src.enums import DQCriticality, Medallion
-from src.models.column import DeltaColumn, QualityRule
+from src.gold.product_dimension import product_dimension
+from src.models.column import DeltaColumn, ForeignKey, QualityRule
 from src.models.data_quality_table import DQDeltaTable
 from src.silver.order import order
 
@@ -32,6 +33,16 @@ order_fact = DQDeltaTable(
             data_type=T.IntegerType(),
             is_nullable=False,
             comment="Identifier for the user who placed the order",
+        ),
+        DeltaColumn(
+            name="product_id",
+            data_type=T.IntegerType(),
+            is_nullable=True,
+            comment="Unique identifier for a product",
+            foreign_key=ForeignKey(
+                reference_table_full_name=product_dimension.full_name,
+                reference_column_name="product_id",
+            ),
         ),
         DeltaColumn(
             name="order_number",
@@ -67,6 +78,7 @@ def main(spark: SparkSession) -> None:
     order_df_selected = order_df.select(
         "order_id",
         "user_id",
+        "product_id",
         "order_number",
         "order_day_of_week",
         "order_hour",

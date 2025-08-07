@@ -6,9 +6,7 @@ import pyspark.sql.types as T
 from delta import DeltaTable as dt
 from pyspark.sql import SparkSession
 
-from src.logger import LOGGER
 from src.models.column import DeltaColumn
-from src.models.utils import check_primary_key_exists
 
 if TYPE_CHECKING:
     from src.models.table import DeltaTable
@@ -34,7 +32,6 @@ class DeltaTableBuilder:
         - Has the correct columns.
         - Columns have the correct nullability.
         - Has the correct primary keys.
-        - Has the correct foreign key.
         - Has the correct column comments.
         """
         self._create_if_not_exists(spark)
@@ -44,7 +41,6 @@ class DeltaTableBuilder:
         self._drop_extra_columns(spark)
         self._update_column_nullability(spark)
         self._ensure_primary_keys(spark)
-        self._ensure_foreign_keys(spark)
         self._set_column_comments(spark=spark)
 
     def _get_column(self, column_name: str) -> DeltaColumn:
@@ -87,19 +83,6 @@ class DeltaTableBuilder:
             """  # noqa: E501
         ).collect()
         return [row["column_name"] for row in rows]
-
-    def _get_existing_foreign_key_names(self, spark: SparkSession) -> list[str]:
-        rows = spark.sql(
-            f"""
-                SELECT constraint_name
-                FROM {self.catalog_name}.information_schema.table_constraints
-                WHERE table_catalog = '{self.catalog_name}'
-                AND table_schema = '{self.schema_name}'
-                AND table_name = '{self.table_name}'
-                AND constraint_type = 'FOREIGN KEY'
-        """
-        ).collect()
-        return [row["constraint_name"] for row in rows]
 
     def _identify_missing_columns(self, spark: SparkSession) -> list[DeltaColumn]:
         existing_column_names = self._get_existing_column_names(spark)
@@ -216,35 +199,3 @@ class DeltaTableBuilder:
             f" ADD CONSTRAINT {primary_key_name}"
             f" PRIMARY KEY ({', '.join(self.delta_table.primary_key_column_names)});"
         )
-
-    def _ensure_foreign_keys(self, spark: SparkSession) -> None:
-        existing_names = set(self._get_existing_foreign_key_names(spark))
-        expected_constraints = self.delta_table.foreign_key_constraints
-        expected_names = {c["constraint_name"] for c in expected_constraints}
-
-        # Drop extra constraints
-        for name in existing_names - expected_names:
-            spark.sql(f"ALTER TABLE {self.delta_table.full_name} DROP CONSTRAINT {name};")
-
-        # Add missing constraints
-        for c in expected_constraints:
-            name = c["constraint_name"]
-            reference_table = c["reference_table"]
-            reference_column = c["reference_column"]
-            if name not in existing_names:
-                reference_primary_key_exists = check_primary_key_exists(
-                    spark=spark, table_full_name=reference_table, column_name=reference_column
-                )
-                if reference_primary_key_exists:
-                    spark.sql(f"""
-                        ALTER TABLE {self.delta_table.full_name}
-                        ADD CONSTRAINT {name}
-                        FOREIGN KEY ({c["source_column"]})
-                        REFERENCES {c["reference_table"]}({c["reference_column"]})
-                    """)
-                else:
-                    LOGGER.warning(
-                        f"Skipping FK {name}: referenced primary key"
-                        " {reference_table}({reference_column}) does not exist."
-                        " This column must be defined as the primary key first."
-                    )

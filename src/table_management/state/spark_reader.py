@@ -87,8 +87,9 @@ class SparkCatalogReader:
         return delta_table.toDF().schema
     
     def _read_column_comments(self, full_name: str) -> Dict[str, str]:
-        comments: Dict[str, str] = {}
-        for column in self.spark.catalog.listColumns(full_name):
+        comments = {}
+        columns = self.spark.catalog.listColumns(full_name)
+        for column in columns:
             comments[column.name] = column.description or ""
         return comments
     

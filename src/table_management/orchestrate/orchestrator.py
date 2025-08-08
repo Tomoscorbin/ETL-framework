@@ -22,8 +22,8 @@ class Orchestrator:
 
         catalog_state = self.reader.snapshot(desired_tables)
 
-        LOGGER.info(f"Plan generated — creates: {len(plan.create_tables)}, aligns: {len(plan.align_tables)}")
         plan = self.planner.plan(desired_tables=desired_tables, actual_catalog_state=catalog_state)
+        LOGGER.info(f"Plan generated — creates: {len(plan.create_tables)}, aligns: {len(plan.align_tables)}")
         
         self.runner.apply(plan)
         LOGGER.info("Orchestration completed.")

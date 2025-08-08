@@ -3,6 +3,7 @@ import pyspark.sql.types as T
 from pyspark.sql import SparkSession
 from delta.tables import DeltaTable
 
+from src.logger import LOGGER
 from src.table_management.actions import CreateTable
 from src.table_management.execute.renderer import SqlRenderer, construct_full_name
 
@@ -37,6 +38,8 @@ class CreateExecutor:
         if action.primary_key_columns:
             sql_statement = self.renderer.add_primary_key(full_name, action.primary_key_columns)
             self._execute(sql_statement)
+
+        LOGGER.info(f"Create: {full_name} — completed")
 
     # ---- helpers ----
 

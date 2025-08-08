@@ -1,5 +1,6 @@
 from pyspark.sql import SparkSession
 
+from src.logger import LOGGER
 from src.table_management.actions import AlignTable
 from src.table_management.execute.renderer import SqlRenderer, construct_full_name
 
@@ -50,6 +51,8 @@ class AlignExecutor:
         if action.set_primary_key is not None:
             sql_statement = self.renderer.add_primary_key(full_name, action.set_primary_key.columns)
             self._execute(sql_statement)
+
+        LOGGER.info(f"Align: {full_name} — completed")
 
     def _execute(self, sql: str) -> None:
         self.spark.sql(sql)

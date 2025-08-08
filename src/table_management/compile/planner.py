@@ -4,6 +4,7 @@ from typing import Dict, List, Sequence, Tuple
 
 import pyspark.sql.types as T
 
+from src.logger import LOGGER
 from src.table_management.actions import (
     AlignTable,
     ColumnAdd,
@@ -36,14 +37,16 @@ class Planner:
                 desired_table.schema_name,
                 desired_table.table_name,
             )
+            full_name = f"{desired_table.catalog_name}.{desired_table.schema_name}.{desired_table.table_name}"
 
             if actual_table_state is None or not actual_table_state.exists:
+                LOGGER.info(f"Plan: CREATE {full_name}")
                 create_action = self._build_create_action(desired_table)
                 create_actions.append(create_action)
-                continue
-
-            align_action = self._build_align_action(desired_table, actual_table_state)
-            align_actions.append(align_action)
+            else:
+                LOGGER.info(f"Plan: ALIGN {full_name}")
+                align_action = self._build_align_action(desired_table, actual_table_state)
+                align_actions.append(align_action)
 
         return Plan(create_tables=create_actions, align_tables=align_actions)
 

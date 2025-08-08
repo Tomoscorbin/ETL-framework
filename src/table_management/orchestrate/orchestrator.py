@@ -2,6 +2,7 @@ from __future__ import annotations
 from typing import Sequence
 from pyspark.sql import SparkSession
 
+from src.logger import LOGGER
 from src.table_management.models import Table
 from src.table_management.state.spark_reader import SparkCatalogReader
 from src.table_management.compile.planner import Planner
@@ -17,6 +18,12 @@ class Orchestrator:
         self.runner = ActionRunner(spark)
 
     def apply(self, desired_tables: Sequence[Table]) -> None:
+        LOGGER.info(f"Starting orchestration for {len(desired_tables)} table(s).")
+
         catalog_state = self.reader.snapshot(desired_tables)
+
+        LOGGER.info(f"Plan generated — creates: {len(plan.create_tables)}, aligns: {len(plan.align_tables)}")
         plan = self.planner.plan(desired_tables=desired_tables, actual_catalog_state=catalog_state)
+        
         self.runner.apply(plan)
+        LOGGER.info("Orchestration completed.")

@@ -31,11 +31,10 @@ class SqlRenderer:
     def set_column_comment(self, full_name: str, column_name: str, comment: str) -> str:
         return f"ALTER TABLE {full_name} CHANGE COLUMN {column_name} COMMENT '{_escape(comment)}';"
 
-    def add_column(self, full_name: str, name: str, dtype: T.DataType, nullable: bool, comment: str) -> str:
+    def add_column(self, full_name: str, name: str, dtype: T.DataType, comment: str) -> str:
         type_sql = dtype.simpleString()
-        null_sql = "" if nullable else " NOT NULL"
         comment_sql = f" COMMENT '{_escape(comment)}'" if comment else ""
-        return f"ALTER TABLE {full_name} ADD COLUMNS ({name} {type_sql}{null_sql}{comment_sql});"
+        return f"ALTER TABLE {full_name} ADD COLUMNS ({name} {type_sql}{comment_sql});"
 
     def change_nullability(self, full_name: str, column_name: str, make_nullable: bool) -> str:
         op = "DROP NOT NULL" if make_nullable else "SET NOT NULL"

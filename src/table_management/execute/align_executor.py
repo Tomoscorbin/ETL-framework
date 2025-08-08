@@ -28,7 +28,6 @@ class AlignExecutor:
                     full_name, 
                     addition.name, 
                     addition.data_type, 
-                    addition.is_nullable, 
                     addition.comment
                 )
             self._execute(sql_statement)

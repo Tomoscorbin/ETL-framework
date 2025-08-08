@@ -1,0 +1,22 @@
+from __future__ import annotations
+from typing import Sequence
+from pyspark.sql import SparkSession
+
+from src.table_management.models import Table
+from src.table_management.state.spark_reader import SparkCatalogReader
+from src.table_management.compile.planner import Planner
+from src.table_management.execute.action_runner import ActionRunner
+
+class Orchestrator:
+    """End-to-end: desired models -> snapshot -> plan -> execute."""
+
+    def __init__(self, spark: SparkSession) -> None:
+        self.spark = spark
+        self.reader = SparkCatalogReader(spark)
+        self.planner = Planner()
+        self.runner = ActionRunner(spark)
+
+    def apply(self, desired_tables: Sequence[Table]) -> None:
+        catalog_state = self.reader.snapshot(desired_tables)
+        plan = self.planner.plan(desired_tables=desired_tables, actual_catalog_state=catalog_state)
+        self.runner.apply(plan)

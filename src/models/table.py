@@ -8,8 +8,9 @@ from pyspark.sql import DataFrame, SparkSession
 
 from databricks.labs.dqx.rule import DQRule  # type: ignore
 from src.enums import DeltaTableProperty
-from src.models.column import DeltaColumn
+from src.models.column import DeltaColumn, ForeignKey
 from src.models.table_builder import DeltaTableBuilder
+from src.models.utils import short_hash
 from src.models.writer import DeltaWriter
 
 
@@ -26,6 +27,7 @@ class DeltaTable:
     catalog_name: str
     columns: list[DeltaColumn]
     comment: str = ""
+    foreign_keys: list[ForeignKey] = field(default_factory=list)
     delta_properties: dict[str, str] = field(default_factory=dict)
     rules: list[DQRule] = field(default_factory=list)
 
@@ -59,23 +61,44 @@ class DeltaTable:
     @property
     def foreign_key_constraints(self) -> list[dict[str, str]]:
         """
-        List of foreign key constraints as tuples:
-        (constraint_name, source_column, reference_table_full_name, reference_column)
+        Build FK constraints from column FKs.
+        Returns dicts: constraint_name, source_column, reference_table, reference_column
         """
         constraints: list[dict[str, str]] = []
+        used_names: set[str] = set()
+
         for col in self.columns:
-            if col.foreign_key:
-                fk = col.foreign_key
-                constraints.append(
-                    {
-                        "constraint_name": fk.constraint_name(self.table_name),
-                        "source_column": col.name,
-                        "reference_table": fk.reference_table_full_name,
-                        "reference_column": fk.reference_column_name,
-                    }
+            fk = col.foreign_key
+            if not fk:
+                continue
+
+            name = fk.constraint_name(self)
+
+            if name in used_names:
+                # Disambiguate: stable salt includes table + column info (not visible in base name)
+                salt = short_hash(
+                    self.full_name,
+                    col.name,
+                    fk.target_table.full_name,
+                    fk.target_column,
                 )
+                name = fk.constraint_name(self, salt=salt)
+
+            used_names.add(name)
+
+            constraints.append(
+                {
+                    "constraint_name": name,
+                    "source_column": col.name,
+                    "reference_table": fk.target_table.full_name,
+                    "reference_column": fk.target_column,
+                }
+            )
+
+        constraints.sort(key=lambda c: (c["constraint_name"], c["reference_table"]))
         return constraints
 
+    # I/O helpers
     def ensure(self, spark: SparkSession) -> None:
         """Ensure the table exists with the correct features."""
         DeltaTableBuilder(delta_table=self).ensure(spark)

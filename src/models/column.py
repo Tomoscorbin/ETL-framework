@@ -2,32 +2,38 @@
 
 from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import pyspark.sql.types as T
 
 from src.enums import DQCriticality
-from src.models.utils import split_qualified_name
+from src.models.utils import build_fk_name_minimal
+
+if TYPE_CHECKING:
+    from src.models.table import DeltaTable
 
 
 @dataclass(frozen=True)
 class ForeignKey:
-    """Represents a foreign key constraint."""
+    """Represents a foreign key relationship."""
 
-    reference_table_full_name: str
-    reference_column_name: str
+    target_table: "DeltaTable"
+    target_column: str
 
-    def constraint_name(self, source_table_name: str) -> str:
+    def constraint_name(self, source_table: "DeltaTable", salt: str | None = None) -> str:
         """
-        Naming convention:
-          fk_<catalog>_<source_table>_<reference_table>_<reference_column>
+        Returns a deterministic foreign key constraint name based on the source
+        and target table names.
         """
-        catalog_name, _, reference_table_name = split_qualified_name(self.reference_table_full_name)
-        return (
-            f"fk_{catalog_name}"
-            f"_{source_table_name}"
-            f"_{reference_table_name}"
-            f"_{self.reference_column_name}"
+        target_catalog = self.target_table.catalog_name
+        target_table = self.target_table.table_name
+
+        return build_fk_name_minimal(
+            source_catalog=source_table.catalog_name,
+            source_table=source_table.table_name,
+            target_catalog=target_catalog,
+            target_table=target_table,
+            salt=salt,
         )
 
 

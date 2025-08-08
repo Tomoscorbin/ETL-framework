@@ -92,16 +92,14 @@ def _is_in_range(table: DeltaTable) -> Iterator[DQRowRule]:
                 column=col.name,
                 check_func_args=[low, high],
             )
-
-        if low is not None:
+        elif low is not None:
             yield DQRowRule(
                 criticality=quality_rule.criticality,
                 check_func=check_funcs.is_not_less_than,
                 column=col.name,
                 check_func_args=[low],
             )
-
-        if high is not None:
+        elif high is not None:
             yield DQRowRule(
                 criticality=quality_rule.criticality,
                 check_func=check_funcs.is_not_greater_than,

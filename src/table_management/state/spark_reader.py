@@ -89,7 +89,7 @@ class SparkCatalogReader:
     def _read_column_comments(self, full_name: str) -> Dict[str, str]:
         comments: Dict[str, str] = {}
         for column in self.spark.catalog.listColumns(full_name):
-            comments[column.name] = column.comment or ""
+            comments[column.name] = column.description or ""
         return comments
     
     def _merge_schema_and_comments(

@@ -2,39 +2,43 @@
 
 from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 import pyspark.sql.types as T
 
 from src.enums import DQCriticality
-from src.models.utils import build_fk_name_minimal
-
-if TYPE_CHECKING:
-    from src.models.table import DeltaTable
+from src.models.utils import build_foreign_key_name
 
 
 @dataclass(frozen=True)
 class ForeignKey:
-    """Represents a foreign key relationship."""
+    """Represents a foreign key reference to another table and column."""
 
-    target_table: "DeltaTable"
-    target_column: str
+    reference_table_name: str
+    reference_column_name: str
 
-    def constraint_name(self, source_table: "DeltaTable", salt: str | None = None) -> str:
-        """
-        Returns a deterministic foreign key constraint name based on the source
-        and target table names.
-        """
-        target_catalog = self.target_table.catalog_name
-        target_table = self.target_table.table_name
-
-        return build_fk_name_minimal(
-            source_catalog=source_table.catalog_name,
-            source_table=source_table.table_name,
-            target_catalog=target_catalog,
-            target_table=target_table,
-            salt=salt,
+    def to_spec(
+        self,
+        source_catalog: str,
+        source_schema: str,
+        source_table: str,
+        source_column: str,
+    ) -> dict[str, str]:
+        """Return a dict specification for this foreign key using the given source context."""
+        constraint_name = build_foreign_key_name(
+            source_catalog=source_catalog,
+            source_table=source_table,
+            source_schema=source_schema,
+            source_column=source_column,
+            target_table=self.reference_table_name,
+            target_column=self.reference_column_name,
         )
+        return {
+            "constraint_name": constraint_name,
+            "source_column": source_column,
+            "reference_table": self.reference_table_name,
+            "reference_column": self.reference_column_name,
+        }
 
 
 @dataclass(frozen=True)

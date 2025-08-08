@@ -10,7 +10,6 @@ from databricks.labs.dqx.rule import DQRule  # type: ignore
 from src.enums import DeltaTableProperty
 from src.models.column import DeltaColumn, ForeignKey
 from src.models.table_builder import DeltaTableBuilder
-from src.models.utils import short_hash
 from src.models.writer import DeltaWriter
 
 
@@ -60,43 +59,17 @@ class DeltaTable:
 
     @property
     def foreign_key_constraints(self) -> list[dict[str, str]]:
-        """
-        Build FK constraints from column FKs.
-        Returns dicts: constraint_name, source_column, reference_table, reference_column
-        """
-        constraints: list[dict[str, str]] = []
-        used_names: set[str] = set()
-
-        for col in self.columns:
-            fk = col.foreign_key
-            if not fk:
-                continue
-
-            name = fk.constraint_name(self)
-
-            if name in used_names:
-                # Disambiguate: stable salt includes table + column info (not visible in base name)
-                salt = short_hash(
-                    self.full_name,
-                    col.name,
-                    fk.target_table.full_name,
-                    fk.target_column,
-                )
-                name = fk.constraint_name(self, salt=salt)
-
-            used_names.add(name)
-
-            constraints.append(
-                {
-                    "constraint_name": name,
-                    "source_column": col.name,
-                    "reference_table": fk.target_table.full_name,
-                    "reference_column": fk.target_column,
-                }
+        """List of foreign key constraint specifications for this table."""
+        return [
+            col.foreign_key.to_spec(
+                source_catalog=self.catalog_name,
+                source_schema=self.schema_name,
+                source_table=self.table_name,
+                source_column=col.name,
             )
-
-        constraints.sort(key=lambda c: (c["constraint_name"], c["reference_table"]))
-        return constraints
+            for col in self.columns
+            if col.foreign_key is not None
+        ]
 
     # I/O helpers
     def ensure(self, spark: SparkSession) -> None:

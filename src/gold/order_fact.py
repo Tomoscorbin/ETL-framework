@@ -40,8 +40,8 @@ order_fact = DQDeltaTable(
             is_nullable=True,
             comment="Unique identifier for a product",
             foreign_key=ForeignKey(
-                target_table=product_dimension,
-                target_column="product_id",
+                reference_table_name=product_dimension.table_name,
+                reference_column_name="product_id",
             ),
         ),
         DeltaColumn(

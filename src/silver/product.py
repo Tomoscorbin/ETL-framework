@@ -16,7 +16,7 @@ from src.models.table import DeltaTable
 from src.silver.aisle import aisle
 from src.silver.department import department
 
-NUMERIC_ONLY_REGEX: str = r"^\d+$"
+_NUMERIC_ONLY_REGEX: str = r"^\d+$"
 
 
 product = DeltaTable(
@@ -43,7 +43,9 @@ product = DeltaTable(
             data_type=T.IntegerType(),
             is_nullable=False,
             comment="Identifier of the aisle containing the product",
-            foreign_key=ForeignKey(target_table=aisle, target_column="aisle_id"),
+            foreign_key=ForeignKey(
+                reference_table_name=aisle.table_name, reference_column_name="aisle_id"
+            ),
         ),
         DeltaColumn(
             name="department_id",
@@ -51,8 +53,8 @@ product = DeltaTable(
             is_nullable=False,
             comment="Identifier of the department for the product",
             foreign_key=ForeignKey(
-                target_table=department,
-                target_column="department_id",
+                reference_table_name=department.table_name,
+                reference_column_name="department_id",
             ),
         ),
         DeltaColumn(
@@ -67,8 +69,8 @@ product = DeltaTable(
 
 def clean_products(df: DataFrame) -> DataFrame:
     """Alias, cast, and filter columns."""
-    aisle_id_is_numeric = F.col("aisle_id").rlike(NUMERIC_ONLY_REGEX)
-    department_id_is_numeric = F.col("department_id").rlike(NUMERIC_ONLY_REGEX)
+    aisle_id_is_numeric = F.col("aisle_id").rlike(_NUMERIC_ONLY_REGEX)
+    department_id_is_numeric = F.col("department_id").rlike(_NUMERIC_ONLY_REGEX)
     return (
         df.filter(aisle_id_is_numeric)
         .filter(department_id_is_numeric)

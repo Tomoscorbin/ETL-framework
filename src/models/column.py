@@ -45,7 +45,7 @@ class ForeignKey:
 class QualityRule:
     """Data quality rule for one column."""
 
-    criticality: str = DQCriticality.ERROR
+    criticality: DQCriticality = DQCriticality.ERROR
     allowed_values: Sequence[Any] | None = None
     min_value: int | float | None = None
     max_value: int | float | None = None

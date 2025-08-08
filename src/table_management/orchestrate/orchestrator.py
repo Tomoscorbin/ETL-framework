@@ -17,7 +17,7 @@ class Orchestrator:
         self.planner = Planner()
         self.runner = ActionRunner(spark)
 
-    def apply(self, desired_tables: Sequence[Table]) -> None:
+    def sync_tables(self, desired_tables: Sequence[Table]) -> None:
         LOGGER.info(f"Starting orchestration for {len(desired_tables)} table(s).")
 
         catalog_state = self.reader.snapshot(desired_tables)

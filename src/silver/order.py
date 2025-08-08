@@ -39,7 +39,9 @@ order = DeltaTable(
             data_type=T.IntegerType(),
             is_nullable=True,
             comment="Unique identifier for a product",
-            foreign_key=ForeignKey(target_table=product, target_column="product_id"),
+            foreign_key=ForeignKey(
+                reference_table_name=product.table_name, reference_column_name="product_id"
+            ),
         ),
         DeltaColumn(
             name="order_number",

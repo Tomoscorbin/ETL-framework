@@ -9,7 +9,6 @@ from pyspark.sql import SparkSession
 
 from src.logger import LOGGER
 from src.models.table import DeltaTable
-from src.models.utils import MANAGED_CONSTRAINT_PREFIX, construct_qualified_name
 
 
 def _find_modules_in_package(package: ModuleType, recurse: bool = False) -> list[ModuleType]:
@@ -49,25 +48,34 @@ def _get_existing_foreign_key_names(delta_table: DeltaTable, spark: SparkSession
     return [r["constraint_name"] for r in rows]
 
 
-def _add_foreign_key(delta_table: DeltaTable, spark: SparkSession, c: dict[str, str]) -> None:
+def _add_foreign_key(
+    spark: SparkSession,
+    source_table_full_name: str,
+    catalog: str,
+    schema: str,
+    constraint_name: str,
+    source_column: str,
+    reference_table: str,
+    reference_column: str,
+) -> None:
+    reference_table_full_name = f"{catalog}.{schema}.{reference_table}"
     sql = f"""
-        ALTER TABLE {delta_table.full_name}
-        ADD CONSTRAINT {c["constraint_name"]}
-        FOREIGN KEY ({c["source_column"]})
-        REFERENCES {construct_qualified_name(*c["reference_table"].split(".", 2))}
-                   ({c["reference_column"]})
+        ALTER TABLE {source_table_full_name}
+        ADD CONSTRAINT {constraint_name}
+        FOREIGN KEY ({source_column})
+        REFERENCES {reference_table_full_name} ({reference_column})
     """
     spark.sql(sql)
 
 
 def _ensure_foreign_keys(delta_table: DeltaTable, spark: SparkSession) -> None:
     existing = set(_get_existing_foreign_key_names(delta_table, spark))
-    managed_existing = {n for n in existing if n.startswith(MANAGED_CONSTRAINT_PREFIX)}
+    managed_existing = {n for n in existing if n.startswith("fk")}
 
-    expected = delta_table.foreign_key_constraints
-    expected_names = {c["constraint_name"] for c in expected}
+    expected_foreign_keys = delta_table.foreign_key_constraints
+    expected_names = {fk["constraint_name"] for fk in expected_foreign_keys}
 
-    # Drop only our managed constraints that we no longer expect
+    # Drop our managed constraints that we no longer expect
     for name in sorted(managed_existing - expected_names):
         sql = f"""
             ALTER TABLE {delta_table.full_name}
@@ -77,11 +85,21 @@ def _ensure_foreign_keys(delta_table: DeltaTable, spark: SparkSession) -> None:
         LOGGER.info("Dropped FK %s on %s", name, delta_table.full_name)
 
     # Add any missing expected constraints
-    for c in expected:
-        name = c["constraint_name"]
-        if name in existing:
+    for foreign_key in expected_foreign_keys:
+        constraint_name = foreign_key["constraint_name"]
+        if constraint_name in existing:
             continue
-        _add_foreign_key(delta_table, spark, c)
+
+        _add_foreign_key(
+            spark,
+            source_table_full_name=delta_table.full_name,
+            catalog=delta_table.catalog_name,
+            schema=delta_table.schema_name,
+            constraint_name=constraint_name,
+            source_column=foreign_key["source_column"],
+            reference_table=foreign_key["reference_table"],
+            reference_column=foreign_key["reference_column"],
+        )
         LOGGER.info("Added FK %s on %s", name, delta_table.full_name)
 
 

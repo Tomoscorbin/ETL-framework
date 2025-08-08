@@ -22,6 +22,10 @@ class ColumnAdd:
     comment: str = ""
 
 @dataclass(frozen=True)
+class ColumnDrop:
+    name: str
+
+@dataclass(frozen=True)
 class ColumnNullabilityChange:
     name: str
     make_nullable: bool  # True: DROP NOT NULL, False: SET NOT NULL

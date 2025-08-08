@@ -8,6 +8,7 @@ from src.logger import LOGGER
 from src.table_management.actions import (
     AlignTable,
     ColumnAdd,
+    ColumnDrop,
     ColumnNullabilityChange,
     CreateTable,
     DropPrimaryKey,
@@ -98,6 +99,7 @@ class Planner:
             desired_columns=desired_columns,
             actual_primary_key_columns=actual_table_state.primary_key_columns,
         )
+        drop_columns = self._column_to_drop(desired_columns, actual_columns)
 
         return AlignTable(
             catalog_name=desired_table.catalog_name,
@@ -152,6 +154,18 @@ class Planner:
             )
 
         return additions
+    
+    def _columns_to_drop(
+        self,
+        desired_columns: Sequence[Column],
+        actual_columns: Sequence[ColumnState],
+    ) -> List[ColumnDrop]:
+        desired_names = {c.name for c in desired_columns}
+        drops = []
+        for actual in actual_columns:
+            if actual.name not in desired_names:
+                drops.append(ColumnDrop(name=actual.name))
+        return drops
     
     def _nullability_changes(
         self,

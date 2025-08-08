@@ -9,9 +9,8 @@ from pyspark.sql import SparkSession
 
 from src.logger import LOGGER
 from src.models.table import DeltaTable
-from src.models.utils import (
-    quote_ident, quote_qualified_name, escape_sql_literal, MANAGED_CONSTRAINT_PREFIX,
-)
+from src.models.utils import MANAGED_CONSTRAINT_PREFIX, construct_qualified_name
+
 
 def _find_modules_in_package(package: ModuleType, recurse: bool = False) -> list[ModuleType]:
     modules = []
@@ -40,22 +39,23 @@ def _get_existing_foreign_key_names(delta_table: DeltaTable, spark: SparkSession
     rows = spark.sql(
         f"""
         SELECT constraint_name
-        FROM {quote_ident(delta_table.catalog_name)}.information_schema.table_constraints
-        WHERE table_catalog = '{escape_sql_literal(delta_table.catalog_name)}'
-          AND table_schema  = '{escape_sql_literal(delta_table.schema_name)}'
-          AND table_name    = '{escape_sql_literal(delta_table.table_name)}'
+        FROM {delta_table.catalog_name}.information_schema.table_constraints
+        WHERE table_catalog = '{delta_table.catalog_name}'
+          AND table_schema  = '{delta_table.schema_name}'
+          AND table_name    = '{delta_table.table_name}'
           AND constraint_type = 'FOREIGN KEY'
         """
     ).collect()
     return [r["constraint_name"] for r in rows]
 
+
 def _add_foreign_key(delta_table: DeltaTable, spark: SparkSession, c: dict[str, str]) -> None:
     sql = f"""
-        ALTER TABLE {quote_qualified_name(delta_table.catalog_name, delta_table.schema_name, delta_table.table_name)}
-        ADD CONSTRAINT {quote_ident(c["constraint_name"])}
-        FOREIGN KEY ({quote_ident(c["source_column"])})
-        REFERENCES {quote_qualified_name(*c["reference_table"].split(".", 2))}
-                   ({quote_ident(c["reference_column"])})
+        ALTER TABLE {delta_table.full_name}
+        ADD CONSTRAINT {c["constraint_name"]}
+        FOREIGN KEY ({c["source_column"]})
+        REFERENCES {construct_qualified_name(*c["reference_table"].split(".", 2))}
+                   ({c["reference_column"]})
     """
     spark.sql(sql)
 
@@ -70,8 +70,8 @@ def _ensure_foreign_keys(delta_table: DeltaTable, spark: SparkSession) -> None:
     # Drop only our managed constraints that we no longer expect
     for name in sorted(managed_existing - expected_names):
         sql = f"""
-            ALTER TABLE {quote_qualified_name(delta_table.catalog_name, delta_table.schema_name, delta_table.table_name)}
-            DROP CONSTRAINT {quote_ident(name)}
+            ALTER TABLE {delta_table.full_name}
+            DROP CONSTRAINT {name}
         """
         spark.sql(sql)
         LOGGER.info("Dropped FK %s on %s", name, delta_table.full_name)
@@ -81,9 +81,8 @@ def _ensure_foreign_keys(delta_table: DeltaTable, spark: SparkSession) -> None:
         name = c["constraint_name"]
         if name in existing:
             continue
-        else:
-            _add_foreign_key(delta_table, spark, c)
-            LOGGER.info("Added FK %s on %s", name, delta_table.full_name)
+        _add_foreign_key(delta_table, spark, c)
+        LOGGER.info("Added FK %s on %s", name, delta_table.full_name)
 
 
 def _ensure_foreign_keys_exist(tables_to_ensure: Iterable[DeltaTable], spark: SparkSession) -> None:

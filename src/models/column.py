@@ -2,7 +2,7 @@
 
 from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import Any, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import pyspark.sql.types as T
 
@@ -15,10 +15,16 @@ if TYPE_CHECKING:
 
 @dataclass(frozen=True)
 class ForeignKey:
+    """Represents a foreign key relationship."""
+
     target_table: "DeltaTable"
     target_column: str
 
     def constraint_name(self, source_table: "DeltaTable", salt: str | None = None) -> str:
+        """
+        Returns a deterministic foreign key constraint name based on the source
+        and target table names.
+        """
         target_catalog = self.target_table.catalog_name
         target_table = self.target_table.table_name
 
@@ -29,7 +35,6 @@ class ForeignKey:
             target_table=target_table,
             salt=salt,
         )
-
 
 
 @dataclass(frozen=True)

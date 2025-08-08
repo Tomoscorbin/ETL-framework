@@ -6,33 +6,28 @@ MANAGED_CONSTRAINT_PREFIX = "fk_"
 _MAX_IDENTIFIER_LENGTH = 128
 
 
-def quote_ident(name: str) -> str:
-    return f"`{name.replace('`', '``')}`"
-
-
-def quote_qualified_name(catalog: str, schema: str, table: str) -> str:
-    return ".".join(quote_ident(x) for x in (catalog, schema, table))
-
-
-def escape_sql_literal(value: str) -> str:
-    return value.replace("'", "''")
-
-
 def _truncate_with_hash(base: str, max_len: int) -> str:
     if len(base) <= max_len:
         return base
-    h = hashlib.sha1(base.encode("utf-8")).hexdigest()[:8]
-    return f"{base[:max_len - 1 - len(h)]}_{h}"
+    h = hashlib.sha1(base.encode("utf-8")).hexdigest()[:8]  # noqa: S324
+    return f"{base[: max_len - 1 - len(h)]}_{h}"
+
+
+def construct_qualified_name(catalog: str, schema: str, table: str) -> str:
+    """
+    Returns a fully qualified table name in the
+    format 'catalog.schema.table'.
+    """
+    return f"{catalog}.{schema}.{table}"
 
 
 def short_hash(*parts: str) -> str:
-    """Deterministic 8-char hash for salt/disambiguation."""
+    """Return deterministic 8-char SHA1 hash from input parts."""
     joined = "|".join(parts)
-    return hashlib.sha1(joined.encode("utf-8")).hexdigest()[:8]
+    return hashlib.sha1(joined.encode("utf-8")).hexdigest()[:8]  # noqa: S324
 
 
 def build_fk_name_minimal(
-    *,
     source_catalog: str,
     source_table: str,
     target_catalog: str,

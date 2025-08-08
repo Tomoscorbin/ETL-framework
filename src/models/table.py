@@ -10,16 +10,15 @@ from databricks.labs.dqx.rule import DQRule  # type: ignore
 from src.enums import DeltaTableProperty
 from src.models.column import DeltaColumn, ForeignKey
 from src.models.table_builder import DeltaTableBuilder
-from src.models.writer import DeltaWriter
 from src.models.utils import short_hash
+from src.models.writer import DeltaWriter
 
-    
 
 @dataclass(frozen=True)
 class DeltaTable:
     """Represents a Delta Table."""
 
-    default_delta_properties: ClassVar[dict[DeltaTableProperty, str]] = {
+    default_delta_properties: ClassVar[dict[str, str]] = {
         DeltaTableProperty.COLUMN_MAPPING_MODE: "name",
     }
 
@@ -98,7 +97,6 @@ class DeltaTable:
 
         constraints.sort(key=lambda c: (c["constraint_name"], c["reference_table"]))
         return constraints
-    
 
     # I/O helpers
     def ensure(self, spark: SparkSession) -> None:

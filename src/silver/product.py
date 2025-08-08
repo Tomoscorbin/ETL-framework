@@ -43,9 +43,7 @@ product = DeltaTable(
             data_type=T.IntegerType(),
             is_nullable=False,
             comment="Identifier of the aisle containing the product",
-            foreign_key=ForeignKey(
-                target_table=aisle, target_column="aisle_id"
-            ),
+            foreign_key=ForeignKey(target_table=aisle, target_column="aisle_id"),
         ),
         DeltaColumn(
             name="department_id",

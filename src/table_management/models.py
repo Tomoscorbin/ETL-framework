@@ -55,6 +55,6 @@ class Table:
         return f"{self.catalog_name}.{self.schema_name}.{self.table_name}"
     
     @property
-    def table_properties(self) -> dict[str, str]:
+    def effective_table_properties(self) -> dict[str, str]:
         """Defaults + user overrides."""
         return {**self.DEFAULT_TABLE_PROPERTIES, **self.table_properties}

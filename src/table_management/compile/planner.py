@@ -56,7 +56,7 @@ class Planner:
         desired_columns = desired_table.columns
         desired_schema_struct = self._struct_from_desired_columns(desired_columns)
         desired_table_comment = desired_table.comment or ""
-        desired_table_properties = dict(desired_table.table_properties)
+        desired_table_properties = dict(desired_table.effective_table_properties)
         desired_primary_key_columns = self._desired_primary_key_columns(desired_columns)
         desired_column_comments = self._desired_column_comments(desired_columns)
 
@@ -92,7 +92,7 @@ class Planner:
             actual_comment=actual_table_state.table_comment,
         )
         set_table_properties = self._table_properties_change(
-            desired_properties=desired_table.table_properties,
+            desired_properties=desired_table.effective_table_properties,
             actual_properties=actual_table_state.table_properties,
         )
 

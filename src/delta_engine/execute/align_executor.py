@@ -18,11 +18,6 @@ class AlignExecutor:
     def apply(self, action: AlignTable) -> None:
         full_name = construct_full_table_name(action.catalog_name, action.schema_name, action.table_name)
 
-        if action.drop_primary_key:
-            sql_statement = self.renderer.drop_primary_key(full_name)
-            self._execute(sql_statement)
-            LOGGER.info("Dropped primary key")
-
         for addition in action.add_columns:
             sql_statement = self.renderer.add_column(
                     full_name, 
@@ -58,14 +53,6 @@ class AlignExecutor:
             sql_statement = self.renderer.set_tblproperties(full_name, action.set_table_properties.properties)
             self._execute(sql_statement)
             LOGGER.info(f"Updated table properties to: `{action.set_table_properties.properties}`")
-
-        if action.set_primary_key:
-            sql_statement = self.renderer.add_primary_key(full_name, action.set_primary_key.columns)
-            self._execute(sql_statement)
-            LOGGER.info(
-                "Added primary key `(%s)`",
-                ", ".join(action.set_primary_key.columns),
-            )
 
         LOGGER.info(f"Align: {full_name} — completed")
 

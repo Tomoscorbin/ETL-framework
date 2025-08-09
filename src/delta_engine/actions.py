@@ -11,7 +11,6 @@ class CreateTable:
     schema_struct: T.StructType
     table_comment: str
     table_properties: Mapping[str, str]
-    primary_key_columns: Sequence[str]
     column_comments: Mapping[str, str]
 
 @dataclass(frozen=True)
@@ -43,14 +42,6 @@ class SetTableProperties:
     properties: Mapping[str, str]
 
 @dataclass(frozen=True)
-class SetPrimaryKey:
-    columns: Sequence[str]
-
-@dataclass(frozen=True)
-class DropPrimaryKey:
-    pass
-
-@dataclass(frozen=True)
 class AlignTable:
     catalog_name: str
     schema_name: str
@@ -58,31 +49,10 @@ class AlignTable:
     set_column_comments: SetColumnComments | None = None
     set_table_comment: SetTableComment | None = None
     set_table_properties: SetTableProperties | None = None
-    drop_primary_key: DropPrimaryKey | None = None
-    set_primary_key: SetPrimaryKey | None = None
 
     add_columns: list[ColumnAdd] = field(default_factory=list)
     change_nullability: list[ColumnNullabilityChange] = field(default_factory=list)
     drop_columns: list[ColumnDrop] = field(default_factory=list)
-
-
-
-@dataclass(frozen=True)
-class ForeignKeyAdd:
-    constraint_name: str
-    catalog_name: str
-    schema_name: str
-    source_table_name: str
-    source_columns: list[str]
-    reference_table_name: str
-    reference_columns: list[str]
-
-@dataclass(frozen=True)
-class ForeignKeyDrop:
-    constraint_name: str
-    catalog_name: str
-    schema_name: str
-    table_name: str
 
 
 # ---------- Plan ----------
@@ -90,5 +60,4 @@ class ForeignKeyDrop:
 class Plan:
     create_tables: list[CreateTable]
     align_tables: list[AlignTable]
-    drop_foreign_keys: list[ForeignKeyDrop]
-    add_foreign_keys: list[ForeignKeyAdd]
+    

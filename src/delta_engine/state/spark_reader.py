@@ -22,7 +22,6 @@ class SparkCatalogReader:
     - Column comments via spark.catalog.listColumns
     - Table comment via spark.catalog.getTable
     - Properties via DeltaTable.detail()['configuration'] (fallback to SHOW TBLPROPERTIES)
-    - Primary keys via INFORMATION_SCHEMA (no Python API available)
     """
 
     def __init__(self, spark: SparkSession) -> None:
@@ -57,11 +56,6 @@ class SparkCatalogReader:
 
         table_comment = self._read_table_comment(full_name)
         table_properties = self._read_table_properties(delta_table, full_name)
-        primary_key_columns = self._read_primary_key_columns(
-            catalog_name=desired_table.catalog_name,
-            schema_name=desired_table.schema_name,
-            table_name=desired_table.table_name,
-        )
 
         return TableState(
             catalog_name=desired_table.catalog_name,
@@ -71,7 +65,6 @@ class SparkCatalogReader:
             columns=columns,
             table_comment=table_comment,
             table_properties=table_properties,
-            primary_key_columns=primary_key_columns,
         )
     
     def _full_name(self, table: Table) -> str:
@@ -136,19 +129,3 @@ class SparkCatalogReader:
         # Fallback only if detail() path failed or configuration is missing.
         rows: List[Row] = self.spark.sql(f"SHOW TBLPROPERTIES {full_name}").collect()
         return {r["key"]: r["value"] for r in rows}
-
-    def _read_primary_key_columns(self, catalog_name: str, schema_name: str, table_name: str) -> List[str]:
-        sql = f"""
-          SELECT kcu.column_name
-          FROM {catalog_name}.information_schema.table_constraints tc
-          JOIN {catalog_name}.information_schema.key_column_usage kcu
-            ON  tc.constraint_catalog = kcu.constraint_catalog
-            AND tc.constraint_schema  = kcu.constraint_schema
-            AND tc.constraint_name    = kcu.constraint_name
-          WHERE tc.constraint_type = 'PRIMARY KEY'
-            AND tc.table_schema = '{escape_sql_literal(schema_name)}'
-            AND tc.table_name   = '{escape_sql_literal(table_name)}'
-          ORDER BY kcu.ordinal_position
-        """
-        rows = self.spark.sql(sql).collect()
-        return [r["column_name"] for r in rows]

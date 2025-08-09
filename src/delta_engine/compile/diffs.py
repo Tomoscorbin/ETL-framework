@@ -20,11 +20,6 @@ class NullabilityChangeDiff:
     make_nullable: bool
 
 @dataclass(frozen=True)
-class PrimaryKeyDiff:
-    set_columns: Optional[List[str]] = None  # None => no-op
-    drop: bool = False
-
-@dataclass(frozen=True)
 class CommentsDiff:
     table_comment: Optional[str] = None
     column_comments: Dict[str, str] = field(default_factory=dict)
@@ -40,13 +35,10 @@ class TableDiff:
     create_schema: Optional[T.StructType] = None
     create_table_comment: str = ""
     create_table_properties: Dict[str, str] = field(default_factory=dict)
-    create_primary_key_columns: List[str] = field(default_factory=list)
-    create_column_comments: Dict[str, str] = field(default_factory=dict)
 
     # For align
     columns_to_add: List[ColumnAddDiff] = field(default_factory=list)
     columns_to_drop: List[ColumnDropDiff] = field(default_factory=list)
     nullability_changes: List[NullabilityChangeDiff] = field(default_factory=list)
-    primary_key: PrimaryKeyDiff = PrimaryKeyDiff()
     comments: CommentsDiff = CommentsDiff()
     properties: PropertiesDiff = PropertiesDiff()

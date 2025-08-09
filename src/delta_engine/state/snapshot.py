@@ -22,8 +22,7 @@ class TableState:
     columns: List[ColumnState] = field(default_factory=list)
     table_comment: str = ""
     table_properties: Dict[str, str] = field(default_factory=dict)
-    primary_key_columns: List[str] = field(default_factory=list)
-    foreign_keys: List[ForeignKeyState] = field(default_factory=list)
+
 
     @property
     def full_name(self) -> str:
@@ -43,10 +42,3 @@ class CatalogState:
         ) -> TableState | None:
         return self.tables.get(f"{catalog_name}.{schema_name}.{table_name}")
     
-
-@dataclass(frozen=True)
-class ForeignKeyState:
-    constraint_name: str
-    source_columns: List[str]
-    reference_table_name: str
-    reference_columns: List[str]

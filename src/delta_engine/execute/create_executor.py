@@ -35,11 +35,6 @@ class CreateExecutor:
             sql_statement = self.renderer.set_column_comment(full_name, column_name, comment)
             self._execute(sql_statement)
 
-        # 4) Primary key
-        if action.primary_key_columns:
-            sql_statement = self.renderer.add_primary_key(full_name, action.primary_key_columns)
-            self._execute(sql_statement)
-
         LOGGER.info(f"Create: {full_name} — completed")
 
     # ---- helpers ----

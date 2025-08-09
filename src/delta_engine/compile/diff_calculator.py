@@ -5,12 +5,10 @@ from src.delta_engine.models import Table, Column
 from src.delta_engine.state.snapshot import TableState, ColumnState
 from .diffs import (
     TableDiff, ColumnAddDiff, ColumnDropDiff, NullabilityChangeDiff,
-    PrimaryKeyDiff, CommentsDiff, PropertiesDiff
+    CommentsDiff, PropertiesDiff
 )
 
 class DiffCalculator:
-    """Pure diff. No validation, no actions, no FKs."""
-
     def diff(self, desired: Table, actual: TableState | None) -> TableDiff:
         if actual is None or not actual.exists:
             return self._create_diff(desired)
@@ -20,7 +18,6 @@ class DiffCalculator:
             columns_to_add=self._columns_to_add(desired.columns, actual.columns),
             columns_to_drop=self._columns_to_drop(desired.columns, actual.columns),
             nullability_changes=self._nullability_changes(desired.columns, actual.columns),
-            primary_key=self._primary_key_diff(desired, actual),
             comments=self._comments_diff(desired, actual),
             properties=self._properties_diff(desired, actual),
         )
@@ -29,13 +26,11 @@ class DiffCalculator:
         schema = T.StructType([
             T.StructField(c.name, c.data_type, c.is_nullable) for c in desired.columns
         ])
-        pk_cols = [c.name for c in desired.columns if c.is_primary_key]
         return TableDiff(
             is_create=True,
             create_schema=schema,
             create_table_comment=desired.comment or "",
             create_table_properties=dict(desired.effective_table_properties),
-            create_primary_key_columns=pk_cols,
             create_column_comments={c.name: (c.comment or "") for c in desired.columns},
         )
 
@@ -59,19 +54,6 @@ class DiffCalculator:
             if a and a.is_nullable != d.is_nullable:
                 out.append(NullabilityChangeDiff(d.name, make_nullable=d.is_nullable))
         return out
-
-    def _primary_key_diff(self, desired: Table, actual: TableState) -> PrimaryKeyDiff:
-        desired_pk = [c.name for c in desired.columns if c.is_primary_key]
-        actual_pk  = list(actual.primary_key_columns)
-        if not desired_pk and not actual_pk:
-            return PrimaryKeyDiff()
-        if actual_pk and not desired_pk:
-            return PrimaryKeyDiff(drop=True)
-        if desired_pk and not actual_pk:
-            return PrimaryKeyDiff(set_columns=desired_pk)
-        if desired_pk == actual_pk:
-            return PrimaryKeyDiff()
-        return PrimaryKeyDiff(set_columns=desired_pk, drop=True)
 
     def _comments_diff(self, desired: Table, actual: TableState) -> CommentsDiff:
         desired_table_comment = desired.comment or ""

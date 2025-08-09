@@ -23,15 +23,6 @@ class SqlRenderer:
         return f"COMMENT ON TABLE {full_name} IS '{_escape(table_comment)}';"
 
 
-    def add_primary_key(self, full_name: str, columns: Sequence[str]) -> str:
-        cols = ", ".join(columns)
-        return f"ALTER TABLE {full_name} ADD PRIMARY KEY ({cols});"
-
-
-    def drop_primary_key(self, full_name: str) -> str:
-        return f"ALTER TABLE {full_name} DROP PRIMARY KEY IF EXISTS;"
-
-
     def set_column_comment(self, full_name: str, column_name: str, comment: str) -> str:
         return f"ALTER TABLE {full_name} CHANGE COLUMN {column_name} COMMENT '{_escape(comment)}';"
 
@@ -59,13 +50,3 @@ class SqlRenderer:
         )
         return f"-- createIfNotExists {full_name} ({cols}) COMMENT '{_escape(table_comment)}'"
     
-
-    def add_foreign_key(self, full_name: str, name: str, src_cols: list[str],
-                        ref_full: str, ref_cols: list[str]) -> str:
-        s = ", ".join(src_cols)
-        r = ", ".join(ref_cols)
-        return f"ALTER TABLE {full_name} ADD CONSTRAINT {name} FOREIGN KEY ({s}) REFERENCES {ref_full} ({r});"
-
-
-    def drop_foreign_key(self, full_name: str, name: str) -> str:
-        return f"ALTER TABLE {full_name} DROP CONSTRAINT {name};"

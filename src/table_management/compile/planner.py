@@ -20,6 +20,8 @@ from src.table_management.actions import (
 )
 from src.table_management.models import Column, Table
 from src.table_management.state.snapshot import CatalogState, ColumnState, TableState
+from src.table_management.compile.validator import PreflightValidator
+
 
 
 class Planner:
@@ -27,6 +29,8 @@ class Planner:
     Compute a plan to create or align Delta tables so that the ACTUAL catalog
     matches the DESIRED models.
     """
+    def __init__(self, validator: PreflightValidator | None = None) -> None:
+        self.validator = validator or PreflightValidator()
 
     def plan(self, desired_tables: Sequence[Table], actual_catalog_state: CatalogState) -> Plan:
         create_actions = []
@@ -47,6 +51,24 @@ class Planner:
             else:
                 LOGGER.info(f"Plan: ALIGN {full_name}")
                 align_action = self._build_align_action(desired_table, actual_table_state)
+                align = self._build_align_action(desired_table, actual_table_state)
+
+                # Preflight validation — AFTER action is built, BEFORE adding to plan
+                desired_pk_cols = [c.name for c in desired_table.columns if c.is_primary_key]
+                actual_pk_cols  = list(actual_table_state.primary_key_columns)
+                add_names  = [a.name for a in align.add_columns]
+                drop_names = [d.name for d in align.drop_columns]
+                will_drop_pk = align.drop_primary_key is not None
+
+                self.validator.validate_align(
+                    full_name=full_name,
+                    desired_pk_cols=desired_pk_cols,
+                    actual_pk_cols=actual_pk_cols,
+                    add_column_names=add_names,
+                    drop_column_names=drop_names,
+                    will_drop_pk=will_drop_pk,
+                )
+
                 align_actions.append(align_action)
 
         return Plan(create_tables=create_actions, align_tables=align_actions)

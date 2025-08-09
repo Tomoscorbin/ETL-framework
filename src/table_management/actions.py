@@ -1,5 +1,5 @@
 from __future__ import annotations
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Dict, List, Mapping, Sequence
 import pyspark.sql.types as T
 
@@ -55,14 +55,14 @@ class AlignTable:
     catalog_name: str
     schema_name: str
     table_name: str
-    add_columns: List[ColumnAdd]
-    change_nullability: List[ColumnNullabilityChange]
+    add_columns: List[ColumnAdd] = field(default_factory=list)
+    change_nullability: List[ColumnNullabilityChange] = field(default_factory=list)
     set_column_comments: SetColumnComments | None
     set_table_comment: SetTableComment | None
     set_table_properties: SetTableProperties | None
-    set_primary_key: SetPrimaryKey | None
     drop_primary_key: DropPrimaryKey | None
-    drop_columns: List[ColumnDrop] | None
+    set_primary_key: SetPrimaryKey | None
+    drop_columns: list[ColumnDrop] = field(default_factory=list)
 
 # ---------- Plan ----------
 @dataclass(frozen=True)

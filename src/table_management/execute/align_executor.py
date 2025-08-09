@@ -32,6 +32,11 @@ class AlignExecutor:
             self._execute(sql_statement)
             LOGGER.info(f"Added column {addition.name}")
 
+        if action.drop_columns:
+            names = [c.name for c in action.drop_columns]
+            self._execute(self.renderer.drop_columns(full_name, names))  
+            LOGGER.info("Dropped columns: %s", ", ".join(names))          
+
         for change in action.change_nullability:
             sql_statement = self.renderer.change_nullability(full_name, change.name, change.make_nullable)
             self._execute(sql_statement)
@@ -57,7 +62,7 @@ class AlignExecutor:
             sql_statement = self.renderer.add_primary_key(full_name, action.set_primary_key.columns)
             self._execute(sql_statement)
             LOGGER.info(
-                f"Added primary key (%s)",
+                "Added primary key (%s)",
                 ", ".join(action.set_primary_key.columns),
             )
 

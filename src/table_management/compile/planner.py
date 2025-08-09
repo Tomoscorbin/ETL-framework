@@ -79,8 +79,6 @@ class Planner:
             desired_columns=desired_columns,
             actual_columns=actual_columns,
         )
-        columns_to_drop = self.columns_to_drop(desired_columns, actual_columns)
-
         nullability_changes = self._nullability_changes(
             desired_columns=desired_columns,
             actual_columns=actual_columns,
@@ -105,6 +103,8 @@ class Planner:
             actual_pk_cols=actual_pk_cols,
         )
 
+        columns_to_drop = self.columns_to_drop(desired_columns, actual_columns)
+
 
         return AlignTable(
             catalog_name=desired_table.catalog_name,
@@ -115,8 +115,8 @@ class Planner:
             set_column_comments=set_column_comments,
             set_table_comment=set_table_comment,
             set_table_properties=set_table_properties,
-            set_primary_key=set_primary_key,
             drop_primary_key=drop_primary_key,
+            set_primary_key=set_primary_key,
             drop_columns=columns_to_drop
         )
     

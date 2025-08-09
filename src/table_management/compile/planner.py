@@ -79,6 +79,8 @@ class Planner:
             desired_columns=desired_columns,
             actual_columns=actual_columns,
         )
+        columns_to_drop = self.columns_to_drop(desired_columns, actual_columns)
+
         nullability_changes = self._nullability_changes(
             desired_columns=desired_columns,
             actual_columns=actual_columns,
@@ -95,11 +97,14 @@ class Planner:
             desired_properties=desired_table.table_properties,
             actual_properties=actual_table_state.table_properties,
         )
+
+        desired_pk_cols = [c.name for c in desired_columns if c.is_primary_key]
+        actual_pk_cols  = list(actual_table_state.primary_key_columns)
         set_primary_key, drop_primary_key = self._primary_key_change(
-            desired_columns=desired_columns,
-            actual_primary_key_columns=actual_table_state.primary_key_columns,
+            desired_pk_cols=desired_pk_cols,
+            actual_pk_cols=actual_pk_cols,
         )
-        drop_columns = self._column_to_drop(desired_columns, actual_columns)
+
 
         return AlignTable(
             catalog_name=desired_table.catalog_name,
@@ -112,6 +117,7 @@ class Planner:
             set_table_properties=set_table_properties,
             set_primary_key=set_primary_key,
             drop_primary_key=drop_primary_key,
+            drop_columns=columns_to_drop
         )
     
     def _struct_from_desired_columns(self, desired_columns: Sequence[Column]) -> T.StructType:
@@ -231,32 +237,35 @@ class Planner:
 
     def _primary_key_change(
         self,
-        desired_columns: Sequence[Column],
-        actual_primary_key_columns: Sequence[str],
+        desired_pk_cols: Sequence[str],
+        actual_pk_cols: Sequence[str],
     ) -> Tuple[SetPrimaryKey | None, DropPrimaryKey | None]:
-        desired_pk = [c.name for c in desired_columns if c.is_primary_key]
-        actual_pk = list(actual_primary_key_columns)
+        """
+        Rules:
+        - No actual, no desired         -> (None, None)
+        - Actual exists, desired empty  -> (None, DropPrimaryKey())
+        - Desired exists, actual empty  -> (SetPrimaryKey(desired), None)
+        - Both exist:
+            * if same columns in same order -> (None, None)
+            * else                          -> (SetPrimaryKey(desired), DropPrimaryKey())
+        """
+        has_actual = bool(actual_pk_cols)
+        has_desired = bool(desired_pk_cols)
 
-        if not desired_pk and not actual_pk:
+        if not has_actual and not has_desired:
             return None, None
 
-        if not desired_pk and actual_pk:
+        if has_actual and not has_desired:
+            # Remove PK entirely
             return None, DropPrimaryKey()
 
-        if desired_pk != actual_pk:
-            return SetPrimaryKey(columns=desired_pk), None
+        if has_desired and not has_actual:
+            # Fresh PK; no need to drop anything
+            return SetPrimaryKey(columns=list(desired_pk_cols)), None
 
-        return None, None
-    
-def _project_create_payload(self, desired_table: Table) -> dict:
-    desired_columns = desired_table.columns
-    return {
-        "catalog_name": desired_table.catalog_name,
-        "schema_name": desired_table.schema_name,
-        "table_name": desired_table.table_name,
-        "schema_struct": self._struct_from_desired_columns(desired_columns),
-        "table_comment": desired_table.comment or "",
-        "table_properties": dict(desired_table.table_properties),
-        "primary_key_columns": self._desired_primary_key_columns(desired_columns),
-        "column_comments": self._desired_column_comments(desired_columns),
-    }
+        # Both exist: compare exactly (order-sensitive)
+        if list(desired_pk_cols) == list(actual_pk_cols):
+            return None, None
+
+        # Any change (add/remove/reorder) -> drop old, then set new
+        return SetPrimaryKey(columns=list(desired_pk_cols)), DropPrimaryKey()

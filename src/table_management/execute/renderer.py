@@ -35,6 +35,10 @@ class SqlRenderer:
         type_sql = dtype.simpleString()
         comment_sql = f" COMMENT '{_escape(comment)}'" if comment else ""
         return f"ALTER TABLE {full_name} ADD COLUMNS ({name} {type_sql}{comment_sql});"
+    
+    def drop_columns(self, full_name: str, column_names: list[str]) -> str:
+        cols = ", ".join(column_names)
+        return f"ALTER TABLE {full_name} DROP COLUMNS ({cols});"
 
     def change_nullability(self, full_name: str, column_name: str, make_nullable: bool) -> str:
         op = "DROP NOT NULL" if make_nullable else "SET NOT NULL"

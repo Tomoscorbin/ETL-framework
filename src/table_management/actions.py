@@ -62,6 +62,7 @@ class AlignTable:
     set_table_properties: SetTableProperties | None
     set_primary_key: SetPrimaryKey | None
     drop_primary_key: DropPrimaryKey | None
+    drop_columns: List[ColumnDrop] | None
 
 # ---------- Plan ----------
 @dataclass(frozen=True)

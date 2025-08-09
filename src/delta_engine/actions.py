@@ -68,7 +68,7 @@ class AlignTable:
 
 
 @dataclass(frozen=True)
-class AddForeignKey:
+class ForeignKeyAdd:
     constraint_name: str
     catalog_name: str
     schema_name: str
@@ -78,7 +78,7 @@ class AddForeignKey:
     reference_columns: list[str]
 
 @dataclass(frozen=True)
-class DropForeignKey:
+class ForeignKeyDrop:
     constraint_name: str
     catalog_name: str
     schema_name: str
@@ -90,5 +90,5 @@ class DropForeignKey:
 class Plan:
     create_tables: list[CreateTable]
     align_tables: list[AlignTable]
-    drop_foreign_keys: list[DropForeignKey]
-    add_foreign_keys: list[AddForeignKey]
+    drop_foreign_keys: list[ForeignKeyDrop]
+    add_foreign_keys: list[ForeignKeyAdd]

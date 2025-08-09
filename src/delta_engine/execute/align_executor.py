@@ -42,23 +42,23 @@ class AlignExecutor:
             self._execute(sql_statement)
             LOGGER.info(f"Nullability of column `{change.name}` change to to nullable={change.make_nullable}")
 
-        if action.set_column_comments is not None:
+        if action.set_column_comments:
             for column_name, comment in action.set_column_comments.comments.items():
                 sql_statement = self.renderer.set_column_comment(full_name, column_name, comment)
                 self._execute(sql_statement)
                 LOGGER.info(f"Updated comment on column `{column_name}`")
 
-        if action.set_table_comment is not None:
+        if action.set_table_comment:
             sql_statement = self.renderer.set_table_comment(full_name, action.set_table_comment.comment)
             self._execute(sql_statement)
             LOGGER.info("Updated table comment")
 
-        if action.set_table_properties is not None:
+        if action.set_table_properties:
             sql_statement = self.renderer.set_tblproperties(full_name, action.set_table_properties.properties)
             self._execute(sql_statement)
             LOGGER.info(f"Updated table properties to: `{action.set_table_properties.properties}`")
 
-        if action.set_primary_key is not None:
+        if action.set_primary_key:
             sql_statement = self.renderer.add_primary_key(full_name, action.set_primary_key.columns)
             self._execute(sql_statement)
             LOGGER.info(

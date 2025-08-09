@@ -6,7 +6,6 @@ from delta.tables import DeltaTable
 from src.logger import LOGGER
 from src.delta_engine.actions import CreateTable
 from src.delta_engine.execute.renderer import SqlRenderer
-from src.delta_engine.constraints.naming import construct_full_table_name
 
 
 class CreateExecutor:
@@ -20,7 +19,7 @@ class CreateExecutor:
         self.renderer = SqlRenderer()
 
     def apply(self, action: CreateTable) -> None:
-        full_name = construct_full_table_name(action.catalog_name, action.schema_name, action.table_name)
+        full_name = f"{action.catalog_name}.{action.schema_name}.{action.table_name}"
 
         # 1) Create table with schema
         self._create_table(full_name, action.schema_struct, action.table_comment)

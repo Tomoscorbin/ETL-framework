@@ -1,3 +1,5 @@
+"""Domain models for declaring Delta tables (logical schema + properties)."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -9,9 +11,7 @@ from src.enums import DeltaTableProperty
 
 @dataclass(frozen=True)
 class Column:
-    """
-    A column in a Delta table.
-    """
+    """Declarative Delta table column definition."""
     name: str
     data_type: T.DataType
     comment: str = ""
@@ -20,10 +20,8 @@ class Column:
 
 @dataclass(frozen=True)
 class Table:
-    """
-    A declarative description of a Delta table.
-    """
-    DEFAULT_TABLE_PROPERTIES: ClassVar[dict[str, str]] = {
+    """Declarative Delta table definition."""
+    DEFAULT_TABLE_PROPERTIES: ClassVar[dict[DeltaTableProperty, str]] = {
         DeltaTableProperty.COLUMN_MAPPING_MODE: "name",
     }
 
@@ -41,5 +39,5 @@ class Table:
     
     @property
     def effective_table_properties(self) -> dict[str, str]:
-        """Defaults + user overrides."""
+        """Default table properties + user overrides."""
         return {**self.DEFAULT_TABLE_PROPERTIES, **self.table_properties}

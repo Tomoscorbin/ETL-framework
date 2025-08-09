@@ -1,3 +1,5 @@
+"""Read live catalog state into domain models (TableState, CatalogState)."""
+
 from __future__ import annotations
 
 from typing import Dict, List, Sequence, cast
@@ -10,20 +12,14 @@ from src.delta_engine.models import Table
 from src.delta_engine.state.snapshot import CatalogState, ColumnState, TableState
 
 
-def escape_sql_literal(value: str) -> str:
-    return value.replace("'", "''")
-
-
 class SparkCatalogReader:
     """
-    CatalogReader using DeltaTable and Spark Catalog.
-    - Existence via spark.catalog.tableExists
-    - Schema via DeltaTable.toDF().schema
-    - Column comments via spark.catalog.listColumns
-    - Table comment via spark.catalog.getTable
-    - Properties via DeltaTable.detail()['configuration'] (fallback to SHOW TBLPROPERTIES)
-    """
+    Reads the current state of Delta tables from a live catalog into
+    domain model objects (`CatalogState`, `TableState`, `ColumnState`).
 
+    For each table, it checks existence, reads the schema, column comments,
+    table comment, and table properties.
+    """    
     def __init__(self, spark: SparkSession) -> None:
         self.spark = spark
 
@@ -48,14 +44,14 @@ class SparkCatalogReader:
                 exists=False,
             )
 
-        delta_table = self._read_delta_table(full_name)
+        table = self._read_table(full_name)
 
-        struct_type = self._read_schema_struct(delta_table)
+        struct_type = self._read_schema_struct(table)
         column_comments_by_name = self._read_column_comments(full_name)
         columns = self._merge_schema_and_comments(struct_type, column_comments_by_name)
 
         table_comment = self._read_table_comment(full_name)
-        table_properties = self._read_table_properties(delta_table, full_name)
+        table_properties = self._read_table_properties(table, full_name)
 
         return TableState(
             catalog_name=desired_table.catalog_name,
@@ -73,11 +69,11 @@ class SparkCatalogReader:
     def _table_exists(self, full_name: str) -> bool:
         return bool(self.spark.catalog.tableExists(full_name))
 
-    def _read_delta_table(self, full_name: str) -> DeltaTable:
+    def _read_table(self, full_name: str) -> DeltaTable:
         return DeltaTable.forName(self.spark, full_name)
 
-    def _read_schema_struct(self, delta_table: DeltaTable) -> T.StructType:
-        return delta_table.toDF().schema
+    def _read_schema_struct(self, table: DeltaTable) -> T.StructType:
+        return table.toDF().schema
     
     def _read_column_comments(self, full_name: str) -> Dict[str, str]:
         comments = {}
@@ -112,20 +108,11 @@ class SparkCatalogReader:
             # If metadata permissions are restricted, return empty rather than fail.
             return ""
 
-    def _read_table_properties(self, delta_table: DeltaTable, full_name: str) -> Dict[str, str]:
-        try:
-            detail_df = delta_table.detail()
-            lower_columns = [c.lower() for c in detail_df.columns]
-            if "configuration" in lower_columns:
-                # Use the exact column name from the DataFrame (preserve case)
-                config_col_name = next(c for c in detail_df.columns if c.lower() == "configuration")
-                row = detail_df.select(config_col_name).collect()[0]
-                config_map = cast(Optional[dict], row[config_col_name]) or {}
-                return {str(k): str(v) for k, v in config_map.items()}
-        except Exception:
-            # Fall through to SHOW TBLPROPERTIES
-            pass
-
-        # Fallback only if detail() path failed or configuration is missing.
-        rows: List[Row] = self.spark.sql(f"SHOW TBLPROPERTIES {full_name}").collect()
-        return {r["key"]: r["value"] for r in rows}
+    def _read_table_properties(self, table: DeltaTable, full_name: str) -> Dict[str, str]:
+        detail_df = delta_table.detail()
+        cols = detail_df.columns
+        config_col = next((c for c in cols if c.lower() == "configuration"), None)
+        if config_col:
+            row = detail_df.select(config_col).first()
+            config_map = row[config_col] or {}
+            return {str(k): str(v) for k, v in dict(config_map).items()}

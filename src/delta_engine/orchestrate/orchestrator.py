@@ -19,11 +19,11 @@ class Orchestrator:
         LOGGER.info("Starting orchestration for %d table(s).", len(desired_tables))
 
         catalog_state = self.reader.snapshot(desired_tables)
-        plan = self.planner.plan(desired_tables=desired_tables, actual_catalog_state=catalog_state)
+        plan = self.planner.plan(desired_tables=desired_tables, catalog_state=catalog_state)
         LOGGER.info("Plan generated — creates: %d, aligns: %d", len(plan.create_tables), len(plan.align_tables))
 
         # Plan validation
-        self.validator.validate(plan, spark=self.spark)
+        self.validator.with_default_rules().validate(plan)
 
         # Execute if validation passes
         self.runner.apply(plan)

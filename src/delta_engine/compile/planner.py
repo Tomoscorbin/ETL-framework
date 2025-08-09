@@ -10,12 +10,12 @@ from src.delta_engine.state.snapshot import CatalogState, TableState, ColumnStat
 
 
 class Planner:
-    def plan(self, desired_tables: Sequence[Table], actual_catalog_state: CatalogState) -> Plan:
+    def plan(self, desired_tables: Sequence[Table], catalog_state: CatalogState) -> Plan:
         create_actions: List[CreateTable] = []
         align_actions:  List[AlignTable]  = []
 
         for desired in desired_tables:
-            actual = actual_catalog_state.get(desired.catalog_name, desired.schema_name, desired.table_name)
+            actual = catalog_state.get(desired.catalog_name, desired.schema_name, desired.table_name)
             if actual is None or not actual.exists:
                 create_actions.append(self._build_create(desired))
             else:

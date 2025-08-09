@@ -103,7 +103,7 @@ class Planner:
             actual_pk_cols=actual_pk_cols,
         )
 
-        columns_to_drop = self.columns_to_drop(desired_columns, actual_columns)
+        columns_to_drop = self._columns_to_drop(desired_columns, actual_columns)
 
 
         return AlignTable(

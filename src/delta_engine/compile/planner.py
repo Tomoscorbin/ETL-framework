@@ -357,7 +357,7 @@ class Planner:
                 if changed:
                     drops.append(ForeignKeyDrop(
                         constraint_name=name,
-                        catalog_name=actual_state.catalog_name,   # safe: a implies actual_state
+                        catalog_name=actual_state.catalog_name,
                         schema_name=actual_state.schema_name,
                         table_name=actual_state.table_name,
                     ))

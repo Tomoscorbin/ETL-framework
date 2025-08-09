@@ -7,7 +7,7 @@ from typing import Dict, List
 class ColumnState:
     """Observed column state."""
     name: str
-    data_type: str           # canonical string (e.g. 'bigint', 'string')
+    data_type: str
     is_nullable: bool
     comment: str = ""
 
@@ -23,6 +23,7 @@ class TableState:
     table_comment: str = ""
     table_properties: Dict[str, str] = field(default_factory=dict)
     primary_key_columns: List[str] = field(default_factory=list)
+    foreign_keys: List[ForeignKeyState] = field(default_factory=list)
 
     @property
     def full_name(self) -> str:

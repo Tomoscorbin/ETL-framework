@@ -6,8 +6,8 @@ import pyspark.sql.types as T
 from pyspark.sql import Row, SparkSession
 from delta.tables import DeltaTable
 
-from src.table_management.models import Table
-from src.table_management.state.snapshot import CatalogState, ColumnState, TableState
+from src.delta_engine.models import Table
+from src.delta_engine.state.snapshot import CatalogState, ColumnState, TableState
 
 
 def escape_sql_literal(value: str) -> str:

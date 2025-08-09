@@ -30,23 +30,23 @@ class AlignExecutor:
                     addition.comment
                 )
             self._execute(sql_statement)
-            LOGGER.info(f"Added column {addition.name}")
+            LOGGER.info(f"Added column `{addition.name}`")
 
         if action.drop_columns:
             names = [c.name for c in action.drop_columns]
             self._execute(self.renderer.drop_columns(full_name, names))  
-            LOGGER.info("Dropped columns: %s", ", ".join(names))          
+            LOGGER.info("Dropped columns: `%s`", ", ".join(names))          
 
         for change in action.change_nullability:
             sql_statement = self.renderer.change_nullability(full_name, change.name, change.make_nullable)
             self._execute(sql_statement)
-            LOGGER.info(f"Nullability of column {change.name} change to to nullable={change.make_nullable}")
+            LOGGER.info(f"Nullability of column `{change.name}` change to to nullable={change.make_nullable}")
 
         if action.set_column_comments is not None:
             for column_name, comment in action.set_column_comments.comments.items():
                 sql_statement = self.renderer.set_column_comment(full_name, column_name, comment)
                 self._execute(sql_statement)
-                LOGGER.info(f"Updated comment on column {column_name}")
+                LOGGER.info(f"Updated comment on column `{column_name}`")
 
         if action.set_table_comment is not None:
             sql_statement = self.renderer.set_table_comment(full_name, action.set_table_comment.comment)
@@ -56,13 +56,13 @@ class AlignExecutor:
         if action.set_table_properties is not None:
             sql_statement = self.renderer.set_tblproperties(full_name, action.set_table_properties.properties)
             self._execute(sql_statement)
-            LOGGER.info(f"Updated table properties to: {action.set_table_properties.properties}")
+            LOGGER.info(f"Updated table properties to: `{action.set_table_properties.properties}`")
 
         if action.set_primary_key is not None:
             sql_statement = self.renderer.add_primary_key(full_name, action.set_primary_key.columns)
             self._execute(sql_statement)
             LOGGER.info(
-                "Added primary key (%s)",
+                "Added primary key `(%s)`",
                 ", ".join(action.set_primary_key.columns),
             )
 

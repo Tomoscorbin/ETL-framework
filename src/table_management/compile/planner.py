@@ -189,7 +189,7 @@ class Planner:
                 changes.append(
                     ColumnNullabilityChange(
                         name=desired.name,
-                        make_nullable=desired.is_nullable,  # True => DROP NOT NULL; False => SET NOT NULL
+                        make_nullable=desired.is_nullable,  # True => DROP; False => SET
                     )
                 )
 

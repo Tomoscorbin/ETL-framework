@@ -22,3 +22,7 @@ def build_foreign_key_name(
     h = hashlib.sha1(base.encode("utf-8")).hexdigest()[:8]
     head = base[: (_SAFE_MAX - 1 - len(h))]
     return f"{head}_{h}"
+
+
+def construct_full_table_name(catalog: str, schema: str, table: str) -> str:
+    return f"{catalog}.{schema}.{table}"

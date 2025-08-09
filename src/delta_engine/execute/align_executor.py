@@ -2,7 +2,8 @@ from pyspark.sql import SparkSession
 
 from src.logger import LOGGER
 from src.delta_engine.actions import AlignTable
-from src.delta_engine.execute.renderer import SqlRenderer, construct_full_name
+from src.delta_engine.execute.renderer import SqlRenderer
+from src.delta_engine.constraints.naming import construct_full_table_name
 
 class AlignExecutor:
     """Executes AlignTable."""
@@ -15,7 +16,7 @@ class AlignExecutor:
         self.renderer = SqlRenderer()
 
     def apply(self, action: AlignTable) -> None:
-        full_name = construct_full_name(action.catalog_name, action.schema_name, action.table_name)
+        full_name = construct_full_table_name(action.catalog_name, action.schema_name, action.table_name)
 
         if action.drop_primary_key:
             sql_statement = self.renderer.drop_primary_key(full_name)

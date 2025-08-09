@@ -23,6 +23,7 @@ from src.delta_engine.actions import (
 from src.delta_engine.models import Column, Table
 from src.delta_engine.state.snapshot import CatalogState, ColumnState, TableState
 from src.delta_engine.compile.validator import PreflightValidator
+from src.delta_engine.constraints.naming import build_foreign_key_name
 
 
 
@@ -76,21 +77,21 @@ class Planner:
                 align_actions.append(align_action)
 
 
-                fk_adds, fk_drops = self._diff_foreign_keys(desired_table, actual_table_state)
+            fk_adds, fk_drops = self._diff_foreign_keys(desired_table, actual_table_state)
 
-                # FK preflight (needs catalog-wide state for type/ref checks)
-                add_names = [a.name for a in align_action.add_columns] if align_action else []
-                self.validator.validate_foreign_keys(
-                    catalog_state=actual_catalog_state,
-                    catalog=desired_table.catalog_name,
-                    schema=desired_table.schema_name,
-                    src_table=desired_table.table_name,
-                    desired_fks=desired_table.foreign_keys,
-                    add_column_names=add_names,
-                    planned_fk_drops=[d.constraint_name for d in fk_drops],
-                )
-                foreign_key_add_actions.append(fk_adds)
-                foreign_key_drop_actions.append(fk_drops)
+            # FK preflight (needs catalog-wide state for type/ref checks)
+            add_names = [a.name for a in align_action.add_columns] if align_action else []
+            self.validator.validate_foreign_keys(
+                catalog_state=actual_catalog_state,
+                catalog=desired_table.catalog_name,
+                schema=desired_table.schema_name,
+                src_table=desired_table.table_name,
+                desired_fks=desired_table.foreign_keys,
+                add_column_names=add_names,
+                planned_fk_drops=[d.constraint_name for d in fk_drops],
+            )
+            foreign_key_add_actions.append(fk_adds)
+            foreign_key_drop_actions.append(fk_drops)
 
             return Plan(
                 create_tables=create_actions,
@@ -324,18 +325,14 @@ class Planner:
         self,
         desired_table: Table,
         actual_state: TableState | None,
-    ) -> tuple[list[ForeignKeyDrop], list[ForeignKeyDrop]]:
-        # If the table doesn't exist yet, there are no actual FKs to drop.
-        actual_fks_by_name = {fk.constraint_name: fk} if actual_state else {}
-        if actual_state:
-            actual_fks_by_name = {fk.constraint_name: fk for fk in actual_state.foreign_keys}
-
+    ) -> tuple[list[ForeignKeyAdd], list[ForeignKeyDrop]]:
+        actual_fks_by_name = {fk.constraint_name: fk for fk in (actual_state.foreign_keys if actual_state else [])}
         desired_specs = self._normalize_desired_fks(desired_table)
 
         adds: list[ForeignKeyAdd] = []
         drops: list[ForeignKeyDrop] = []
 
-        # Drops: actual but not desired
+        # Drops: present in actual but no longer desired
         if actual_state:
             for name, fk in actual_fks_by_name.items():
                 if name not in desired_specs:
@@ -346,19 +343,21 @@ class Planner:
                         table_name=actual_state.table_name,
                     ))
 
-        # Adds: desired not present (or changed)
+        # Adds (or change ⇒ drop+add)
         for name, spec in desired_specs.items():
             a = actual_fks_by_name.get(name)
-            if a is None or (
-                a.source_columns != spec["source_columns"]
-                or a.reference_table_name != spec["reference_table_name"]
-                or a.reference_columns != spec["reference_columns"]
-            ):
-                if a is not None:
-                    # changed: drop then add
+            changed = (
+                a is not None and (
+                    a.source_columns != spec["source_columns"]
+                    or a.reference_table_name != spec["reference_table_name"]
+                    or a.reference_columns != spec["reference_columns"]
+                )
+            )
+            if a is None or changed:
+                if changed:
                     drops.append(ForeignKeyDrop(
                         constraint_name=name,
-                        catalog_name=actual_state.catalog_name,   # safe: a exists ⇒ actual_state not None
+                        catalog_name=actual_state.catalog_name,   # safe: a implies actual_state
                         schema_name=actual_state.schema_name,
                         table_name=actual_state.table_name,
                     ))
@@ -373,3 +372,23 @@ class Planner:
                 ))
 
         return adds, drops
+
+
+    def _normalize_desired_fks(self, desired_table: Table) -> dict[str, dict]:
+        out: dict[str, dict] = {}
+        for fk in desired_table.foreign_keys:
+            if len(fk.source_columns) != len(fk.reference_columns):
+                raise RuntimeError(f"FK must map 1:1 columns on {desired_table.full_name}: {fk}")
+            name = build_foreign_key_name(
+                catalog=desired_table.catalog_name,
+                schema=desired_table.schema_name,
+                source_table=desired_table.table_name,
+                source_columns=fk.source_columns,
+                reference_table=fk.reference_table_name,
+            )
+            out[name] = {
+                "source_columns": list(fk.source_columns),
+                "reference_table_name": fk.reference_table_name,
+                "reference_columns": list(fk.reference_columns),
+            }
+        return out

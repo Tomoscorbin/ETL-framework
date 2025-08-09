@@ -4,8 +4,8 @@ from pyspark.sql import SparkSession
 from delta.tables import DeltaTable
 
 from src.logger import LOGGER
-from src.table_management.actions import CreateTable
-from src.table_management.execute.renderer import SqlRenderer, construct_full_name
+from src.delta_engine.actions import CreateTable
+from src.delta_engine.execute.renderer import SqlRenderer, construct_full_name
 
 
 class CreateExecutor:

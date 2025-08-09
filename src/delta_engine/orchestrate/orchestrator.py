@@ -3,10 +3,10 @@ from typing import Sequence
 from pyspark.sql import SparkSession
 
 from src.logger import LOGGER
-from src.table_management.models import Table
-from src.table_management.state.spark_reader import SparkCatalogReader
-from src.table_management.compile.planner import Planner
-from src.table_management.execute.action_runner import ActionRunner
+from src.delta_engine.models import Table
+from src.delta_engine.state.spark_reader import SparkCatalogReader
+from src.delta_engine.compile.planner import Planner
+from src.delta_engine.execute.action_runner import ActionRunner
 
 class Orchestrator:
     """End-to-end: desired models -> snapshot -> plan -> execute."""

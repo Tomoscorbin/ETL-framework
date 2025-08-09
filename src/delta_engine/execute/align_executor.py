@@ -1,8 +1,8 @@
 from pyspark.sql import SparkSession
 
 from src.logger import LOGGER
-from src.table_management.actions import AlignTable
-from src.table_management.execute.renderer import SqlRenderer, construct_full_name
+from src.delta_engine.actions import AlignTable
+from src.delta_engine.execute.renderer import SqlRenderer, construct_full_name
 
 class AlignExecutor:
     """Executes AlignTable."""

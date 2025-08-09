@@ -3,7 +3,7 @@ import importlib
 import pkgutil
 from types import ModuleType
 from typing import Iterable, List
-from src.table_management.models import Table
+from src.delta_engine.models import Table
 
 def discover_tables(package: ModuleType, recurse: bool = True) -> List[Table]:
     """Find all top-level variables that are instances of models.Table."""

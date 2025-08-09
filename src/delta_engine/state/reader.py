@@ -1,7 +1,7 @@
 from __future__ import annotations
 from typing import Protocol, Sequence
-from src.table_management.models import Table
-from src.table_management.state.snapshot import CatalogState
+from src.delta_engine.models import Table
+from src.delta_engine.state.snapshot import CatalogState
 
 
 class CatalogReader(Protocol):

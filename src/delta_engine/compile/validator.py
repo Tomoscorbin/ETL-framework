@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import Sequence
-from src.table_management.state.snapshot import CatalogState
-from src.table_management.models import ForeignKey
+from src.delta_engine.state.snapshot import CatalogState
+from src.delta_engine.models import ForeignKey
 
 
 @dataclass(frozen=True)

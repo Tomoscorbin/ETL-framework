@@ -5,7 +5,7 @@ from typing import Dict, List, Sequence, Tuple
 import pyspark.sql.types as T
 
 from src.logger import LOGGER
-from src.table_management.actions import (
+from src.delta_engine.actions import (
     AlignTable,
     ColumnAdd,
     ColumnDrop,
@@ -18,9 +18,9 @@ from src.table_management.actions import (
     SetTableComment,
     SetTableProperties,
 )
-from src.table_management.models import Column, Table
-from src.table_management.state.snapshot import CatalogState, ColumnState, TableState
-from src.table_management.compile.validator import PreflightValidator
+from src.delta_engine.models import Column, Table
+from src.delta_engine.state.snapshot import CatalogState, ColumnState, TableState
+from src.delta_engine.compile.validator import PreflightValidator
 
 
 

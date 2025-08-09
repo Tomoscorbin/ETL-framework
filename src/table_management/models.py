@@ -9,16 +9,10 @@ from src.enums import DeltaTableProperty
 
 @dataclass(frozen=True)
 class ForeignKey:
-    """
-    A single-column foreign key to another table.
-
-    If reference_catalog_name or reference_schema_name are not provided,
-    they default to the source table's catalog and schema during planning.
-    """
+    """A single-column foreign key to another table."""
+    source_columns: list[str]
     reference_table_name: str
-    reference_column_name: str
-    reference_catalog_name: str | None = None
-    reference_schema_name: str | None = None
+    reference_columns: list[str]   
 
 
 @dataclass(frozen=True)
@@ -47,6 +41,7 @@ class Table:
     table_name: str
     columns: list[Column]
     comment: str = ""
+    foreign_keys: list[ForeignKey] = field(default_factory=list)
     table_properties: dict[str, str] = field(default_factory=dict)
 
     @property
@@ -58,3 +53,7 @@ class Table:
     def effective_table_properties(self) -> dict[str, str]:
         """Defaults + user overrides."""
         return {**self.DEFAULT_TABLE_PROPERTIES, **self.table_properties}
+
+    @property
+    def primary_key_column_names(self) -> list[str]:
+        return [c.name for c in self.columns if c.is_primary_key]

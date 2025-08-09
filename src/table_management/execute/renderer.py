@@ -50,3 +50,12 @@ class SqlRenderer:
             for f in schema.fields
         )
         return f"-- createIfNotExists {full_name} ({cols}) COMMENT '{_escape(table_comment)}'"
+    
+    def add_foreign_key(self, full_name: str, name: str, src_cols: list[str],
+                        ref_full: str, ref_cols: list[str]) -> str:
+        s = ", ".join(src_cols)
+        r = ", ".join(ref_cols)
+        return f"ALTER TABLE {full_name} ADD CONSTRAINT {name} FOREIGN KEY ({s}) REFERENCES {ref_full} ({r});"
+
+    def drop_foreign_key(self, full_name: str, name: str) -> str:
+        return f"ALTER TABLE {full_name} DROP CONSTRAINT {name};"

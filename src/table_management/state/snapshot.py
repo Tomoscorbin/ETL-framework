@@ -41,3 +41,11 @@ class CatalogState:
             table_name: str,
         ) -> TableState | None:
         return self.tables.get(f"{catalog_name}.{schema_name}.{table_name}")
+    
+
+@dataclass(frozen=True)
+class ForeignKeyState:
+    constraint_name: str
+    source_columns: List[str]
+    reference_table_name: str
+    reference_columns: List[str]

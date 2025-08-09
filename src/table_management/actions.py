@@ -61,13 +61,34 @@ class AlignTable:
     drop_primary_key: DropPrimaryKey | None = None
     set_primary_key: SetPrimaryKey | None = None
 
-    add_columns: List[ColumnAdd] = field(default_factory=list)
-    change_nullability: List[ColumnNullabilityChange] = field(default_factory=list)
-    drop_columns: List[ColumnDrop] = field(default_factory=list)
+    add_columns: list[ColumnAdd] = field(default_factory=list)
+    change_nullability: list[ColumnNullabilityChange] = field(default_factory=list)
+    drop_columns: list[ColumnDrop] = field(default_factory=list)
+
+
+
+@dataclass(frozen=True)
+class AddForeignKey:
+    constraint_name: str
+    catalog_name: str
+    schema_name: str
+    source_table_name: str
+    source_columns: list[str]
+    reference_table_name: str
+    reference_columns: list[str]
+
+@dataclass(frozen=True)
+class DropForeignKey:
+    constraint_name: str
+    catalog_name: str
+    schema_name: str
+    table_name: str
+
 
 # ---------- Plan ----------
 @dataclass(frozen=True)
 class Plan:
-    create_tables: List[CreateTable]
-    align_tables: List[AlignTable]
-    # foreign keys will come later
+    create_tables: list[CreateTable]
+    align_tables: list[AlignTable]
+    drop_foreign_keys: list[DropForeignKey]
+    add_foreign_keys: list[AddForeignKey]

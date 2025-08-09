@@ -55,14 +55,15 @@ class AlignTable:
     catalog_name: str
     schema_name: str
     table_name: str
+    set_column_comments: SetColumnComments | None = None
+    set_table_comment: SetTableComment | None = None
+    set_table_properties: SetTableProperties | None = None
+    drop_primary_key: DropPrimaryKey | None = None
+    set_primary_key: SetPrimaryKey | None = None
+
     add_columns: List[ColumnAdd] = field(default_factory=list)
     change_nullability: List[ColumnNullabilityChange] = field(default_factory=list)
-    set_column_comments: SetColumnComments | None
-    set_table_comment: SetTableComment | None
-    set_table_properties: SetTableProperties | None
-    drop_primary_key: DropPrimaryKey | None
-    set_primary_key: SetPrimaryKey | None
-    drop_columns: list[ColumnDrop] = field(default_factory=list)
+    drop_columns: List[ColumnDrop] = field(default_factory=list)
 
 # ---------- Plan ----------
 @dataclass(frozen=True)

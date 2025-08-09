@@ -110,13 +110,13 @@ class Planner:
             catalog_name=desired_table.catalog_name,
             schema_name=desired_table.schema_name,
             table_name=desired_table.table_name,
-            add_columns=columns_to_add,
-            change_nullability=nullability_changes,
             set_column_comments=set_column_comments,
             set_table_comment=set_table_comment,
             set_table_properties=set_table_properties,
             drop_primary_key=drop_primary_key,
             set_primary_key=set_primary_key,
+            add_columns=columns_to_add,
+            change_nullability=nullability_changes,
             drop_columns=columns_to_drop
         )
     

@@ -23,7 +23,7 @@ class Orchestrator:
         LOGGER.info("Plan generated — creates: %d, aligns: %d", len(plan.create_tables), len(plan.align_tables))
 
         # Plan validation
-        self.validator.with_default_rules().validate(plan)
+        self.validator.validate(plan)
 
         # Execute if validation passes
         self.runner.apply(plan)

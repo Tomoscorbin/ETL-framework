@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from typing import ClassVar
+
 import pyspark.sql.types as T
 
 from src.enums import DeltaTableProperty
@@ -12,6 +13,7 @@ from src.enums import DeltaTableProperty
 @dataclass(frozen=True)
 class Column:
     """Declarative Delta table column definition."""
+
     name: str
     data_type: T.DataType
     comment: str = ""
@@ -21,7 +23,8 @@ class Column:
 @dataclass(frozen=True)
 class Table:
     """Declarative Delta table definition."""
-    DEFAULT_TABLE_PROPERTIES: ClassVar[dict[DeltaTableProperty, str]] = {
+
+    DEFAULT_TABLE_PROPERTIES: ClassVar[dict[str, str]] = {
         DeltaTableProperty.COLUMN_MAPPING_MODE: "name",
     }
 
@@ -36,7 +39,7 @@ class Table:
     def full_name(self) -> str:
         """Fully qualified name in `catalog.schema.table` format."""
         return f"{self.catalog_name}.{self.schema_name}.{self.table_name}"
-    
+
     @property
     def effective_table_properties(self) -> dict[str, str]:
         """Default table properties + user overrides."""

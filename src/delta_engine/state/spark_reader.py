@@ -1,10 +1,19 @@
-# src/delta_engine/state/spark_reader.py
+"""
+Reads a live catalog state into domain models.
+
+This module defines `SparkCatalogReader`, which inspects live Delta tables
+and returns their state as `CatalogState`, `TableState`, and `ColumnState`
+instances. It captures schema, column metadata, table comments, and table
+properties without performing any modifications.
+"""
+
 from __future__ import annotations
 
-from typing import Dict, List, Sequence
+from collections.abc import Sequence
+
 import pyspark.sql.types as T
-from pyspark.sql import SparkSession
 from delta.tables import DeltaTable
+from pyspark.sql import SparkSession
 
 from src.delta_engine.models import Table
 from src.delta_engine.state.snapshot import CatalogState, ColumnState, TableState
@@ -12,7 +21,10 @@ from src.delta_engine.state.snapshot import CatalogState, ColumnState, TableStat
 
 class SparkCatalogReader:
     """
-    Read live catalog state → (CatalogState, TableState, ColumnState).
+    Reads live Delta catalog metadata into state model objects.
+
+    Provides a `snapshot()` method for reading a set of tables, and internal
+    helpers for reading individual table definitions and metadata.
     """
 
     def __init__(self, spark: SparkSession) -> None:
@@ -21,7 +33,8 @@ class SparkCatalogReader:
     # ---------- public ----------
 
     def snapshot(self, tables: Sequence[Table]) -> CatalogState:
-        states: Dict[str, TableState] = {}
+        """Read the current state for a set of tables."""
+        states: dict[str, TableState] = {}
         for model in tables:
             state = self._read_table_state(model)
             states[state.full_name] = state
@@ -65,8 +78,8 @@ class SparkCatalogReader:
         # Delta API → DataFrame → schema
         return delta.toDF().schema
 
-    def _read_column_comments(self, full_name: str) -> Dict[str, str]:
-        out: Dict[str, str] = {}
+    def _read_column_comments(self, full_name: str) -> dict[str, str]:
+        out: dict[str, str] = {}
         for col in self.spark.catalog.listColumns(full_name):
             out[col.name] = col.description or ""
         return out
@@ -74,9 +87,9 @@ class SparkCatalogReader:
     def _merge_struct_and_comments(
         self,
         struct: T.StructType,
-        comments_by_name: Dict[str, str],
-    ) -> List[ColumnState]:
-        merged: List[ColumnState] = []
+        comments_by_name: dict[str, str],
+    ) -> list[ColumnState]:
+        merged: list[ColumnState] = []
         for field in struct.fields:
             merged.append(
                 ColumnState(
@@ -90,12 +103,12 @@ class SparkCatalogReader:
 
     def _read_table_comment(self, full_name: str) -> str:
         try:
-            return (self.spark.catalog.getTable(full_name).description or "")
+            return self.spark.catalog.getTable(full_name).description or ""
         except Exception:
             # Metadata permissions or missing description → empty string
             return ""
 
-    def _read_table_properties(self, delta: DeltaTable) -> Dict[str, str]:
+    def _read_table_properties(self, delta: DeltaTable) -> dict[str, str]:
         """
         Prefer Delta detail() 'configuration' map (no raw SQL).
         Fallback to empty dict if not present or unreadable.
@@ -131,9 +144,9 @@ class SparkCatalogReader:
     def _build_existing_state(
         self,
         model: Table,
-        columns: List[ColumnState],
+        columns: list[ColumnState],
         table_comment: str,
-        table_properties: Dict[str, str],
+        table_properties: dict[str, str],
     ) -> TableState:
         return TableState(
             catalog_name=model.catalog_name,

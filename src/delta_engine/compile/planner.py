@@ -1,28 +1,48 @@
-from typing import Dict, List, Sequence
+"""
+Plans schema changes for Delta tables.
+
+This module defines `Planner`, which compares desired table models against
+the current catalog state and produces a `Plan` of `CreateTable` and
+`AlignTable` actions to bring the catalog into alignment.
+"""
+
+from collections.abc import Sequence
+
 import pyspark.sql.types as T
+
 from src.delta_engine.actions import (
-    Plan, CreateTable, AlignTable,
-    ColumnAdd, ColumnDrop, ColumnNullabilityChange,
-    SetColumnComments, SetTableComment, SetTableProperties,
+    AlignTable,
+    ColumnAdd,
+    ColumnDrop,
+    ColumnNullabilityChange,
+    CreateTable,
+    Plan,
+    SetColumnComments,
+    SetTableComment,
+    SetTableProperties,
 )
-from src.delta_engine.models import Table, Column
-from src.delta_engine.state.snapshot import CatalogState, TableState, ColumnState
+from src.delta_engine.models import Column, Table
+from src.delta_engine.state.snapshot import CatalogState, ColumnState, TableState
 
 
 class Planner:
+    """Compares desired table definitions with actual state and builds a change plan."""
+
     def plan(self, desired_tables: Sequence[Table], catalog_state: CatalogState) -> Plan:
-        create_actions: List[CreateTable] = []
-        align_actions:  List[AlignTable]  = []
+        """Compare desired tables against the current catalog state and produce a plan."""
+        create_actions: list[CreateTable] = []
+        align_actions: list[AlignTable] = []
 
         for desired in desired_tables:
-            actual = catalog_state.get(desired.catalog_name, desired.schema_name, desired.table_name)
+            actual = catalog_state.get(
+                desired.catalog_name, desired.schema_name, desired.table_name
+            )
             if actual is None or not actual.exists:
                 create_actions.append(self._build_create(desired))
             else:
                 align_actions.append(self._build_align(desired, actual))
 
         return Plan(create_tables=create_actions, align_tables=align_actions)
-
 
     # ---------- create ----------
 
@@ -40,11 +60,13 @@ class Planner:
     def _to_struct(self, desired_columns: Sequence[Column]) -> T.StructType:
         fields = []
         for col in desired_columns:
-            fields.append(T.StructField(name=col.name, dataType=col.data_type, nullable=col.is_nullable))
+            fields.append(
+                T.StructField(name=col.name, dataType=col.data_type, nullable=col.is_nullable)
+            )
         return T.StructType(fields)
 
-    def _map_column_comments(self, desired_columns: Sequence[Column]) -> Dict[str, str]:
-        mapping: Dict[str, str] = {}
+    def _map_column_comments(self, desired_columns: Sequence[Column]) -> dict[str, str]:
+        mapping: dict[str, str] = {}
         for col in desired_columns:
             mapping[col.name] = self._normalize_comment(col.comment)
         return mapping
@@ -52,12 +74,14 @@ class Planner:
     # ---------- align ----------
 
     def _build_align(self, desired: Table, actual: TableState) -> AlignTable:
-        additions  = self._compute_columns_to_add(desired.columns, actual.columns)
-        drops      = self._compute_columns_to_drop(desired.columns, actual.columns)
-        nullables  = self._compute_nullability_changes(desired.columns, actual.columns)
-        col_notes  = self._compute_column_comment_updates(desired.columns, actual.columns)
-        tbl_note   = self._compute_table_comment_update(desired.comment, actual.table_comment)
-        tbl_props  = self._compute_table_property_updates(desired.effective_table_properties, actual.table_properties)
+        additions = self._compute_columns_to_add(desired.columns, actual.columns)
+        drops = self._compute_columns_to_drop(desired.columns, actual.columns)
+        nullables = self._compute_nullability_changes(desired.columns, actual.columns)
+        col_notes = self._compute_column_comment_updates(desired.columns, actual.columns)
+        tbl_note = self._compute_table_comment_update(desired.comment, actual.table_comment)
+        tbl_props = self._compute_table_property_updates(
+            desired.effective_table_properties, actual.table_properties
+        )
 
         return AlignTable(
             catalog_name=desired.catalog_name,
@@ -75,9 +99,9 @@ class Planner:
 
     def _compute_columns_to_add(
         self, desired_columns: Sequence[Column], actual_columns: Sequence[ColumnState]
-    ) -> List[ColumnAdd]:
+    ) -> list[ColumnAdd]:
         actual_names = self._actual_column_name_set(actual_columns)
-        additions: List[ColumnAdd] = []
+        additions: list[ColumnAdd] = []
 
         for desired in desired_columns:
             if self._is_missing_in_actual(desired.name, actual_names):
@@ -106,9 +130,9 @@ class Planner:
 
     def _compute_columns_to_drop(
         self, desired_columns: Sequence[Column], actual_columns: Sequence[ColumnState]
-    ) -> List[ColumnDrop]:
+    ) -> list[ColumnDrop]:
         desired_names = self._desired_column_name_set(desired_columns)
-        drops: List[ColumnDrop] = []
+        drops: list[ColumnDrop] = []
 
         for actual in actual_columns:
             if self._is_extra_in_actual(actual.name, desired_names):
@@ -129,9 +153,9 @@ class Planner:
 
     def _compute_nullability_changes(
         self, desired_columns: Sequence[Column], actual_columns: Sequence[ColumnState]
-    ) -> List[ColumnNullabilityChange]:
+    ) -> list[ColumnNullabilityChange]:
         actual_by_name = self._index_actual_by_name(actual_columns)
-        changes: List[ColumnNullabilityChange] = []
+        changes: list[ColumnNullabilityChange] = []
 
         for desired in desired_columns:
             actual = actual_by_name.get(desired.name)
@@ -141,13 +165,15 @@ class Planner:
                 changes.append(
                     ColumnNullabilityChange(
                         name=desired.name,
-                        make_nullable=desired.is_nullable,  # True => DROP NOT NULL; False => SET NOT NULL
+                        make_nullable=desired.is_nullable,
                     )
                 )
 
         return changes
 
-    def _index_actual_by_name(self, actual_columns: Sequence[ColumnState]) -> Dict[str, ColumnState]:
+    def _index_actual_by_name(
+        self, actual_columns: Sequence[ColumnState]
+    ) -> dict[str, ColumnState]:
         return {c.name: c for c in actual_columns}
 
     def _nullability_differs(self, desired_is_nullable: bool, actual_is_nullable: bool) -> bool:
@@ -159,17 +185,21 @@ class Planner:
         self, desired_columns: Sequence[Column], actual_columns: Sequence[ColumnState]
     ) -> SetColumnComments | None:
         actual_by_name = self._index_actual_by_name(actual_columns)
-        changed: Dict[str, str] = {}
+        changed: dict[str, str] = {}
 
+        actual_by_name = self._index_actual_by_name(actual_columns)
         for desired in desired_columns:
             desired_comment = self._normalize_comment(desired.comment)
-            actual_comment = self._normalize_comment(actual_by_name.get(desired.name).comment if desired.name in actual_by_name else "")
+            actual = actual_by_name.get(desired.name)
+            actual_comment = self._normalize_comment(actual.comment if actual else "")
             if desired_comment != actual_comment:
                 changed[desired.name] = desired_comment
 
         return SetColumnComments(changed) if changed else None
 
-    def _compute_table_comment_update(self, desired_comment: str, actual_comment: str) -> SetTableComment | None:
+    def _compute_table_comment_update(
+        self, desired_comment: str, actual_comment: str
+    ) -> SetTableComment | None:
         desired_value = self._normalize_comment(desired_comment)
         actual_value = self._normalize_comment(actual_comment)
         return SetTableComment(desired_value) if desired_value != actual_value else None
@@ -180,9 +210,9 @@ class Planner:
     # ----- properties -----
 
     def _compute_table_property_updates(
-        self, desired_properties: Dict[str, str], actual_properties: Dict[str, str]
+        self, desired_properties: dict[str, str], actual_properties: dict[str, str]
     ) -> SetTableProperties | None:
-        to_set: Dict[str, str] = {}
+        to_set: dict[str, str] = {}
 
         for key, desired_value in desired_properties.items():
             actual_value = actual_properties.get(key)

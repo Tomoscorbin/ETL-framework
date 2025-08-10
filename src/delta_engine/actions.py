@@ -13,6 +13,8 @@ from dataclasses import dataclass, field
 import pyspark.sql.types as T
 
 
+# ---------- Table Operations ----------
+
 @dataclass(frozen=True)
 class CreateTable:
     """Represents a CREATE TABLE operation."""
@@ -96,7 +98,27 @@ class AlignTable:
     drop_columns: list[ColumnDrop] = field(default_factory=list)
 
 
-# ---------- Plan ----------
+# ---------- Constraints ----------
+
+@dataclass(frozen=True)
+class CreatePrimaryKey:
+    """Add a PRIMARY KEY constraint to a table."""
+    three_part_table_name: tuple[str, str, str]
+    name: str
+    columns: tuple[str, ...]
+
+@dataclass(frozen=True)
+class CreateForeignKey:
+    """Add a FOREIGN KEY constraint from source to target table."""
+    source_three_part_table_name: tuple[str, str, str]
+    name: str
+    source_columns: tuple[str, ...]
+    target_three_part_table_name: tuple[str, str, str]
+    target_columns: tuple[str, ...]
+
+
+# ---------- Plans ----------
+
 @dataclass(frozen=True)
 class Plan:
     """
@@ -107,3 +129,13 @@ class Plan:
 
     create_tables: list[CreateTable]
     align_tables: list[AlignTable]
+
+
+@dataclass(frozen=True)
+class ConstraintPlan:
+    """
+    Ordered constraint actions.
+    Primary keys MUST be created before foreign keys.
+    """
+    create_primary_keys: tuple[CreatePrimaryKey, ...]
+    create_foreign_keys: tuple[CreateForeignKey, ...]

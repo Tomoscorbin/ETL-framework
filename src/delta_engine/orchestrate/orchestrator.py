@@ -10,11 +10,11 @@ from collections.abc import Sequence
 
 from pyspark.sql import SparkSession
 
-from src.delta_engine.compile.plan_validator import PlanValidator
+from src.delta_engine.compile.validator import PlanValidator
 from src.delta_engine.compile.planner import Planner
 from src.delta_engine.execute.action_runner import ActionRunner
 from src.delta_engine.models import Table
-from src.delta_engine.state.spark_reader import SparkCatalogReader
+from src.delta_engine.state.catalog_reader import CatalogReader
 from src.logger import LOGGER
 
 
@@ -24,7 +24,7 @@ class Orchestrator:
     def __init__(self, spark: SparkSession) -> None:
         """Initialize the orchestrator."""
         self.spark = spark
-        self.reader = SparkCatalogReader(spark)
+        self.reader = CatalogReader(spark)
         self.planner = Planner()
         self.validator = PlanValidator()
         self.runner = ActionRunner(spark)

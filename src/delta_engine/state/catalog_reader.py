@@ -1,7 +1,7 @@
 """
 Reads a live catalog state into domain models.
 
-This module defines `SparkCatalogReader`, which inspects live Delta tables
+This module defines `CatalogReader`, which inspects live Delta tables
 and returns their state as `CatalogState`, `TableState`, and `ColumnState`
 instances. It captures schema, column metadata, table comments, and table
 properties without performing any modifications.
@@ -19,7 +19,7 @@ from src.delta_engine.models import Table
 from src.delta_engine.state.snapshot import CatalogState, ColumnState, TableState
 
 
-class SparkCatalogReader:
+class CatalogReader:
     """
     Reads live Delta catalog metadata into state model objects.
 

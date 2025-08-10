@@ -1,7 +1,7 @@
 """
 Protocol for reading current Unity Catalog table state.
 
-Defines the `CatalogReader` interface, which reads live catalog metadata
+Defines the `UnityCatalogReader` interface, which reads live catalog metadata
 for a set of tables and returns it as a `CatalogState`.
 """
 
@@ -14,7 +14,7 @@ from src.delta_engine.models import Table
 from src.delta_engine.state.snapshot import CatalogState
 
 
-class CatalogReader(Protocol):
+class UnityCatalogReader(Protocol):
     """Reads current Unity Catalog state for given tables."""
 
     def snapshot(self, tables: Sequence[Table]) -> CatalogState:

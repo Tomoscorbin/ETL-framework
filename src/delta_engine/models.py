@@ -28,7 +28,7 @@ class Table:
     catalog_name: str
     schema_name: str
     table_name: str
-    columns: list[Column]
+    schema_struct: list[Column]
     comment: str = ""
     table_properties: dict[str, str] = field(default_factory=dict)
 

@@ -57,8 +57,8 @@ class AlignExecutor:
         if action.add_primary_key:
             self.ddl.add_primary_key(
                 full,
-                action.add_primary_key.name,
-                list(action.add_primary_key.columns),
+                action.add_primary_key.definition.name,
+                list(action.add_primary_key.definition.columns),
             )
 
         # 5) Column comments

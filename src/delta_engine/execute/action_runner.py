@@ -7,10 +7,9 @@ by delegating to the appropriate executor for each action type.
 
 from pyspark.sql import SparkSession
 
-from src.delta_engine.actions import TablePlan, ConstraintPlan
+from src.delta_engine.actions import TablePlan
 from src.delta_engine.execute.align_executor import AlignExecutor
 from src.delta_engine.execute.create_executor import CreateExecutor
-from src.delta_engine.execute.constraint_executor import ConstraintExecutor
 
 
 class ActionRunner:
@@ -30,7 +29,3 @@ class ActionRunner:
 
         for align_action in plan.align_tables:
             align_executor.apply(align_action)
-
-    def apply_constraint_plan(self, plan: ConstraintPlan):
-        constraint_executor = ConstraintExecutor(self.spark)
-        constraint_executor.apply(plan)

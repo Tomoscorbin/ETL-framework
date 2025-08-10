@@ -12,8 +12,6 @@ from dataclasses import dataclass, field
 
 import pyspark.sql.types as T
 
-from src.delta_engine.common_types import ThreePartTableName
-
 
 # ---------- Common payloads ----------
 
@@ -123,26 +121,8 @@ class AlignTable:
     set_table_properties: SetTableProperties | None = None
 
     # PK edits (can be both in one action to “recreate”)
-    drop_primary_key: PrimaryKeyDropAction | None = None
-    add_primary_key: PrimaryKeyAddAction | None = None
-
-
-# # ---------- Constraints ----------
-
-# @dataclass(frozen=True)
-# class CreateForeignKey:
-#     """Add a FOREIGN KEY constraint from source to target table."""
-#     source_three_part_table_name: ThreePartTableName
-#     name: str
-#     source_columns: tuple[str, ...]
-#     target_three_part_table_name: ThreePartTableName
-#     target_columns: tuple[str, ...]
-
-# @dataclass(frozen=True)
-# class DropForeignKey:
-#     """Drop a FOREIGN KEY constraint from the source table by name."""
-#     source_three_part_table_name: ThreePartTableName
-#     name: str
+    drop_primary_key: PrimaryKeyDrop | None = None
+    add_primary_key: PrimaryKeyAdd | None = None
 
 
 # ---------- Plans ----------
@@ -155,15 +135,5 @@ class TablePlan:
     Contains CREATE TABLE operations and ALTER TABLE alignment operations.
     """
 
-    create_tables: tuple[CreateTable]
-    align_tables: tuple[AlignTable]
-
-
-@dataclass(frozen=True)
-class ConstraintPlan:
-    """
-    Ordered constraint actions.
-    Primary keys MUST be created before foreign keys.
-    """
-    create_foreign_keys: tuple[CreateForeignKey, ...]
-    drop_foreign_keys: tuple[DropForeignKey, ...]
+    create_tables: tuple[CreateTable, ...]
+    align_tables: tuple[AlignTable, ...]

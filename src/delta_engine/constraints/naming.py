@@ -31,16 +31,3 @@ def build_primary_key_name(three_part_table_name: Tuple[str, str, str], columns:
     base = f"pk_{catalog}_{schema}_{table}__{cols}"
     return _truncate_with_hash(base)
 
-def build_foreign_key_name(
-    source_three_part_table_name: Tuple[str, str, str],
-    source_columns: Iterable[str],
-    target_three_part_table_name: Tuple[str, str, str],
-    target_columns: Iterable[str],
-) -> str:
-    """Deterministic FK name derived from src/target table+columns."""
-    scat, ssch, stbl = source_three_part_table_name
-    tcat, tsch, ttbl = target_three_part_table_name
-    scols = "_".join(source_columns)
-    tcols = "_".join(target_columns)
-    base = f"fk_{scat}_{ssch}_{stbl}__{scols}__ref__{tcat}_{tsch}_{ttbl}__{tcols}"
-    return _truncate_with_hash(base)

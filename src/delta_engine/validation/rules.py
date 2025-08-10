@@ -7,13 +7,9 @@ the plan and raises `UnsafePlanError` if violations are found.
 """
 
 from __future__ import annotations
-from typing import Sequence, Tuple, Protocol, TypeVar, runtime_checkable
-import pyspark.sql.types as T
 from collections import Counter
 
-from src.delta_engine.models import Table, Column
-from src.delta_engine.constraints.naming import build_primary_key_name, build_foreign_key_name
-from src.delta_engine.actions import TablePlan, ConstraintPlan
+from src.delta_engine.actions import TablePlan
 
 
 # ----------------- BASE RULE -----------------
@@ -33,7 +29,7 @@ class NoAddNotNullColumns:
         for action in plan.align_tables:
             for add in action.add_columns:
                 if add.is_nullable is False:
-                    raise UnsafeTablePlanError(
+                    raise UnsafePlanError(
                         f"Unsafe plan: ADD NOT NULL column `{add.name}` on {_qualified(action)}. "
                         "Add as NULLABLE first, backfill, then tighten."
                     )
@@ -42,10 +38,10 @@ class NoDuplicateCreateTableColumnNames:
     """CREATE TABLE schema must not contain duplicate column names (case-insensitive)."""
     def check(self, plan: TablePlan) -> None:
         for ct in plan.create_tables:
-            names = [f.name for f in ct.schema_struct.fields]  # T.StructField
+            names = [f.name for f in ct.schema_struct.fields]
             dupes = [n for n, c in Counter(n.lower() for n in names).items() if c > 1]
             if dupes:
-                raise UnsafeTablePlanError(
+                raise UnsafePlanError(
                     f"{ct.catalog_name}.{ct.schema_name}.{ct.table_name}: duplicate column names in CREATE TABLE: {sorted(set(dupes))}"
                 )
 
@@ -56,7 +52,7 @@ class NoDuplicateAddColumnNamesPerTable:
             names = [a.name for a in at.add_columns]
             dupes = [n for n, c in Counter(n.lower() for n in names).items() if c > 1]
             if dupes:
-                raise UnsafeTablePlanError(
+                raise UnsafePlanError(
                     f"{_qualified(at)}: duplicate column names in ADD COLUMN: {sorted(set(dupes))}"
                 )
 

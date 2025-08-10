@@ -21,8 +21,8 @@ from src.delta_engine.actions import (
     SetTableComment,
     SetTableProperties,
     PrimaryKeyDefinition,
-    PrimaryKeyActionAdd,
-    PrimaryKeyActionDrop
+    PrimaryKeyAdd,
+    PrimaryKeyDrop,
 )
 from src.delta_engine.models import Column, Table
 from src.delta_engine.state.states import CatalogState, ColumnState, TableState
@@ -241,7 +241,7 @@ class TablePlanner:
 
     def _compute_primary_key_changes(
         self, desired: Table, actual: TableState
-    ) -> tuple[DropPrimaryKeyAction | None, AddPrimaryKeyAction | None]:
+    ) -> tuple[PrimaryKeyDrop | None, PrimaryKeyAdd | None]:
         desired_def = self._desired_pk_definition(desired)
         actual_state = actual.primary_key
 

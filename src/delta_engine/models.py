@@ -41,3 +41,8 @@ class Table:
     def effective_table_properties(self) -> dict[str, str]:
         """Default table properties + user overrides."""
         return {**self.DEFAULT_TABLE_PROPERTIES, **self.table_properties}
+
+    @property
+    def column_names(self) -> list[str]:
+        """List of coloumn names."""
+        return [column.name for column in self.columns]

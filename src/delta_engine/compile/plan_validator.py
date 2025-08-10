@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Self
+from typing import ClassVar
 from src.delta_engine.actions import Plan
 from .validation_rules import ValidationRule, NoAddNotNullColumnsRule
 

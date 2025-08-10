@@ -1,15 +1,20 @@
 from typing import Sequence, Dict, Set
-from src.delta_engine.models.table import Table
-from src.delta_engine.state.snapshot import CatalogState
-from src.delta_engine.table_names import ThreePartTableName
+from src.delta_engine.models import Table
+from src.delta_engine.state.states import CatalogState
+from src.delta_engine.common_types import ThreePartTableName
 from src.delta_engine.constraints.resolver import resolve_from_models
-from src.delta_engine.constraints.constraints_validator import ConstraintsValidator
-from src.delta_engine.constraints.actions import *
+from src.delta_engine.actions import (
+    CreatePrimaryKey,
+    CreateForeignKey,
+    DropPrimaryKey,
+    DropForeignKey,
+)
 from src.delta_engine.constraints.ordering import order_constraint_plan
+from src.delta_engine.actions import ConstraintPlan
+
 
 class ConstraintPlanner:
     def build_constraint_plan(self, state: CatalogState, models: Sequence[Table]) -> ConstraintPlan:
-        ConstraintsValidator().validate(models)
         resolved = resolve_from_models(models)
 
         pk_by_table = _pk_name_by_table(state)

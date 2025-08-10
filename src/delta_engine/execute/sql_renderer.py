@@ -1,6 +1,6 @@
 from __future__ import annotations
 from typing import List
-from src.delta_engine.constraints.actions import (
+from src.delta_engine.actions import (
     ConstraintPlan, CreatePrimaryKey, CreateForeignKey
 )
 from src.delta_engine.constraints.naming import three_part_to_qualified_name

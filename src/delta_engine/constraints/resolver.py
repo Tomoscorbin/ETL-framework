@@ -3,9 +3,9 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Sequence, Iterable
 
-from src.delta_engine.models.table import Table, ForeignKey as ForeignKeyModel
-from src.delta_engine.constraints.types import PrimaryKeySpec, ForeignKeySpec
-from src.delta_engine.constraints.identifiers import build_primary_key_name, build_foreign_key_name
+from src.delta_engine.models import Table, ForeignKey as ForeignKeyModel
+from src.delta_engine.constraints.specs import PrimaryKeySpec, ForeignKeySpec
+from src.delta_engine.constraints.naming import build_primary_key_name, build_foreign_key_name
 
 
 @dataclass(frozen=True)

@@ -1,3 +1,6 @@
+from dataclasses import dataclass
+
+
 @dataclass(frozen=True)
 class PrimaryKeySpec:
     three_part_table_name: tuple[str, str, str]

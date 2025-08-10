@@ -1,8 +1,8 @@
 """
 Plans schema changes for Delta tables.
 
-This module defines `Planner`, which compares desired table models against
-the current catalog state and produces a `Plan` of `CreateTable` and
+This module defines `TablePlanner`, which compares desired table models against
+the current catalog state and produces a `TablePlan` of `CreateTable` and
 `AlignTable` actions to bring the catalog into alignment.
 """
 
@@ -16,19 +16,22 @@ from src.delta_engine.actions import (
     ColumnDrop,
     ColumnNullabilityChange,
     CreateTable,
-    Plan,
+    TablePlan,
     SetColumnComments,
     SetTableComment,
     SetTableProperties,
+    PrimaryKeyDefinition,
+    PrimaryKeyActionAdd,
+    PrimaryKeyActionDrop
 )
 from src.delta_engine.models import Column, Table
-from src.delta_engine.state.snapshot import CatalogState, ColumnState, TableState
+from src.delta_engine.state.states import CatalogState, ColumnState, TableState
 
 
-class Planner:
+class TablePlanner:
     """Compares desired table definitions with actual state and builds a change plan."""
 
-    def build_plan(self, desired_tables: Sequence[Table], catalog_state: CatalogState) -> Plan:
+    def build_plan(self, desired_tables: Sequence[Table], catalog_state: CatalogState) -> TablePlan:
         """Compare desired tables against the current catalog state and produce a plan."""
         create_actions: list[CreateTable] = []
         align_actions: list[AlignTable] = []
@@ -42,19 +45,25 @@ class Planner:
             else:
                 align_actions.append(self._build_align(desired, actual))
 
-        return Plan(create_tables=create_actions, align_tables=align_actions)
+        return TablePlan(create_tables=create_actions, align_tables=align_actions)
 
     # ---------- create ----------
 
     def _build_create(self, desired: Table) -> CreateTable:
+        schema_struct = self._to_struct(desired.columns)
+        table_comment = self._normalize_comment(desired.comment)
+        table_properties = dict(desired.effective_table_properties)
+        column_comments = self._map_column_comments(desired.columns)
+        primary_key = self._desired_pk_definition(desired)
         return CreateTable(
             catalog_name=desired.catalog_name,
             schema_name=desired.schema_name,
             table_name=desired.table_name,
-            schema_struct=self._to_struct(desired.columns),
-            table_comment=self._normalize_comment(desired.comment),
-            table_properties=dict(desired.effective_table_properties),
-            column_comments=self._map_column_comments(desired.columns),
+            schema_struct=schema_struct,
+            table_comment=table_comment,
+            table_properties=table_properties,
+            column_comments=column_comments,
+            primary_key=primary_key,
         )
 
     def _to_struct(self, desired_columns: Sequence[Column]) -> T.StructType:
@@ -82,6 +91,7 @@ class Planner:
         tbl_props = self._compute_table_property_updates(
             desired.effective_table_properties, actual.table_properties
         )
+        drop_pk, add_pk = self._compute_primary_key_changes(desired, actual)
 
         return AlignTable(
             catalog_name=desired.catalog_name,
@@ -93,6 +103,8 @@ class Planner:
             set_column_comments=col_notes,
             set_table_comment=tbl_note,
             set_table_properties=tbl_props,
+            drop_primary_key=drop_pk,
+            add_primary_key=add_pk,
         )
 
     # ----- column add -----
@@ -223,3 +235,42 @@ class Planner:
 
     def _property_differs(self, desired_value: str, actual_value: str | None) -> bool:
         return actual_value != desired_value
+    
+
+        # ----- primary key -----
+
+    def _compute_primary_key_changes(
+        self, desired: Table, actual: TableState
+    ) -> tuple[DropPrimaryKeyAction | None, AddPrimaryKeyAction | None]:
+        desired_def = self._desired_pk_definition(desired)
+        actual_state = actual.primary_key
+
+        if desired_def is None and actual_state is None:
+            return None, None
+
+        if desired_def is None and actual_state is not None:
+            return PrimaryKeyDrop(name=actual_state.name), None
+
+        if desired_def is not None and actual_state is None:
+            return None, PrimaryKeyAdd(definition=desired_def)
+
+        assert desired_def is not None and actual_state is not None
+        # Compare name and columns (order matters)
+        if (desired_def.name != actual_state.name) or (desired_def.columns != actual_state.columns):
+            return PrimaryKeyDrop(name=actual_state.name), PrimaryKeyAdd(definition=desired_def)
+
+        return None, None
+    
+
+    def _desired_pk_definition(self, desired: Table) -> PrimaryKeyDefinition | None:
+        cols = getattr(desired, "primary_key", None)
+        if not cols:
+            return None
+        col_tuple = tuple(cols)
+        name = build_primary_key_name(
+            catalog=desired.catalog_name,
+            schema=desired.schema_name,
+            table=desired.table_name,
+            columns=col_tuple,
+        )
+        return PrimaryKeyDefinition(name=name, columns=col_tuple)

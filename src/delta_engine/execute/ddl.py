@@ -63,3 +63,27 @@ class DeltaDDL:
     def set_table_comment(self, full_name: str, comment: str) -> None:
         """Set a comment on a table."""
         self.spark.sql(f"COMMENT ON TABLE {full_name} IS '{comment or ''}'")
+
+    def add_primary_key(self, full_name: str, constraint_name: str, columns: list[str]) -> None:
+        """
+        ALTER TABLE <full_name> ADD CONSTRAINT <constraint_name> PRIMARY KEY (<cols>)
+        """
+        if not columns:
+            raise ValueError("Primary key requires at least one column.")
+        cols_sql = ", ".join(self._quote_ident(c) for c in columns)
+        sql = (
+            f"ALTER TABLE {self._quote_qualified_name(full_name)} "
+            f"ADD CONSTRAINT {self._quote_ident(constraint_name)} "
+            f"PRIMARY KEY ({cols_sql})"
+        )
+        self.spark.sql(sql)
+
+    def drop_primary_key(self, full_name: str, constraint_name: str) -> None:
+        """
+        ALTER TABLE <full_name> DROP CONSTRAINT <constraint_name>
+        """
+        sql = (
+            f"ALTER TABLE {self._quote_qualified_name(full_name)} "
+            f"DROP CONSTRAINT {self._quote_ident(constraint_name)}"
+        )
+        self.spark.sql(sql)

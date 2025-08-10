@@ -10,12 +10,12 @@ from collections.abc import Sequence
 
 from pyspark.sql import SparkSession
 
-from src.delta_engine.validation.validator import PlanValidator, ConstraintValidator
-from src.delta_engine.compile.planner import Planner
+from src.delta_engine.validation.validator import PlanValidator
+from src.delta_engine.compile.table_planner import TablePlanner
+from src.delta_engine.compile.constraint_planner import ConstraintPlanner
 from src.delta_engine.execute.action_runner import ActionRunner
 from src.delta_engine.models import Table
 from src.delta_engine.state.catalog_reader import CatalogReader
-from src.delta_engine.constraints.planner import ConstraintPlanner
 from src.logger import LOGGER
 
 
@@ -26,9 +26,8 @@ class Orchestrator:
         """Initialize the orchestrator."""
         self.spark = spark
         self.reader = CatalogReader(spark)
-        self.planner = Planner()
+        self.table_planner = TablePlanner()
         self.constraint_planner = ConstraintPlanner()
-        self.constraint_validator = ConstraintValidator()
         self.validator = PlanValidator()
 
         self.runner = ActionRunner(spark)
@@ -46,12 +45,12 @@ class Orchestrator:
         LOGGER.info("Starting orchestration for %d table(s).", len(desired_tables))
 
         catalog_state = self.reader.snapshot(desired_tables)
-        table_plan = self.planner.build_plan(desired_tables=desired_tables, catalog_state=catalog_state)
+        table_plan = self.table_planner.build_plan(desired_tables=desired_tables, catalog_state=catalog_state)
         constraint_plan = self.constraint_planner.build_constraint_plan(state=catalog_state, models=desired_tables)
 
         # Plan validation
-        self.validator.validate(table_plan)
-        self.constraint_validator.validate(table_plan)
+        self.validator.validate_table_plan(table_plan)
+        self.validator.validate_constraint_plan(constraint_plan)
 
         LOGGER.info(
             "Plan generated — creates: %d, aligns: %d",
@@ -60,6 +59,7 @@ class Orchestrator:
         )
 
         # Execute if validation passes
-        self.runner.apply(plan)
+        self.runner.apply_table_plan(table_plan)
+        self.runner.apply_constraint_plan(constraint_plan)
         LOGGER.info("Orchestration completed.")
 

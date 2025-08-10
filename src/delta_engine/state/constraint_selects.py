@@ -1,36 +1,44 @@
-from src.delta_engine.common_tpyes import ThreePartTableName
+from src.delta_engine.common_types import ThreePartTableName
 
 
 def escape(s: str) -> str:
     return s.replace("'", "''")
 
 def select_primary_key_name_for_table(t: ThreePartTableName) -> str:
-    catalog, schema, table = map(escape, t)
+    c, s, n = map(escape, t)
     return f"""
       SELECT constraint_name AS name
       FROM information_schema.table_constraints
-      WHERE constraint_type='PRIMARY KEY'
-        AND table_catalog='{catalog}' AND table_schema='{schema}' AND table_name='{table}'
+      WHERE constraint_type = 'PRIMARY KEY'
+        AND table_catalog = '{c}'
+        AND table_schema  = '{s}'
+        AND table_name    = '{n}'
       LIMIT 1
     """
 
-def select_foreign_key_names_for_source_table(t: ThreePartTableName) -> str:
-    catalog, schema, table = map(escape, t)
-    return f"""
-      SELECT constraint_name AS name
-      FROM information_schema.referential_constraints
-      WHERE table_catalog='{catalog}' AND table_schema='{schema}' AND table_name='{table}'
+def select_primary_key_columns_for_table(three_part: ThreePartTableName) -> str:
     """
+    Return SQL to list PRIMARY KEY columns (with ordinal_position) for a given table.
+    Columns are ordered by their position in the PK.
+    """
+    catalog, schema, table = three_part
+    is_schema = f"{quote_ident(catalog)}.information_schema"
 
-def select_referencing_foreign_keys_for_target_table(t: ThreePartTableName) -> str:
-    catalog, schema, table = map(escape, t)
     return f"""
-      SELECT rc.constraint_name AS name,
-             rc.table_catalog  AS src_catalog,
-             rc.table_schema   AS src_schema,
-             rc.table_name     AS src_table
-      FROM information_schema.referential_constraints rc
-      JOIN information_schema.table_constraints tc
-        ON rc.unique_constraint_name = tc.constraint_name
-      WHERE tc.table_catalog='{catalog}' AND tc.table_schema='{schema}' AND tc.table_name='{table}'
-    """
+SELECT
+  kcu.column_name        AS column_name,
+  kcu.ordinal_position   AS ordinal_position
+FROM information_schema.table_constraints AS tc
+JOIN information_schema.key_column_usage AS kcu
+  ON  tc.constraint_catalog = kcu.constraint_catalog
+  AND tc.constraint_schema  = kcu.constraint_schema
+  AND tc.constraint_name    = kcu.constraint_name
+  AND tc.table_catalog      = kcu.table_catalog
+  AND tc.table_schema       = kcu.table_schema
+  AND tc.table_name         = kcu.table_name
+WHERE tc.table_catalog   = '{escape(catalog)}'
+  AND tc.table_schema    = '{escape(schema)}'
+  AND tc.table_name      = '{escape(table)}'
+  AND tc.constraint_type = 'PRIMARY KEY'
+ORDER BY kcu.ordinal_position
+"""

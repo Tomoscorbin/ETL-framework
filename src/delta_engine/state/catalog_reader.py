@@ -15,14 +15,10 @@ import pyspark.sql.types as T
 from delta.tables import DeltaTable
 from pyspark.sql import SparkSession
 
-from src.delta_engine.common_tpyes import ThreePartTableName
+from src.delta_engine.common_types import ThreePartTableName
 from src.delta_engine.models import Table
-from src.delta_engine.state.snapshot import CatalogState, ColumnState, TableState, ConstraintState
-from src.delta_engine.state.constraint_selects import (
-    select_primary_key_name_for_table,
-    select_foreign_key_names_for_source_table,
-    select_referencing_foreign_keys_for_target_table,
-)
+from src.delta_engine.state.states import CatalogState, ColumnState, TableState, ConstraintsState
+from src.delta_engine.state.constraint_selects import select_primary_key_name_for_table
 
 
 class CatalogReader:
@@ -49,30 +45,29 @@ class CatalogReader:
 
     # ---------- orchestration of a single table ----------
 
-    def _read_table_state(self, model: Table) -> TableState:
-        full_name = f"{model.catalog_name}.{model.schema_name}.{model.table_name}"
-        if not self._exists(full_name):
-            return TableState.empty(model.catalog_name, model.schema_name, model.table_name)
+def _read_table_state(self, model: Table) -> TableState:
+    full_name = f"{model.catalog_name}.{model.schema_name}.{model.table_name}"
+    if not self._exists(full_name):
+        return TableState.empty(model.catalog_name, model.schema_name, model.table_name)
 
-        delta = self._read_table(full_name)
-        columns = self._read_columns(full_name, delta)
-        table_comment = self._read_table_comment(full_name)
-        table_properties = self._read_table_properties(delta)
-        constraints = self._read_constraints_state_for_table(
-            three_part=(model.catalog_name, model.schema_name, model.table_name),
-            table_exists=True,
-        )
+    delta = self._read_table(full_name)
+    columns = self._read_columns(full_name, delta)
+    table_comment = self._read_table_comment(full_name)
+    table_properties = self._read_table_properties(delta)
+    primary_key = self._read_primary_key_state(
+        (model.catalog_name, model.schema_name, model.table_name)
+    )
 
-        return TableState(
-            catalog_name=model.catalog_name,
-            schema_name=model.schema_name,
-            table_name=model.table_name,
-            exists=True,
-            columns=columns,
-            table_comment=table_comment,
-            table_properties=table_properties,
-            constraints=constraints,
-        )
+    return TableState(
+        catalog_name=model.catalog_name,
+        schema_name=model.schema_name,
+        table_name=model.table_name,
+        exists=True,
+        columns=columns,
+        table_comment=table_comment,
+        table_properties=table_properties,
+        primary_key=primary_key,
+    )
 
     # ---------- helpers ----------
 
@@ -145,6 +140,23 @@ class CatalogReader:
             return {}
 
 
+    def _read_primary_key_state(self, three_part: ThreePartTableName) -> PrimaryKeyState | None:
+        name = self._read_primary_key_name_for_table(three_part)
+        if not name:
+            return None
+        cols = self._read_primary_key_columns_for_table(three_part)
+        return PrimaryKeyState(name=name, columns=tuple(cols))
+
+    def _read_primary_key_name_for_table(self, three_part: ThreePartTableName) -> str | None:
+        sql = select_primary_key_name_for_table(three_part)
+        return self._take_first_value(sql, "name")
+
+    def _read_primary_key_columns_for_table(self, three_part: ThreePartTableName) -> list[str]:
+        # You provide this query; it should return rows with an ordinal and column_name.
+        sql = select_primary_key_columns_for_table(three_part)
+        rows = self._run(sql)
+        return [r["column_name"] for r in sorted(rows, key=lambda r: r["ordinal_position"])]
+
     def _run(self, sql: str) -> List[Row]:
         return self.spark.sql(sql).collect()
 
@@ -152,32 +164,3 @@ class CatalogReader:
         rows = self.spark.sql(sql).take(1)
         return rows[0][column] if rows else None
 
-
-    # ---------- constraint helpers ----------
-
-    def _read_constraints_state_for_table(self, three_part: ThreePartTableName) -> TableConstraintsState:
-        pk_name = self._read_primary_key_name_for_table(three_part)
-        fk_names = self._read_foreign_key_names_for_source_table(three_part)
-        ref_fk_pairs = self.referencing_foreign_keys_for_target_table(three_part)
-
-        # Sort deterministically
-        ref_fk_pairs_sorted = tuple(sorted(ref_fk_pairs, key=lambda x: (x[0], x[1])))
-        return TableConstraintsState(
-            primary_key_name=pk_name,
-            foreign_key_names=tuple(sorted(fk_names)),
-            referencing_foreign_keys=ref_fk_pairs_sorted,
-        )
-
-    def _read_primary_key_name_for_table(self, three_part: ThreePartTableName) -> str | None:
-        sql = select_primary_key_name_for_table(three_part)
-        return self._first_value(sql, "name")
-
-    def _read_foreign_key_names_for_source_table(self, three_part: ThreePartTableName) -> set[str]:
-        sql = select_foreign_key_names_for_source_table(three_part)
-        rows = self._run(sql)
-        return {r["name"] for r in rows}
-
-    def referencing_foreign_keys_for_target_table(self, three_part: ThreePartTableName) -> list[tuple[ThreePartTableName, str]]:
-        sql = select_referencing_foreign_keys_for_target_table(three_part)
-        rows = self._run(sql)
-        return [((r["src_catalog"], r["src_schema"], r["src_table"]), r["name"]) for r in rows]

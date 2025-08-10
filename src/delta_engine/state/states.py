@@ -11,11 +11,28 @@ import pyspark.sql.types as T
 
 
 @dataclass(frozen=True)
-class ConstraintsState:
-    """Observed constraint state for a single table."""
-    primary_key_name: str | None = None
-    foreign_key_names: tuple[str, ...] = ()
-    referencing_foreign_keys: tuple[tuple[ThreePartTableName, str], ...] = ()
+class ColumnState:
+    """Observed column state, including schema and metadata."""
+
+    name: str
+    data_type: T.DataType
+    is_nullable: bool
+    comment: str = ""
+
+
+@dataclass(frozen=True)
+class PrimaryKeyState:
+    """Observed PRIMARY KEY on a table."""
+    name: str
+    columns: tuple[str, ...] 
+    
+
+# @dataclass(frozen=True)
+# class ConstraintsState:
+#     """Observed constraint state for a single table."""
+#     primary_key_name: str | None = None
+#     foreign_key_names: tuple[str, ...] = ()
+#     referencing_foreign_keys: tuple[tuple[ThreePartTableName, str], ...] = ()
 
 
 @dataclass(frozen=True)
@@ -29,7 +46,7 @@ class TableState:
     columns: list[ColumnState] = field(default_factory=list)
     table_comment: str = ""
     table_properties: dict[str, str] = field(default_factory=dict)
-    constraints: ConstraintsState = field(default_factory=ConstraintsState)
+    primary_key: PrimaryKeyState | None = None
 
     @property
     def full_name(self) -> str:
@@ -47,7 +64,7 @@ class TableState:
             columns=[],
             table_comment="",
             table_properties={},
-            constraints=TableConstraintsState(),
+            primary_key=None,
         )
 
 

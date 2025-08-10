@@ -2,12 +2,14 @@ from __future__ import annotations
 
 from typing import Iterable, Tuple
 
-from src.delta_engine.table_names import ThreePartTableName
-from src.delta_engine.constraints.types import PrimaryKeySpec, ForeignKeySpec
-from src.delta_engine.constraints.actions import (
+from src.delta_engine.common_types import ThreePartTableName
+from src.delta_engine.constraints.specs import PrimaryKeySpec, ForeignKeySpec
+from src.delta_engine.actions import (
     ConstraintPlan,
-    CreatePrimaryKey, CreateForeignKey,
-    DropPrimaryKey, DropForeignKey,
+    CreatePrimaryKey, 
+    CreateForeignKey,
+    DropPrimaryKey,
+    DropForeignKey,
 )
 
 # ----------------- sort key builders (small + explicit) -----------------

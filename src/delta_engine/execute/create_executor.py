@@ -28,6 +28,7 @@ class CreateExecutor:
           1. Create the table with schema and comment if it does not exist.
           2. Set table properties (e.g., delta.columnMapping.mode).
           3. Apply column comments.
+          4. Add PRIMARY KEY
         """
         full = f"{action.catalog_name}.{action.schema_name}.{action.table_name}"
 
@@ -41,3 +42,12 @@ class CreateExecutor:
         for col, comment in (action.column_comments or {}).items():
             if comment:
                 self.ddl.set_column_comment(full, col, comment)
+
+        # 4) Primary key (if specified)
+        if action.primary_key:
+            self.ddl.add_primary_key(
+                full,
+                action.primary_key.name,
+                list(action.primary_key.columns),
+            )
+

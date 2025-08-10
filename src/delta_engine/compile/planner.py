@@ -28,7 +28,7 @@ from src.delta_engine.state.snapshot import CatalogState, ColumnState, TableStat
 class Planner:
     """Compares desired table definitions with actual state and builds a change plan."""
 
-    def plan(self, desired_tables: Sequence[Table], catalog_state: CatalogState) -> Plan:
+    def build_plan(self, desired_tables: Sequence[Table], catalog_state: CatalogState) -> Plan:
         """Compare desired tables against the current catalog state and produce a plan."""
         create_actions: list[CreateTable] = []
         align_actions: list[AlignTable] = []

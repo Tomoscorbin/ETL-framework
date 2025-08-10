@@ -10,11 +10,12 @@ from collections.abc import Sequence
 
 from pyspark.sql import SparkSession
 
-from src.delta_engine.validation.validator import PlanValidator
+from src.delta_engine.validation.validator import PlanValidator, ConstraintValidator
 from src.delta_engine.compile.planner import Planner
 from src.delta_engine.execute.action_runner import ActionRunner
 from src.delta_engine.models import Table
 from src.delta_engine.state.catalog_reader import CatalogReader
+from src.delta_engine.constraints.planner import ConstraintPlanner
 from src.logger import LOGGER
 
 
@@ -26,7 +27,10 @@ class Orchestrator:
         self.spark = spark
         self.reader = CatalogReader(spark)
         self.planner = Planner()
+        self.constraint_planner = ConstraintPlanner()
+        self.constraint_validator = ConstraintValidator()
         self.validator = PlanValidator()
+
         self.runner = ActionRunner(spark)
 
     def sync_tables(self, desired_tables: Sequence[Table]) -> None:
@@ -42,16 +46,20 @@ class Orchestrator:
         LOGGER.info("Starting orchestration for %d table(s).", len(desired_tables))
 
         catalog_state = self.reader.snapshot(desired_tables)
-        plan = self.planner.plan(desired_tables=desired_tables, catalog_state=catalog_state)
-        LOGGER.info(
-            "Plan generated — creates: %d, aligns: %d",
-            len(plan.create_tables),
-            len(plan.align_tables),
-        )
+        table_plan = self.planner.build_plan(desired_tables=desired_tables, catalog_state=catalog_state)
+        constraint_plan = self.constraint_planner.build_constraint_plan(state=catalog_state, models=desired_tables)
 
         # Plan validation
-        self.validator.validate(plan)
+        self.validator.validate(table_plan)
+        self.constraint_validator.validate(table_plan)
+
+        LOGGER.info(
+            "Plan generated — creates: %d, aligns: %d",
+            len(table_plan.create_tables),
+            len(table_plan.align_tables),
+        )
 
         # Execute if validation passes
         self.runner.apply(plan)
         LOGGER.info("Orchestration completed.")
+

@@ -12,6 +12,7 @@ from dataclasses import dataclass, field
 
 import pyspark.sql.types as T
 
+from src.delta_engine.common_types import ThreePartTableName
 
 # ---------- Table Operations ----------
 
@@ -103,18 +104,30 @@ class AlignTable:
 @dataclass(frozen=True)
 class CreatePrimaryKey:
     """Add a PRIMARY KEY constraint to a table."""
-    three_part_table_name: tuple[str, str, str]
+    three_part_table_name: ThreePartTableName
     name: str
     columns: tuple[str, ...]
 
 @dataclass(frozen=True)
 class CreateForeignKey:
     """Add a FOREIGN KEY constraint from source to target table."""
-    source_three_part_table_name: tuple[str, str, str]
+    source_three_part_table_name: ThreePartTableName
     name: str
     source_columns: tuple[str, ...]
-    target_three_part_table_name: tuple[str, str, str]
+    target_three_part_table_name: ThreePartTableName
     target_columns: tuple[str, ...]
+
+@dataclass(frozen=True)
+class DropPrimaryKey:
+    """Drop the PRIMARY KEY constraint from a table by name."""
+    three_part_table_name: ThreePartTableName
+    name: str
+
+@dataclass(frozen=True)
+class DropForeignKey:
+    """Drop a FOREIGN KEY constraint from the source table by name."""
+    source_three_part_table_name: ThreePartTableName
+    name: str
 
 
 # ---------- Plans ----------

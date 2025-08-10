@@ -4,20 +4,18 @@ dataclasses for describing observed column, table, and catalog state.
 """
 
 from __future__ import annotations
-
 from dataclasses import dataclass, field
+from typing import  FrozenSet, Self
 
 import pyspark.sql.types as T
 
 
 @dataclass(frozen=True)
-class ColumnState:
-    """Observed column state, including schema and metadata."""
-
-    name: str
-    data_type: T.DataType
-    is_nullable: bool
-    comment: str = ""
+class ConstraintsState:
+    """Observed constraint state for a single table."""
+    primary_key_name: str | None = None
+    foreign_key_names: tuple[str, ...] = ()
+    referencing_foreign_keys: tuple[tuple[ThreePartTableName, str], ...] = ()
 
 
 @dataclass(frozen=True)
@@ -31,11 +29,26 @@ class TableState:
     columns: list[ColumnState] = field(default_factory=list)
     table_comment: str = ""
     table_properties: dict[str, str] = field(default_factory=dict)
+    constraints: ConstraintsState = field(default_factory=ConstraintsState)
 
     @property
     def full_name(self) -> str:
         """Return the fully qualified table name (catalog.schema.table)."""
         return f"{self.catalog_name}.{self.schema_name}.{self.table_name}"
+
+    @classmethod
+    def empty(cls, catalog_name: str, schema_name: str, table_name: str) -> Self:
+        """Factory for a non-existent table snapshot."""
+        return cls(
+            catalog_name=catalog_name,
+            schema_name=schema_name,
+            table_name=table_name,
+            exists=False,
+            columns=[],
+            table_comment="",
+            table_properties={},
+            constraints=TableConstraintsState(),
+        )
 
 
 @dataclass(frozen=True)

@@ -37,13 +37,6 @@ class DeltaTableProperty(StrEnum):
     COLUMN_MAPPING_MODE = "delta.columnMapping.mode"
 
 
-class DQFailureSeverity(StrEnum):
-    """Failure severity for DQX."""
-
-    ERROR = "error"
-    WARNING = "warning"
-
-
 class ResultState(StrEnum):
     """Databricks job run result state."""
 

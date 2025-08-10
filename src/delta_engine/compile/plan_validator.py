@@ -6,7 +6,7 @@ from .validation_rules import ValidationRule, NoAddNotNullColumnsRule
 @dataclass
 class PlanValidator:
     rules: ClassVar[list[ValidationRule]] = [
-        NoAddNotNullColumnsRule,
+        NoAddNotNullColumnsRule(),
     ]
 
     def validate(self, plan: Plan) -> None:

@@ -1,5 +1,9 @@
 from src.delta_engine.actions import Plan
 
+
+class UnsafePlanError(Exception):
+    """Plan violates safety rules."""
+
 class ValidationRule:
     """Base interface for a plan validation rule."""
     def check(self, plan: Plan) -> None:
@@ -19,6 +23,3 @@ class NoAddNotNullColumnsRule(ValidationRule):
                         f"Unsafe plan: ADD NOT NULL column `{add.name}` on {full_name}. "
                         "Add as NULLABLE first, backfill in ETL, then tighten nullability later."
                     )
-
-class UnsafePlanError(Exception):
-    """Plan violates safety rules."""

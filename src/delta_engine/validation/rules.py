@@ -90,7 +90,7 @@ class NoAddNotNullColumns(PlanRule):
                     )
 
 
-class PrimaryKeyColumnsNotNull(PlanRule):
+class CreatePrimaryKeyColumnsNotNull(PlanRule):
     """
     Ensures CREATE TABLE primary key columns exist and are NOT NULL in the create schema.
 

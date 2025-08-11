@@ -10,7 +10,7 @@ from src.delta_engine.validation.rules import (
     PrimaryKeyColumnsNotNull,
     PrimaryKeyNewColumnsMustBeSetNotNull,
     DuplicateColumnNames,
-    PrimaryKeyColumnsNotNull,
+    CreatePrimaryKeyColumnsNotNull,
     ModelRule,
     PlanRule,
 )
@@ -26,7 +26,7 @@ class PlanValidator:
 
     PLAN_RULES: ClassVar[list[PlanRule]] = [
         NoAddNotNullColumns(),
-        PrimaryKeyColumnsNotNull(),
+        CreatePrimaryKeyColumnsNotNull(),
         PrimaryKeyAddMustNotMakeColumnsNullable(),
         PrimaryKeyNewColumnsMustBeSetNotNull(),
     ]

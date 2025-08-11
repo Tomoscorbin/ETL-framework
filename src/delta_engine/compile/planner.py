@@ -135,7 +135,7 @@ class TablePlanner:
         return ColumnAdd(
             name=desired.name,
             data_type=desired.data_type,
-            is_nullable=desired.is_nullable,
+            is_nullable=True,  # force nullable on ADD
             comment=self._normalize_comment(desired.comment),
         )
 

@@ -94,6 +94,16 @@ class TablePlanner:
         )
         drop_pk, add_pk = self._compute_primary_key_changes(desired, actual)
 
+        if add_pk:
+            # Tighten every PK column unless already explicitly make_nullable=False
+            planned = {c.name.lower(): c for c in nullables}
+            for col in add_pk.definition.columns:
+                key = col.lower()
+                if planned.get(key) is None or planned[key].make_nullable is not False:
+                    nullables.append(
+                        ColumnNullabilityChange(name=col, make_nullable=False)
+                    )
+
         return AlignTable(
             catalog_name=desired.catalog_name,
             schema_name=desired.schema_name,
@@ -173,13 +183,17 @@ class TablePlanner:
         for desired in desired_columns:
             actual = actual_by_name.get(desired.name)
             if actual is None:
-                continue
-            if self._nullability_differs(desired.is_nullable, actual.is_nullable):
-                changes.append(
-                    ColumnNullabilityChange(
-                        name=desired.name,
-                        make_nullable=desired.is_nullable,
+                # New column: we add as NULLABLE; if model wants NOT NULL, tighten now.
+                if desired.is_nullable is False:
+                    changes.append(
+                        ColumnNullabilityChange(name=desired.name, make_nullable=False)
                     )
+                continue
+
+            # Existing column: emit change when desired != actual
+            if desired.is_nullable != actual.is_nullable:
+                changes.append(
+                    ColumnNullabilityChange(name=desired.name, make_nullable=desired.is_nullable)
                 )
 
         return changes

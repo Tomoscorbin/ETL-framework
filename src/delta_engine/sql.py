@@ -1,16 +1,20 @@
 from __future__ import annotations
+
 from collections.abc import Iterable, Mapping
-from typing import Optional
+
 import pyspark.sql.types as T
 
-from src.delta_engine.models.utils import (
-    quote_ident,
-    quote_qualified_name_from_full,
+from src.delta_engine.types import ThreePartTableName
+from src.delta_engine.utils import (
+    escape,
     escape_sql_literal,
     format_tblproperties,
+    quote_ident,
+    quote_qualified_name_from_full,
 )
 
-def sql_set_table_properties(full_name: str, props: Mapping[str, str]) -> Optional[str]:
+
+def sql_set_table_properties(full_name: str, props: Mapping[str, str]) -> str | None:
     """ALTER TABLE ... SET TBLPROPERTIES (...). Returns None if no props."""
     if not props:
         return None
@@ -18,6 +22,7 @@ def sql_set_table_properties(full_name: str, props: Mapping[str, str]) -> Option
         f"ALTER TABLE {quote_qualified_name_from_full(full_name)} "
         f"SET TBLPROPERTIES ({format_tblproperties(props)})"
     )
+
 
 def sql_add_column(full_name: str, name: str, dtype: T.DataType, comment: str = "") -> str:
     """ALTER TABLE ... ADD COLUMNS (`col` type [COMMENT '...'])."""
@@ -27,12 +32,16 @@ def sql_add_column(full_name: str, name: str, dtype: T.DataType, comment: str = 
     comment_sql = f" COMMENT '{escape_sql_literal(comment)}'" if comment else ""
     return f"ALTER TABLE {full} ADD COLUMNS ({col} {dt}{comment_sql})"
 
-def sql_drop_columns(full_name: str, names: Iterable[str]) -> Optional[str]:
+
+def sql_drop_columns(full_name: str, names: Iterable[str]) -> str | None:
     """ALTER TABLE ... DROP COLUMNS (...). Returns None if no names."""
     cols = [quote_ident(n) for n in names]
     if not cols:
         return None
-    return f"ALTER TABLE {quote_qualified_name_from_full(full_name)} DROP COLUMNS ({', '.join(cols)})"
+    return (
+        f"ALTER TABLE {quote_qualified_name_from_full(full_name)} DROP COLUMNS ({', '.join(cols)})"
+    )
+
 
 def sql_set_column_nullability(full_name: str, name: str, make_nullable: bool) -> str:
     """ALTER TABLE ... ALTER COLUMN `col` DROP/SET NOT NULL."""
@@ -42,6 +51,7 @@ def sql_set_column_nullability(full_name: str, name: str, make_nullable: bool) -
         f"ALTER COLUMN {quote_ident(name)} {op}"
     )
 
+
 def sql_set_column_comment(full_name: str, name: str, comment: str) -> str:
     """COMMENT ON COLUMN ..."""
     return (
@@ -49,12 +59,14 @@ def sql_set_column_comment(full_name: str, name: str, comment: str) -> str:
         f"{quote_ident(name)} IS '{escape_sql_literal(comment or '')}'"
     )
 
+
 def sql_set_table_comment(full_name: str, comment: str) -> str:
     """COMMENT ON TABLE ..."""
     return (
         f"COMMENT ON TABLE {quote_qualified_name_from_full(full_name)} "
         f"IS '{escape_sql_literal(comment or '')}'"
     )
+
 
 def sql_add_primary_key(full_name: str, constraint_name: str, columns: Iterable[str]) -> str:
     """ALTER TABLE ... ADD CONSTRAINT ... PRIMARY KEY (...)."""
@@ -66,13 +78,13 @@ def sql_add_primary_key(full_name: str, constraint_name: str, columns: Iterable[
         f"ADD CONSTRAINT {quote_ident(constraint_name)} PRIMARY KEY ({', '.join(cols)})"
     )
 
+
 def sql_drop_primary_key(full_name: str, constraint_name: str) -> str:
     """ALTER TABLE ... DROP CONSTRAINT ..."""
     return (
         f"ALTER TABLE {quote_qualified_name_from_full(full_name)} "
         f"DROP CONSTRAINT {quote_ident(constraint_name)}"
     )
-
 
 
 def sql_select_primary_key_name_for_table(t: ThreePartTableName) -> str:

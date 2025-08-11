@@ -11,7 +11,7 @@ from collections.abc import Sequence
 from typing import Protocol
 
 from src.delta_engine.models import Table
-from src.delta_engine.state.snapshot import CatalogState
+from src.delta_engine.state.states import CatalogState
 
 
 class UnityCatalogReader(Protocol):

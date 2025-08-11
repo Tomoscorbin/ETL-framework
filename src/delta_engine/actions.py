@@ -117,9 +117,9 @@ class AlignTable:
     table_name: str
 
     # Column edits
-    add_columns: tuple[ColumnAdd, ...] = field(default_factory=tuple)
-    drop_columns: tuple[ColumnDrop, ...] = field(default_factory=tuple)
-    change_nullability: tuple[ColumnNullabilityChange, ...] = field(default_factory=tuple)
+    add_columns: list[ColumnAdd] = field(default_factory=list)
+    drop_columns: list[ColumnDrop] = field(default_factory=list)
+    change_nullability: list[ColumnNullabilityChange] = field(default_factory=list)
 
     # Metadata
     set_column_comments: SetColumnComments | None = None
@@ -142,5 +142,5 @@ class TablePlan:
     Contains CREATE TABLE operations and ALTER TABLE alignment operations.
     """
 
-    create_tables: tuple[CreateTable, ...]
-    align_tables: tuple[AlignTable, ...]
+    create_tables: list[CreateTable]
+    align_tables: list[AlignTable]

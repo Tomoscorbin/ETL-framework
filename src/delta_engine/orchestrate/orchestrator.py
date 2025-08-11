@@ -10,7 +10,7 @@ from collections.abc import Sequence
 
 from pyspark.sql import SparkSession
 
-from src.delta_engine.compile.table_planner import TablePlanner
+from src.delta_engine.compile.planner import TablePlanner
 from src.delta_engine.execute.action_runner import ActionRunner
 from src.delta_engine.models import Table
 from src.delta_engine.state.catalog_reader import CatalogReader

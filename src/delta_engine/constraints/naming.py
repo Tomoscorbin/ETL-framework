@@ -29,11 +29,8 @@ def _truncate_with_hash(base: str, max_len: int = MAX_IDENTIFIER_LEN) -> str:
     return f"{base[:keep]}_{h}"
 
 
-def build_primary_key_name(
-    three_part_table_name: tuple[str, str, str], columns: Iterable[str]
-) -> str:
+def build_primary_key_name(catalog: str, schema: str, table: str, columns: Iterable[str]) -> str:
     """Deterministic PK name."""
-    catalog, schema, table = three_part_table_name
     cols = "_".join(columns)
     base = f"pk_{catalog}_{schema}_{table}__{cols}"
     return _truncate_with_hash(base)

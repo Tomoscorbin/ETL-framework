@@ -8,7 +8,6 @@ import pyspark.sql.types as T
 from delta.tables import DeltaTable
 from pyspark.sql import Row, SparkSession
 
-from src.delta_engine.common_types import ThreePartTableName
 from src.delta_engine.models import Table
 from src.delta_engine.state.constraint_selects import (
     select_primary_key_columns_for_table,
@@ -20,6 +19,7 @@ from src.delta_engine.state.states import (
     PrimaryKeyState,
     TableState,
 )
+from src.delta_engine.types import ThreePartTableName
 
 
 class CatalogReader:

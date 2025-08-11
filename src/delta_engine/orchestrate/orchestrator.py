@@ -50,8 +50,9 @@ class Orchestrator:
         )
         return table_plan
 
-    def _validate(self, table_plan: TablePlan) -> None:
-        self.validator.validate_table_plan(table_plan)
+    def _validate(self, desired_tables: Sequence[Table], table_plan: TablePlan) -> None:
+        self.validator.validate_models(desired_tables)
+        self.validator.validate_plan(table_plan)
 
     def _execute(self, table_plan: TablePlan) -> None:
         self.runner.apply_table_plan(table_plan)
@@ -69,6 +70,6 @@ class Orchestrator:
         LOGGER.info("Starting orchestration for %d table(s).", len(desired_tables))
         catalog_state = self._get_snapshot(desired_tables)
         table_plan = self._compile(desired_tables, catalog_state)
-        self._validate(table_plan)
+        self._validate(desired_tables, table_plan)
         self._execute(table_plan)
         LOGGER.info("Orchestration completed.")

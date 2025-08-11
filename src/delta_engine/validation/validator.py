@@ -36,7 +36,7 @@ class PlanValidator:
         for rule in self.MODEL_RULES:
             rule.check(models)
 
-    def validate_table_plan(self, plan: TablePlan) -> None:
+    def validate_plan(self, plan: TablePlan) -> None:
         """Run all plan rules against the compiled TablePlan."""
         for rule in self.PLAN_RULES:
             rule.check(plan)

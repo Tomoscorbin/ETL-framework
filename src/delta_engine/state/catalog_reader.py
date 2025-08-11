@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from typing import List, Optional
 from collections.abc import Sequence
 
 import pyspark.sql.types as T
@@ -42,9 +41,7 @@ class CatalogReader:
     def _read_table_state(self, model: Table) -> TableState:
         full_name = f"{model.catalog_name}.{model.schema_name}.{model.table_name}"
         if not self._exists(full_name):
-            return TableState.empty(
-                model.catalog_name, model.schema_name, model.table_name
-            )
+            return TableState.empty(model.catalog_name, model.schema_name, model.table_name)
 
         delta = self._read_table(full_name)
         columns = self._read_columns(full_name, delta)
@@ -75,7 +72,7 @@ class CatalogReader:
     def _read_table(self, full_name: str) -> DeltaTable:
         return DeltaTable.forName(self.spark, full_name)
 
-    def _read_columns(self, full_name: str, delta: DeltaTable) -> List[ColumnState]:
+    def _read_columns(self, full_name: str, delta: DeltaTable) -> list[ColumnState]:
         struct: T.StructType = delta.toDF().schema
         comments = self._read_column_comments(full_name)
         return self._merge_struct_and_comments(struct, comments)
@@ -131,32 +128,25 @@ class CatalogReader:
         except Exception:
             return {}
 
-    def _read_primary_key_state(
-        self, three_part: ThreePartTableName
-    ) -> PrimaryKeyState | None:
+    def _read_primary_key_state(self, three_part: ThreePartTableName) -> PrimaryKeyState | None:
         name = self._read_primary_key_name_for_table(three_part)
         if not name:
             return None
         cols = self._read_primary_key_columns_for_table(three_part)
         return PrimaryKeyState(name=name, columns=tuple(cols))
 
-    def _read_primary_key_name_for_table(
-        self, three_part: ThreePartTableName
-    ) -> str | None:
+    def _read_primary_key_name_for_table(self, three_part: ThreePartTableName) -> str | None:
         sql = select_primary_key_name_for_table(three_part)
         return self._take_first_value(sql, "name")
 
-    def _read_primary_key_columns_for_table(
-        self, three_part: ThreePartTableName
-    ) -> list[str]:
+    def _read_primary_key_columns_for_table(self, three_part: ThreePartTableName) -> list[str]:
         sql = select_primary_key_columns_for_table(three_part)
         rows = self._run(sql)
         return [r["column_name"] for r in sorted(rows, key=lambda r: r["ordinal_position"])]
 
-    def _run(self, sql: str) -> List[Row]:
+    def _run(self, sql: str) -> list[Row]:
         return self.spark.sql(sql).collect()
 
-    def _take_first_value(self, sql: str, column: str) -> Optional[str]:
+    def _take_first_value(self, sql: str, column: str) -> str | None:
         rows = self.spark.sql(sql).take(1)
         return rows[0][column] if rows else None
-

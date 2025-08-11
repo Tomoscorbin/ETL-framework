@@ -4,8 +4,9 @@ dataclasses for describing observed column, table, and catalog state.
 """
 
 from __future__ import annotations
+
 from dataclasses import dataclass, field
-from typing import  FrozenSet, Self
+from typing import Self
 
 import pyspark.sql.types as T
 
@@ -23,16 +24,9 @@ class ColumnState:
 @dataclass(frozen=True)
 class PrimaryKeyState:
     """Observed PRIMARY KEY on a table."""
-    name: str
-    columns: tuple[str, ...] 
-    
 
-# @dataclass(frozen=True)
-# class ConstraintsState:
-#     """Observed constraint state for a single table."""
-#     primary_key_name: str | None = None
-#     foreign_key_names: tuple[str, ...] = ()
-#     referencing_foreign_keys: tuple[tuple[ThreePartTableName, str], ...] = ()
+    name: str
+    columns: tuple[str, ...]
 
 
 @dataclass(frozen=True)

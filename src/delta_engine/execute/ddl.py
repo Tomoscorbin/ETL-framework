@@ -1,22 +1,26 @@
-"""
-Low-level Delta Lake DDL operations.
-
-This module defines `DeltaDDL`, a helper for executing CREATE and ALTER
-statements against Delta tables in Unity Catalog. It provides a thin layer
-over Spark SQL and the Delta API for schema and metadata changes.
-"""
+from __future__ import annotations
 
 from collections.abc import Iterable, Mapping
 
 import pyspark.sql.types as T
 from pyspark.sql import SparkSession
 
+from src.delta_engine.sql import (
+    sql_set_table_properties,
+    sql_add_column,
+    sql_drop_columns,
+    sql_set_column_nullability,
+    sql_set_column_comment,
+    sql_set_table_comment,
+    sql_add_primary_key,
+    sql_drop_primary_key
+)
+
 
 class DeltaDDL:
-    """Executes low-level CREATE and ALTER DDL statements for Delta tables."""
+    """Executes low-level CREATE/ALTER statements for Delta tables."""
 
     def __init__(self, spark: SparkSession) -> None:
-        """Initialize the DDL helper."""
         self.spark = spark
 
     def create_table_if_not_exists(
@@ -35,55 +39,40 @@ class DeltaDDL:
 
     def set_table_properties(self, full_name: str, props: Mapping[str, str]) -> None:
         """Set table properties."""
-        if not props:
-            return
-        assignments = ", ".join([f"'{k}' = '{v}'" for k, v in props.items()])
-        self.spark.sql(f"ALTER TABLE {full_name} SET TBLPROPERTIES ({assignments})")
+        for sql in sql_set_table_properties(full_name, props):
+            self.spark.sql(sql)
 
     def add_column(self, full_name: str, name: str, dtype: T.DataType, comment: str = "") -> None:
-        """Add a column to a table."""
-        dtype_sql = dtype.simpleString()
-        comment_sql = f" COMMENT '{comment}'" if comment else ""
-        self.spark.sql(f"ALTER TABLE {full_name} ADD COLUMNS ({name} {dtype_sql}{comment_sql})")
+        """Add a column to a table (and apply comment if provided)."""
+        for sql in sql_add_column(full_name, name, dtype, comment):
+            self.spark.sql(sql)
 
     def drop_columns(self, full_name: str, names: Iterable[str]) -> None:
         """Drop columns from a table."""
-        cols = ", ".join(names)
-        self.spark.sql(f"ALTER TABLE {full_name} DROP COLUMNS ({cols})")
+        for sql in sql_drop_columns(full_name, names):
+            self.spark.sql(sql)
 
     def set_column_nullability(self, full_name: str, name: str, make_nullable: bool) -> None:
         """Change column nullability."""
-        op = "DROP NOT NULL" if make_nullable else "SET NOT NULL"
-        self.spark.sql(f"ALTER TABLE {full_name} ALTER COLUMN {name} {op}")
+        for sql in sql_set_column_nullability(full_name, name, make_nullable):
+            self.spark.sql(sql)
 
     def set_column_comment(self, full_name: str, name: str, comment: str) -> None:
         """Set a comment on a column."""
-        self.spark.sql(f"ALTER TABLE {full_name} CHANGE COLUMN {name} COMMENT '{comment or ''}'")
+        for sql in sql_set_column_comment(full_name, name, comment):
+            self.spark.sql(sql)
 
     def set_table_comment(self, full_name: str, comment: str) -> None:
         """Set a comment on a table."""
-        self.spark.sql(f"COMMENT ON TABLE {full_name} IS '{comment or ''}'")
+        for sql in sql_set_table_comment(full_name, comment):
+            self.spark.sql(sql)
 
     def add_primary_key(self, full_name: str, constraint_name: str, columns: list[str]) -> None:
-        """
-        ALTER TABLE <full_name> ADD CONSTRAINT <constraint_name> PRIMARY KEY (<cols>)
-        """
-        if not columns:
-            raise ValueError("Primary key requires at least one column.")
-        cols_sql = ", ".join(self._quote_ident(c) for c in columns)
-        sql = (
-            f"ALTER TABLE {self._quote_qualified_name(full_name)} "
-            f"ADD CONSTRAINT {self._quote_ident(constraint_name)} "
-            f"PRIMARY KEY ({cols_sql})"
-        )
-        self.spark.sql(sql)
+        """Add a PRIMARY KEY constraint."""
+        for sql in sql_add_primary_key(full_name, constraint_name, columns):
+            self.spark.sql(sql)
 
     def drop_primary_key(self, full_name: str, constraint_name: str) -> None:
-        """
-        ALTER TABLE <full_name> DROP CONSTRAINT <constraint_name>
-        """
-        sql = (
-            f"ALTER TABLE {self._quote_qualified_name(full_name)} "
-            f"DROP CONSTRAINT {self._quote_ident(constraint_name)}"
-        )
-        self.spark.sql(sql)
+        """Drop a PRIMARY KEY constraint."""
+        for sql in sql_drop_primary_key(full_name, constraint_name):
+            self.spark.sql(sql)

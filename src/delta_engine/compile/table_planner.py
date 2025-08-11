@@ -6,7 +6,7 @@ the current catalog state and produces a `TablePlan` of `CreateTable` and
 `AlignTable` actions to bring the catalog into alignment.
 """
 
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 
 import pyspark.sql.types as T
 
@@ -16,14 +16,15 @@ from src.delta_engine.actions import (
     ColumnDrop,
     ColumnNullabilityChange,
     CreateTable,
-    TablePlan,
+    PrimaryKeyAdd,
+    PrimaryKeyDefinition,
+    PrimaryKeyDrop,
     SetColumnComments,
     SetTableComment,
     SetTableProperties,
-    PrimaryKeyDefinition,
-    PrimaryKeyAdd,
-    PrimaryKeyDrop,
+    TablePlan,
 )
+from src.delta_engine.constraints.naming import build_primary_key_name
 from src.delta_engine.models import Column, Table
 from src.delta_engine.state.states import CatalogState, ColumnState, TableState
 
@@ -97,8 +98,8 @@ class TablePlanner:
             catalog_name=desired.catalog_name,
             schema_name=desired.schema_name,
             table_name=desired.table_name,
-            add_columns=additions,
-            drop_columns=drops,
+            add_columns=tuple(additions),
+            drop_columns=tuple(drops),
             change_nullability=nullables,
             set_column_comments=col_notes,
             set_table_comment=tbl_note,
@@ -222,7 +223,7 @@ class TablePlanner:
     # ----- properties -----
 
     def _compute_table_property_updates(
-        self, desired_properties: dict[str, str], actual_properties: dict[str, str]
+        self, desired_properties: Mapping[str, str], actual_properties: Mapping[str, str]
     ) -> SetTableProperties | None:
         to_set: dict[str, str] = {}
 
@@ -235,7 +236,6 @@ class TablePlanner:
 
     def _property_differs(self, desired_value: str, actual_value: str | None) -> bool:
         return actual_value != desired_value
-    
 
         # ----- primary key -----
 
@@ -254,13 +254,10 @@ class TablePlanner:
         if desired_def is not None and actual_state is None:
             return None, PrimaryKeyAdd(definition=desired_def)
 
-        assert desired_def is not None and actual_state is not None
-        # Compare name and columns (order matters)
         if (desired_def.name != actual_state.name) or (desired_def.columns != actual_state.columns):
             return PrimaryKeyDrop(name=actual_state.name), PrimaryKeyAdd(definition=desired_def)
 
         return None, None
-    
 
     def _desired_pk_definition(self, desired: Table) -> PrimaryKeyDefinition | None:
         cols = getattr(desired, "primary_key", None)

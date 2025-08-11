@@ -12,17 +12,19 @@ from dataclasses import dataclass, field
 
 import pyspark.sql.types as T
 
-
 # ---------- Common payloads ----------
+
 
 @dataclass(frozen=True)
 class PrimaryKeyDefinition:
     """Definition of a PRIMARY KEY (used within actions)."""
+
     name: str
     columns: tuple[str, ...]  # ordered
 
 
 # ---------- Table Operations ----------
+
 
 @dataclass(frozen=True)
 class ColumnAdd:
@@ -78,18 +80,21 @@ class SetTableProperties:
 @dataclass(frozen=True)
 class PrimaryKeyAdd:
     """ADD PRIMARY KEY constraint on a table."""
+
     definition: PrimaryKeyDefinition
 
 
 @dataclass(frozen=True)
 class PrimaryKeyDrop:
     """DROP PRIMARY KEY constraint from a table."""
+
     name: str
 
 
 @dataclass(frozen=True)
 class CreateTable:
     """CREATE TABLE with schema, metadata, and optional PRIMARY KEY."""
+
     catalog_name: str
     schema_name: str
     table_name: str
@@ -97,7 +102,7 @@ class CreateTable:
     table_comment: str
     table_properties: Mapping[str, str]
     column_comments: Mapping[str, str]
-    primary_key: PrimaryKeyDefinition | None = None 
+    primary_key: PrimaryKeyDefinition | None = None
 
 
 @dataclass(frozen=True)
@@ -106,6 +111,7 @@ class AlignTable:
     ALTER TABLE to align an existing table to the desired state.
     Includes column edits, metadata tweaks, and PK add/drop for this table.
     """
+
     catalog_name: str
     schema_name: str
     table_name: str
@@ -126,6 +132,7 @@ class AlignTable:
 
 
 # ---------- Plans ----------
+
 
 @dataclass(frozen=True)
 class TablePlan:

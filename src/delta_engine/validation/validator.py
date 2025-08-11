@@ -1,18 +1,20 @@
 from __future__ import annotations
-from typing import ClassVar, Iterable
+
+from typing import ClassVar
 
 from src.delta_engine.actions import TablePlan
 from src.delta_engine.validation.rules import (
     NoAddNotNullColumns,
-    NoDuplicateCreateTableColumnNames,
     NoDuplicateAddColumnNamesPerTable,
-    PrimaryKeyColumnsNotNull,
+    NoDuplicateCreateTableColumnNames,
     PrimaryKeyAddMustNotMakeColumnsNullable,
+    PrimaryKeyColumnsNotNull,
     PrimaryKeyNewColumnsMustBeSetNotNull,
 )
 
+
 class PlanValidator:
-    """Validates a TablePlan using dedicated rules."""
+    """Validates a `TablePlan` by running a fixed set of validation rules."""
 
     TABLE_RULES: ClassVar[tuple] = (
         NoAddNotNullColumns(),
@@ -24,9 +26,6 @@ class PlanValidator:
     )
 
     def validate_table_plan(self, plan: TablePlan) -> None:
-        self._run_rules(plan, self.TABLE_RULES)
-
-    @staticmethod
-    def _run_rules(plan: TablePlan, rules: Iterable) -> None:
-        for rule in rules:
+        """Run all table-plan rules against `plan`, raising on the first violation."""
+        for rule in self.TABLE_RULES:
             rule.check(plan)

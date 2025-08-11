@@ -21,13 +21,6 @@ class Column:
 
 
 @dataclass(frozen=True)
-class ForeignKey:
-    source_columns: tuple[str, ...]
-    target_table: tuple[str, str, str]
-    target_columns: tuple[str, ...]
-
-
-@dataclass(frozen=True)
 class Table:
     """Declarative Delta table definition."""
 
@@ -42,7 +35,6 @@ class Table:
     comment: str = ""
     table_properties: dict[str, str] = field(default_factory=dict)
     primary_key: tuple[str, ...] | None = None
-    foreign_keys: tuple[ForeignKey, ...] = field(default_factory=tuple)
 
     @property
     def full_name(self) -> str:

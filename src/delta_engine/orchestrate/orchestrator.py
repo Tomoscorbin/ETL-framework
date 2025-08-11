@@ -10,11 +10,11 @@ from collections.abc import Sequence
 
 from pyspark.sql import SparkSession
 
-from src.delta_engine.validation.validator import PlanValidator
 from src.delta_engine.compile.table_planner import TablePlanner
 from src.delta_engine.execute.action_runner import ActionRunner
 from src.delta_engine.models import Table
 from src.delta_engine.state.catalog_reader import CatalogReader
+from src.delta_engine.validation.validator import PlanValidator
 from src.logger import LOGGER
 
 
@@ -58,4 +58,3 @@ class Orchestrator:
         # Execute if validation passes
         self.runner.apply_table_plan(table_plan)
         LOGGER.info("Orchestration completed.")
-

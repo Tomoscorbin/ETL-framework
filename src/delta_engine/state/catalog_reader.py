@@ -9,9 +9,9 @@ from delta.tables import DeltaTable
 from pyspark.sql import Row, SparkSession
 
 from src.delta_engine.models import Table
-from src.delta_engine.state.constraint_selects import (
-    select_primary_key_columns_for_table,
-    select_primary_key_name_for_table,
+from src.delta_engine.sql import (
+    sql_select_primary_key_columns_for_table,
+    sql_select_primary_key_name_for_table,
 )
 from src.delta_engine.state.states import (
     CatalogState,
@@ -136,11 +136,11 @@ class CatalogReader:
         return PrimaryKeyState(name=name, columns=tuple(cols))
 
     def _read_primary_key_name_for_table(self, three_part: ThreePartTableName) -> str | None:
-        sql = select_primary_key_name_for_table(three_part)
+        sql = sql_select_primary_key_name_for_table(three_part)
         return self._take_first_value(sql, "name")
 
     def _read_primary_key_columns_for_table(self, three_part: ThreePartTableName) -> list[str]:
-        sql = select_primary_key_columns_for_table(three_part)
+        sql = sql_select_primary_key_columns_for_table(three_part)
         rows = self._run(sql)
         return [r["column_name"] for r in sorted(rows, key=lambda r: r["ordinal_position"])]
 

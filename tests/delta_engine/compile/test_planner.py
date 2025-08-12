@@ -9,6 +9,7 @@ from src.delta_engine.actions import (
     ColumnNullabilityChange,
     CreateTable,
     PrimaryKeyAdd,
+    PrimaryKeyDefinition,
     PrimaryKeyDrop,
     SetColumnComments,
     SetTableComment,
@@ -22,8 +23,6 @@ from src.delta_engine.state.states import (
     PrimaryKeyState,
     TableState,
 )
-from src.delta_engine.actions import PrimaryKeyDefinition
-
 
 # ----------------- helpers -----------------
 
@@ -343,6 +342,7 @@ def test_table_comment_update_uses_normalization():
     sc = planner._compute_table_comment_update("x", "")
     assert isinstance(sc, SetTableComment)
     assert sc.comment == "x"
+
 
 def test_compute_table_property_updates_returns_none_when_no_changes():
     planner = Planner()

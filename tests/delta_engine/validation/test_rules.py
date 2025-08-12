@@ -374,3 +374,15 @@ def test_primary_key_must_be_ordered_sequence_no_pk_is_noop():
         primary_key=None,  # triggers `if pk is None: continue`
     )
     PrimaryKeyMustBeOrderedSequence().check([model])  # no raise
+
+
+def test_model_pk_columns_not_null_noop_when_model_has_no_pk():
+    model = Table(
+        catalog_name="cat",
+        schema_name="sch",
+        table_name="tbl",
+        columns=[Column("id", T.IntegerType(), is_nullable=False)],
+        primary_key=None,  # <- no PK
+    )
+    # Should not raise; covers the `if pk is None: continue` path
+    PrimaryKeyColumnsNotNull().check([model])

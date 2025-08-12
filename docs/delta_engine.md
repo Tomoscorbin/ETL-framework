@@ -90,7 +90,7 @@ sequenceDiagram
 3. **Idempotency & determinism**
 
    * Running the same plan twice yields the same catalog state.
-   * Stable ordering of columns and properties; deterministic PK naming.
+   * Stable ordering of columns and properties; deterministic constraint naming.
 
 4. **Escaping contract**
 

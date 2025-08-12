@@ -36,7 +36,7 @@ class Table:
     columns: list[Column]
     comment: str = ""
     table_properties: dict[str, str] = field(default_factory=dict)
-    primary_key: tuple[str, ...] | None = None
+    primary_key: list[str] | None = None
 
     @property
     def full_name(self) -> str:

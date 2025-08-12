@@ -13,7 +13,6 @@ Execution is idempotent with respect to existing objects: re-running yields the 
 from pyspark.sql import SparkSession
 
 from src.delta_engine.actions import CreateTable
-from src.delta_engine.constraints.naming import three_part_to_qualified_name
 from src.delta_engine.execute.ddl import DeltaDDL
 
 
@@ -26,14 +25,12 @@ class CreateExecutor:
 
     def apply(self, action: CreateTable) -> None:
         """Apply a `CreateTable` action in a deterministic order."""
-        table = three_part_to_qualified_name(
-            (action.catalog_name, action.schema_name, action.table_name)
-        )
+        qualified_table_name = f"{action.catalog_name}.{action.schema_name}.{action.table_name}"
 
-        self._ensure_table_exists(table, action)
-        self._apply_table_properties(table, action)
-        self._apply_column_comments(table, action)
-        self._apply_primary_key(table, action)
+        self._ensure_table_exists(qualified_table_name, action)
+        self._apply_table_properties(qualified_table_name, action)
+        self._apply_column_comments(qualified_table_name, action)
+        self._apply_primary_key(qualified_table_name, action)
 
     # ----- steps -----
 

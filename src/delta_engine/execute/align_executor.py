@@ -15,7 +15,6 @@ Executes ALTER TABLE alignment actions in Delta Lake.
 from pyspark.sql import SparkSession
 
 from src.delta_engine.actions import AlignTable
-from src.delta_engine.constraints.naming import three_part_to_qualified_name
 from src.delta_engine.execute.ddl import DeltaDDL
 
 
@@ -28,9 +27,7 @@ class AlignExecutor:
 
     def apply(self, action: AlignTable) -> None:
         """Apply an `AlignTable` action in a deterministic, safe order."""
-        qualified_table_name = three_part_to_qualified_name(
-            (action.catalog_name, action.schema_name, action.table_name)
-        )
+        qualified_table_name = f"{action.catalog_name}.{action.schema_name}.{action.table_name}"
 
         self._drop_pk_if_needed(qualified_table_name, action)
         self._add_columns(qualified_table_name, action)

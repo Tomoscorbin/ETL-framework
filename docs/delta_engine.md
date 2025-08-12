@@ -20,15 +20,14 @@ This guide explains **what the Delta Engine does**, **how it works end‑to‑en
 ### Logical flow (block diagram)
 
 ```mermaid
-flowchart LR
+flowchart TB
   subgraph Authoring
-    M[Models (Table, Column)]
+    M[Models]
   end
 
   subgraph Read
     R[CatalogReader]
     UC[(Unity Catalog / Delta)]
-    R -->|Spark/Delta APIs| UC
   end
 
   subgraph Plan
@@ -37,21 +36,21 @@ flowchart LR
   end
 
   subgraph Exec
-    E1[CreateExecutor]
-    E2[AlignExecutor]
+    A[ActionRunner]
     DDL[DeltaDDL]
     SQL[sql.py]
   end
 
+  %% data flows
   M --> R
   R -->|CatalogState| P
   M --> P
   P -->|TablePlan| V
-  V --> E1
-  V --> E2
-  E1 --> DDL --> SQL --> UC
-  E2 --> DDL --> SQL --> UC
+  V -->|Plan OK| A
+  A --> DDL --> SQL --> UC
 
+  %% optional feedback
+  V -.->|Error| M
 ```
 
 ### Sequence view (single table)
@@ -75,7 +74,6 @@ sequenceDiagram
   P-->>V: TablePlan
   M->>V: models
   V-->>A: validated plan
-  Note over A,D: Pass unescaped names (catalog.schema.table)\nSQL builders handle quoting/escaping
   A->>D: create & alter SQL
   D->>UC: execute statements
   UC-->>M: catalog aligned

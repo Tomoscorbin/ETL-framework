@@ -21,13 +21,14 @@ from dataclasses import dataclass, field
 from types import MappingProxyType
 from typing import Self
 
+from src.delta_engine.state.ports import TableIdentity
+
 import pyspark.sql.types as T
 
 
 @dataclass(frozen=True, slots=True)
 class ColumnState:
     """Observed column state: name, Spark SQL data type, nullability, and optional comment."""
-
     name: str
     data_type: T.DataType
     is_nullable: bool
@@ -37,7 +38,6 @@ class ColumnState:
 @dataclass(frozen=True, slots=True)
 class PrimaryKeyState:
     """Observed PRIMARY KEY constraint: constraint name and ordered column list."""
-
     name: str
     columns: tuple[str, ...]
 
@@ -62,7 +62,6 @@ class TableState:
     primary_key : PrimaryKeyState | None
         Present when a PRIMARY KEY exists.
     """
-
     catalog_name: str
     schema_name: str
     table_name: str
@@ -71,11 +70,6 @@ class TableState:
     table_comment: str = ""
     table_properties: Mapping[str, str] = field(default_factory=lambda: MappingProxyType({}))
     primary_key: PrimaryKeyState | None = None
-
-    @property
-    def full_name(self) -> str:
-        """Fully qualified (unescaped) name: 'catalog.schema.table'."""
-        return f"{self.catalog_name}.{self.schema_name}.{self.table_name}"
 
     @classmethod
     def empty(cls, catalog_name: str, schema_name: str, table_name: str) -> Self:
@@ -96,8 +90,10 @@ class CatalogState:
     Example key: "catalog.schema.table"
     """
 
-    tables: Mapping[str, TableState]
+    tables: Mapping[TableIdentity, TableState]
 
-    def get(self, catalog_name: str, schema_name: str, table_name: str) -> TableState | None:
-        """Return the `TableState` for the given table, or None if not present."""
-        return self.tables.get(f"{catalog_name}.{schema_name}.{table_name}")
+    def get(self, identity: TableIdentity) -> TableState | None:
+        return self.tables.get(identity)
+
+    def contains(self, identity: TableIdentity) -> bool:
+        return identity in self.tables

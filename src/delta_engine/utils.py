@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 
-from src.delta_engine.types import HasTableIdentity
+from src.delta_engine.identifiers import TableIdentity
 
 
 def escape_sql_literal(value: str) -> str:
@@ -16,21 +16,24 @@ def escape_sql_literal(value: str) -> str:
     return (value or "").replace("'", "''")
 
 
-def qualify_table_name(obj: HasTableIdentity) -> str:
-    """Return unescaped 'catalog.schema.table' for an object with table identity."""
-    return f"{obj.catalog_name}.{obj.schema_name}.{obj.table_name}"
-
-
-def quote_ident(identifier: str) -> str:
+def quote_ident(name: str) -> str:
     """
-    Quote an identifier for Databricks/Delta SQL using backticks, escaping embedded backticks.
-
+    Backtick-quote an identifier for Spark SQL: `a` -> `` `a` ``.
+    Eescape backticks by doubling.
+    
     Example: foo`bar → `foo``bar`
     """
-    if identifier is None:  # defensive: callers sometimes pass None at runtime
-        raise ValueError("Identifier cannot be None")
-    return f"`{identifier.replace('`', '``')}`"
+    return f"`{name.replace('`', '``')}`"
 
+
+def qualify_table_name(t: TableIdentity) -> str:
+    """Render TableIdentity as a fully-qualified backticked name."""
+    return ".".join([quote_ident(t.catalog), quote_ident(t.schema), quote_ident(t.table)])
+
+
+def parse_table_identity(qualified_or_plain: str) -> TableIdentity:
+    c, s, t = qualified_or_plain.replace("`","").split(".")
+    return TableIdentity(c, s, t)
 
 def split_three_part(full_name: str) -> tuple[str, str, str]:
     """

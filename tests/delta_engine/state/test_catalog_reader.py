@@ -7,7 +7,7 @@ from typing import Any
 import pyspark.sql.types as T
 import pytest
 
-import src.delta_engine.state.catalog_reader as cr  # module under test
+import src.delta_engine.state.catalog_reader as cr
 from src.delta_engine.models import Column, Table
 from src.delta_engine.state.catalog_reader import CatalogReader
 from src.delta_engine.state.states import ColumnState, PrimaryKeyState, TableState
@@ -369,7 +369,7 @@ def test_tablestate_defaults_and_readonly_properties() -> None:
 
 def test_take_first_value_nonempty_branch(reader: CatalogReader, monkeypatch: pytest.MonkeyPatch):
     class DF:
-        def take(self, n: int):
+        def take(self, _: int):
             return [{"name": "pk_tbl"}]
 
     monkeypatch.setattr(reader.spark, "sql", lambda _sql: DF(), raising=True)
@@ -378,8 +378,14 @@ def test_take_first_value_nonempty_branch(reader: CatalogReader, monkeypatch: py
 
 def test_take_first_value_empty_branch(reader: CatalogReader, monkeypatch: pytest.MonkeyPatch):
     class DF:
-        def take(self, n: int):
+        def take(self, _: int):
             return []
 
     monkeypatch.setattr(reader.spark, "sql", lambda _sql: DF(), raising=True)
     assert reader._take_first_value("ignored", "name") is None
+
+
+def test_run_executes_sql_and_collects(reader):
+    # FakeSpark.sql returns a FakeDF whose .collect() returns []
+    out = reader._run("SELECT 1")
+    assert out == []

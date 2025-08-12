@@ -57,7 +57,7 @@ sequenceDiagram
   participant E as Executor
   participant UC as Unity Catalog
 
-  M->>R: desired tables
+  M->>R: desired table
   R-->>P: TableState
   M->>P: Model
   P-->>V: Plan

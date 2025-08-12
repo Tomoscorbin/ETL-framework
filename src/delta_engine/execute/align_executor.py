@@ -66,7 +66,7 @@ class AlignExecutor:
             self.ddl.add_primary_key(
                 table,
                 action.add_primary_key.definition.name,
-                list(action.add_primary_key.definition.columns),
+                action.add_primary_key.definition.columns,
             )
 
     def _apply_column_comments(self, table: str, action: AlignTable) -> None:
@@ -81,3 +81,7 @@ class AlignExecutor:
     def _apply_table_properties(self, table: str, action: AlignTable) -> None:
         if action.set_table_properties:
             self.ddl.set_table_properties(table, action.set_table_properties.properties)
+
+    def _remove_table_properties(self, table: str, action: AlignTable) -> None:
+        if action.remove_table_properties:
+            self.ddl.remove_table_properties(table, action.remove_table_properties.property_keys)

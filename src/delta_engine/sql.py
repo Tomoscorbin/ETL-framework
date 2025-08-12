@@ -13,7 +13,7 @@ Design guarantees
 
 from __future__ import annotations
 
-from collections.abc import Iterable, Mapping
+from collections.abc import Iterable, Mapping, Sequence
 
 import pyspark.sql.types as T
 
@@ -33,6 +33,19 @@ def sql_set_table_properties(qualified_table_name: str, props: Mapping[str, str]
     return (
         f"ALTER TABLE {quote_qualified_name_from_full(qualified_table_name)} "
         f"SET TBLPROPERTIES ({format_tblproperties(props)})"
+    )
+
+
+def sql_remove_table_properties(
+    qualified_table_name: str, property_keys: Sequence[str]
+) -> str | None:
+    """ALTER TABLE ... UNSET TBLPROPERTIES (IF EXISTS ...). Returns None if no keys."""
+    keys = [f"'{escape_sql_literal(k)}'" for k in property_keys if k]
+    if not keys:
+        return None
+    return (
+        f"ALTER TABLE {quote_qualified_name_from_full(qualified_table_name)} "
+        f"UNSET TBLPROPERTIES (IF EXISTS {', '.join(keys)})"
     )
 
 

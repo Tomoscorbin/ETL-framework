@@ -7,7 +7,7 @@ used to describe a table migration plan before execution.
 
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 
 import pyspark.sql.types as T
@@ -78,6 +78,12 @@ class SetTableProperties:
 
 
 @dataclass(frozen=True)
+class RemoveTableProperties:
+    """Represents removing one or more table properties."""
+    property_keys: Sequence[str]
+
+
+@dataclass(frozen=True)
 class PrimaryKeyAdd:
     """ADD PRIMARY KEY constraint on a table."""
 
@@ -125,6 +131,7 @@ class AlignTable:
     set_column_comments: SetColumnComments | None = None
     set_table_comment: SetTableComment | None = None
     set_table_properties: SetTableProperties | None = None
+    remove_table_properties: RemoveTableProperties | None = None 
 
     # PK edits (can be both in one action to "recreate")
     drop_primary_key: PrimaryKeyDrop | None = None

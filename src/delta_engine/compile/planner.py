@@ -23,6 +23,7 @@ from src.delta_engine.actions import (
     SetTableComment,
     SetTableProperties,
     TablePlan,
+    RemoveTableProperties,
 )
 from src.delta_engine.constraints.naming import build_primary_key_name
 from src.delta_engine.models import Column, Table
@@ -115,6 +116,9 @@ class Planner:
         tbl_props = self._compute_table_property_updates(
             desired.effective_table_properties, actual.table_properties
         )
+        remove_props = self._compute_table_property_removals(
+            desired.effective_table_properties, actual.table_properties
+        )
         desired_definition = self._desired_pk_definition(desired)
         drop_pk = self._compute_primary_key_drop(desired_definition, actual.primary_key)
         add_pk = self._compute_primary_key_add(desired_definition, actual.primary_key)
@@ -129,6 +133,7 @@ class Planner:
             set_column_comments=col_notes,
             set_table_comment=tbl_note,
             set_table_properties=tbl_props,
+            remove_table_properties=remove_props,
             drop_primary_key=drop_pk,
             add_primary_key=add_pk,
         )
@@ -252,6 +257,19 @@ class Planner:
                 properties_to_set[key] = desired
 
         return SetTableProperties(properties_to_set) if properties_to_set else None
+    
+    def _compute_table_property_removals(
+        self,
+        desired_properties: Mapping[str, str],
+        actual_properties: Mapping[str, str],
+    ) -> RemoveTableProperties | None:
+        """
+        Remove properties that exist in actual but are absent from desired.
+        Conservative default: do not remove delta.* implicitly.
+        """
+        extra = [k for k in actual_properties.keys() if k not in desired_properties]
+        extra = [k for k in extra if not k.startswith("delta.")]
+        return RemoveTableProperties(property_keys=tuple(extra)) if extra else None
 
         # ----- primary key -----
 

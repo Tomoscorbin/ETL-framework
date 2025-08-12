@@ -13,7 +13,7 @@ Design:
 
 from __future__ import annotations
 
-from collections.abc import Iterable, Mapping
+from collections.abc import Iterable, Mapping, Sequence
 
 import pyspark.sql.types as T
 from pyspark.sql import SparkSession
@@ -27,6 +27,7 @@ from src.delta_engine.sql import (
     sql_set_column_nullability,
     sql_set_table_comment,
     sql_set_table_properties,
+    sql_remove_table_properties
 )
 
 
@@ -65,6 +66,12 @@ class DeltaDDL:
     def set_table_properties(self, qualified_table_name: str, props: Mapping[str, str]) -> None:
         """Set table properties using ALTER TABLE ... SET TBLPROPERTIES."""
         self._run(sql_set_table_properties(qualified_table_name, props))
+
+
+    def remove_table_properties(self, qualified_table_name: str, property_keys: Sequence[str]) -> None:
+        """Unset one or more table properties via ALTER TABLE ... UNSET TBLPROPERTIES."""
+        self._run(sql_remove_table_properties(qualified_table_name, property_keys))
+
 
     def add_column(
         self,

@@ -28,11 +28,11 @@ flowchart LR
   subgraph Read
     R[CatalogReader]
     UC[(Unity Catalog / Delta)]
-    R -- Spark/Delta APIs --> UC
+    R -->|Spark/Delta APIs| UC
   end
 
   subgraph Plan
-    P[TablePlanner] --> A[Actions (TablePlan)]
+    P[TablePlanner]
     V[PlanValidator]
   end
 
@@ -47,10 +47,11 @@ flowchart LR
   R -->|CatalogState| P
   M --> P
   P -->|TablePlan| V
-  V -->|validated plan| E1
-  V -->|validated plan| E2
+  V --> E1
+  V --> E2
   E1 --> DDL --> SQL --> UC
   E2 --> DDL --> SQL --> UC
+
 ```
 
 ### Sequence view (single table)
@@ -90,7 +91,7 @@ sequenceDiagram
    * *Planner* computes actions; *Validator* enforces policy; *Executors* just do what the plan says.
    * *DDL/SQL* only renders/executes SQL—no policy.
 
-2. **Immutability where it matters**
+2. **Immutability**
 
    * `TableState`, `AlignTable`, `CreateTable`, `TablePlan` use tuples + read‑only mappings.
    * Prevents accidental mutation and makes tests deterministic.

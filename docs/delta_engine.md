@@ -321,7 +321,7 @@ orders = Table(
     ],
     comment="Orders table",
     table_properties={"delta.autoOptimize.optimizeWrite": "true"},
-    primary_key=("id",),
+    primary_key=["id"],
 )
 ```
 

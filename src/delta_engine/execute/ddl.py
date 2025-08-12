@@ -109,7 +109,7 @@ class DeltaDDL:
         self,
         qualified_table_name: str,
         constraint_name: str,
-        column_names: list[str],
+        column_names: Sequence[str],
     ) -> None:
         """Add a PRIMARY KEY constraint via ALTER TABLE ... ADD CONSTRAINT."""
         self._run(sql_add_primary_key(qualified_table_name, constraint_name, column_names))

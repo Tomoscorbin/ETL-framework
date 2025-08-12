@@ -323,9 +323,40 @@ def test_take_first_value_handles_empty_and_nonempty(reader: CatalogReader) -> N
     assert reader._take_first_value("ignored", "name") is None
 
 
-# ---------------------------
-# Extra: direct TableState test
-# ---------------------------
+def test_read_table_properties_config_column_but_no_rows_returns_empty(
+    reader: CatalogReader,
+) -> None:
+    class NoRowsDelta(FakeDeltaTable):
+        def detail(self) -> FakeDF:
+            # 'configuration' column present, but 0 rows
+            return FakeDF(rows=[], columns=["configuration"])
+
+    props = reader._read_table_properties(NoRowsDelta(struct=T.StructType([]), configuration=None))
+    assert isinstance(props, MappingProxyType)
+    assert dict(props) == {}
+
+
+def test_read_table_properties_config_value_none_returns_empty(reader: CatalogReader) -> None:
+    class NoneValueDelta(FakeDeltaTable):
+        def detail(self) -> FakeDF:
+            # 1 row, but configuration is None
+            return FakeDF(rows=[{"configuration": None}], columns=["configuration"])
+
+    props = reader._read_table_properties(
+        NoneValueDelta(struct=T.StructType([]), configuration=None)
+    )
+    assert isinstance(props, MappingProxyType)
+    assert dict(props) == {}
+
+
+def test_read_table_properties_exception_returns_empty(reader: CatalogReader) -> None:
+    class BoomDelta(FakeDeltaTable):
+        def detail(self) -> FakeDF:
+            raise RuntimeError("boom")
+
+    props = reader._read_table_properties(BoomDelta(struct=T.StructType([]), configuration=None))
+    assert isinstance(props, MappingProxyType)
+    assert dict(props) == {}
 
 
 def test_tablestate_defaults_and_readonly_properties() -> None:

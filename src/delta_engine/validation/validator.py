@@ -25,7 +25,7 @@ from src.delta_engine.validation.rules import (
 )
 
 
-class PlanValidator:
+class Validator:
     """Validates models and/or a `TablePlan` by running a fixed set of rules (fail-fast)."""
 
     DEFAULT_MODEL_RULES: ClassVar[tuple[ModelRule, ...]] = (

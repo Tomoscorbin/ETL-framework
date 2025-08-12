@@ -2,8 +2,6 @@
 Utilities for generating stable, SQL-safe names for Unity Catalog / Delta.
 
 This module centralizes naming rules for:
-- Fully-qualified identifiers: renders (catalog, schema, table) as
-  ``catalog.schema.table`` with proper backtick-escaping (`` ` `` → `` `` ``).
 - Constraint identifiers: builds deterministic primary-key names of the form
   ``pk_<catalog>_<schema>_<table>__<col1>_<col2>...``.
 - Length safety: enforces the UC identifier limit (MAX_IDENTIFIER_LEN=128) by
@@ -29,11 +27,6 @@ from __future__ import annotations
 from collections.abc import Sequence
 
 MAX_IDENTIFIER_LEN = 128  # Databricks/Unity Catalog identifier limit
-
-
-def three_part_to_qualified_name(name: tuple[str, str, str]) -> str:
-    """Render (catalog, schema, table) to ``catalog.schema.table`` with backtick-escaping."""
-    return ".".join(f"`{part.replace('`', '``')}`" for part in name)
 
 
 def _short_hash(*parts: str) -> str:

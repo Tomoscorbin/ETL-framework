@@ -29,7 +29,7 @@ from src.delta_engine.models import Column, Table
 from src.delta_engine.state.states import CatalogState, ColumnState, PrimaryKeyState, TableState
 
 
-class TablePlanner:
+class Planner:
     """Compares desired table definitions with actual state and builds a change plan."""
 
     def plan(self, desired_tables: Sequence[Table], catalog_state: CatalogState) -> TablePlan:
@@ -308,6 +308,6 @@ class TablePlanner:
             catalog=desired.catalog_name,
             schema=desired.schema_name,
             table=desired.table_name,
-            columns=columns,
+            columns=tuple(columns),
         )
         return PrimaryKeyDefinition(name=name, columns=tuple(columns))

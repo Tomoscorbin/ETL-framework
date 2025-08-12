@@ -15,12 +15,12 @@ from collections.abc import Sequence
 from pyspark.sql import SparkSession
 
 from src.delta_engine.actions import TablePlan
-from src.delta_engine.compile.planner import TablePlanner
+from src.delta_engine.compile.planner import Planner
 from src.delta_engine.execute.action_runner import ActionRunner
 from src.delta_engine.models import Table
 from src.delta_engine.state.catalog_reader import CatalogReader
 from src.delta_engine.state.states import CatalogState
-from src.delta_engine.validation.validator import PlanValidator
+from src.delta_engine.validation.validator import Validator
 from src.logger import LOGGER
 
 
@@ -31,8 +31,8 @@ class Orchestrator:
         self,
         spark: SparkSession,
         reader: CatalogReader | None = None,
-        planner: TablePlanner | None = None,
-        validator: PlanValidator | None = None,
+        planner: Planner | None = None,
+        validator: Validator | None = None,
         runner: ActionRunner | None = None,
     ) -> None:
         """
@@ -42,8 +42,8 @@ class Orchestrator:
         """
         self.spark: SparkSession = spark
         self.reader: CatalogReader = reader or CatalogReader(spark)
-        self.table_planner: TablePlanner = planner or TablePlanner()
-        self.validator: PlanValidator = validator or PlanValidator()
+        self.table_planner: Planner = planner or Planner()
+        self.validator: Validator = validator or Validator()
         self.runner: ActionRunner = runner or ActionRunner(spark)
 
     # ---------- public API ----------

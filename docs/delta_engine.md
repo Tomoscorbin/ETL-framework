@@ -319,9 +319,9 @@ orders = Table(
         Column("created_ts", T.TimestampType(), comment="Creation time"),
         Column("amount", T.DecimalType(18,2), comment="Order total"),
     ],
+    primary_key=["id"],
     comment="Orders table",
     table_properties={"delta.autoOptimize.optimizeWrite": "true"},
-    primary_key=["id"],
 )
 ```
 

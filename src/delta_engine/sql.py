@@ -114,7 +114,7 @@ def sql_select_primary_key_name_for_table(three_part_name: ThreePartTableName) -
     catalog, schema, table = map(escape_sql_literal, three_part_name)
     return f"""
       SELECT constraint_name AS name
-      FROM information_schema.table_constraints
+      FROM {catalog}.information_schema.table_constraints
       WHERE constraint_type = 'PRIMARY KEY'
         AND table_catalog = '{catalog}'
         AND table_schema  = '{schema}'
@@ -133,8 +133,8 @@ def sql_select_primary_key_columns_for_table(three_part_name: ThreePartTableName
       SELECT
         kcu.column_name        AS column_name,
         kcu.ordinal_position   AS ordinal_position
-      FROM information_schema.table_constraints AS tc
-      JOIN information_schema.key_column_usage AS kcu
+      FROM {catalog}.information_schema.table_constraints AS tc
+      JOIN {catalog}.information_schema.key_column_usage AS kcu
         ON  tc.constraint_catalog = kcu.constraint_catalog
         AND tc.constraint_schema  = kcu.constraint_schema
         AND tc.constraint_name    = kcu.constraint_name

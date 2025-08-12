@@ -7,7 +7,7 @@ These types capture what exists in Unity Catalog / Delta *right now*:
 - Primary key (name + ordered columns)
 - A catalog-wide snapshot keyed by unescaped 'catalog.schema.table'
 
-Notes
+Notes:
 -----
 - Dataclasses are frozen and use tuples/read-only mappings for nested data.
 - Construction sites (e.g., CatalogReader) should convert lists/dicts to
@@ -16,9 +16,10 @@ Notes
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass, field
-from typing import Mapping, Self
 from types import MappingProxyType
+from typing import Self
 
 import pyspark.sql.types as T
 
@@ -26,6 +27,7 @@ import pyspark.sql.types as T
 @dataclass(frozen=True, slots=True)
 class ColumnState:
     """Observed column state: name, Spark SQL data type, nullability, and optional comment."""
+
     name: str
     data_type: T.DataType
     is_nullable: bool
@@ -35,6 +37,7 @@ class ColumnState:
 @dataclass(frozen=True, slots=True)
 class PrimaryKeyState:
     """Observed PRIMARY KEY constraint: constraint name and ordered column list."""
+
     name: str
     columns: tuple[str, ...]
 
@@ -59,6 +62,7 @@ class TableState:
     primary_key : PrimaryKeyState | None
         Present when a PRIMARY KEY exists.
     """
+
     catalog_name: str
     schema_name: str
     table_name: str
@@ -91,6 +95,7 @@ class CatalogState:
 
     Example key: "catalog.schema.table"
     """
+
     tables: Mapping[str, TableState]
 
     def get(self, catalog_name: str, schema_name: str, table_name: str) -> TableState | None:

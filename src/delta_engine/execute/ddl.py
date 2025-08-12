@@ -53,7 +53,11 @@ class DeltaDDL:
         """Create a Delta table if it does not already exist (uses Delta builder API)."""
         from delta.tables import DeltaTable
 
-        builder = DeltaTable.createIfNotExists(self.spark).tableName(qualified_table_name).addColumns(schema)
+        builder = (
+            DeltaTable.createIfNotExists(self.spark)
+            .tableName(qualified_table_name)
+            .addColumns(schema)
+        )
         if table_comment:
             builder = builder.comment(table_comment)
         builder.execute()

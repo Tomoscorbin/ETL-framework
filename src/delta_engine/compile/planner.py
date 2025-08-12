@@ -46,7 +46,9 @@ class TablePlanner:
         """
         return self._build_plan(desired_tables, catalog_state)
 
-    def _build_plan(self, desired_tables: Sequence[Table], catalog_state: CatalogState) -> TablePlan:
+    def _build_plan(
+        self, desired_tables: Sequence[Table], catalog_state: CatalogState
+    ) -> TablePlan:
         """Compare desired tables against the current catalog state and produce a plan."""
         create_actions: list[CreateTable] = []
         align_actions: list[AlignTable] = []
@@ -61,7 +63,7 @@ class TablePlanner:
                 align_actions.append(self._build_align(desired, actual))
 
         return TablePlan(
-            create_tables=tuple(create_actions), 
+            create_tables=tuple(create_actions),
             align_tables=tuple(align_actions),
         )
 
@@ -134,8 +136,8 @@ class TablePlanner:
     # ----- column add -----
 
     def _compute_columns_to_add(
-        self, 
-        desired_columns: Sequence[Column], 
+        self,
+        desired_columns: Sequence[Column],
         actual_columns: Sequence[ColumnState],
     ) -> tuple[ColumnAdd, ...]:
         """Columns present in desired but missing in actual."""
@@ -143,11 +145,10 @@ class TablePlanner:
         additions: list[ColumnAdd] = []
 
         for desired in desired_columns:
-            if desired.name not in actual_columns_by_name :
+            if desired.name not in actual_columns_by_name:
                 additions.append(self._build_column_add(desired))
 
         return tuple(additions)
-
 
     def _build_column_add(self, desired: Column) -> ColumnAdd:
         """Build a `ColumnAdd` exactly as requested by the model."""
@@ -161,8 +162,8 @@ class TablePlanner:
     # ----- column drop -----
 
     def _compute_columns_to_drop(
-        self, 
-        desired_columns: Sequence[Column], 
+        self,
+        desired_columns: Sequence[Column],
         actual_columns: Sequence[ColumnState],
     ) -> tuple[ColumnDrop, ...]:
         """Calculate which columns are present in actual but not in desired."""
@@ -178,8 +179,8 @@ class TablePlanner:
     # ----- nullability -----
 
     def _compute_nullability_changes(
-        self, 
-        desired_columns: Sequence[Column], 
+        self,
+        desired_columns: Sequence[Column],
         actual_columns: Sequence[ColumnState],
     ) -> tuple[ColumnNullabilityChange, ...]:
         """Plan nullability changes for columns that exist in both desired and actual."""
@@ -203,8 +204,8 @@ class TablePlanner:
     # ----- comments -----
 
     def _compute_column_comment_updates(
-        self, 
-        desired_columns: Sequence[Column], 
+        self,
+        desired_columns: Sequence[Column],
         actual_columns: Sequence[ColumnState],
     ) -> SetColumnComments | None:
         """Return `SetColumnComments` when one or more comments differ."""
@@ -221,8 +222,8 @@ class TablePlanner:
         return SetColumnComments(changed) if changed else None
 
     def _compute_table_comment_update(
-        self, 
-        desired_comment: str, 
+        self,
+        desired_comment: str,
         actual_comment: str | None,
     ) -> SetTableComment | None:
         """Return `SetTableComment` if the normalized table comment differs."""
@@ -237,14 +238,12 @@ class TablePlanner:
     # ----- properties -----
 
     def _compute_table_property_updates(
-        self, 
-        desired_properties: Mapping[str, str], 
+        self,
+        desired_properties: Mapping[str, str],
         actual_properties: Mapping[str, str],
     ) -> SetTableProperties | None:
-        """
-        Properties to set/overwrite where desired != actual.
-        """
-        #TODO: remove properties absent from desired
+        """Properties to set/overwrite where desired != actual."""
+        # TODO: remove properties absent from desired
         properties_to_set: dict[str, str] = {}
 
         for key, desired in desired_properties.items():

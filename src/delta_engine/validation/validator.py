@@ -40,15 +40,12 @@ class PlanValidator:
         PrimaryKeyExistingColumnsMustBeSetNotNull(),
     )
 
-
     def __init__(
         self,
         model_rules: Sequence[ModelRule] | None = None,
         plan_rules: Sequence[PlanRule] | None = None,
     ) -> None:
-        """
-        Optionally override the rule sets (useful for tests or policy changes).
-        """
+        """Optionally override the rule sets (useful for tests or policy changes)."""
         self.model_rules: tuple[ModelRule, ...] = (
             tuple(model_rules) if model_rules is not None else self.DEFAULT_MODEL_RULES
         )

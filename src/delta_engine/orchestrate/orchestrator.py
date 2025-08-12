@@ -24,17 +24,16 @@ from src.delta_engine.validation.validator import PlanValidator
 from src.logger import LOGGER
 
 
-
 class Orchestrator:
     """Coordinates reading, planning, validating, and executing table changes."""
 
     def __init__(
         self,
         spark: SparkSession,
-        reader: Optional[CatalogReader] = None,
-        planner: Optional[TablePlanner] = None,
-        validator: Optional[PlanValidator] = None,
-        runner: Optional[ActionRunner] = None,
+        reader: CatalogReader | None = None,
+        planner: TablePlanner | None = None,
+        validator: PlanValidator | None = None,
+        runner: ActionRunner | None = None,
     ) -> None:
         """
         Initialize the orchestrator.
@@ -46,7 +45,6 @@ class Orchestrator:
         self.table_planner: TablePlanner = planner or TablePlanner()
         self.validator: PlanValidator = validator or PlanValidator()
         self.runner: ActionRunner = runner or ActionRunner(spark)
-
 
     # ---------- public API ----------
 

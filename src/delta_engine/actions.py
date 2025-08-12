@@ -141,5 +141,6 @@ class TablePlan:
 
     Contains CREATE TABLE operations and ALTER TABLE alignment operations.
     """
+
     create_tables: tuple[CreateTable, ...]
     align_tables: tuple[AlignTable, ...]

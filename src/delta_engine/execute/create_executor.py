@@ -13,8 +13,8 @@ Execution is idempotent with respect to existing objects: re-running yields the 
 from pyspark.sql import SparkSession
 
 from src.delta_engine.actions import CreateTable
-from src.delta_engine.execute.ddl import DeltaDDL
 from src.delta_engine.constraints.naming import three_part_to_qualified_name
+from src.delta_engine.execute.ddl import DeltaDDL
 
 
 class CreateExecutor:

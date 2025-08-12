@@ -24,7 +24,6 @@ Implementation notes
   disambiguation in truncated names.
 """
 
-
 from __future__ import annotations
 
 from collections.abc import Sequence
@@ -42,8 +41,8 @@ def _short_hash(*parts: str) -> str:
     # Use blake2b (fast, keyed-capable) and avoid S324/weak-hash warnings.
     import hashlib
 
-    digest = hashlib.blake2b("|".join(parts).encode("utf-8"), digest_size=4).hexdigest()
-    return digest  # 8 hex chars
+    # 8 hex chars
+    return hashlib.blake2b("|".join(parts).encode("utf-8"), digest_size=4).hexdigest()
 
 
 def _truncate_with_hash(base: str, max_len: int = MAX_IDENTIFIER_LEN) -> str:

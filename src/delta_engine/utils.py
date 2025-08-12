@@ -32,7 +32,7 @@ def quote_ident(identifier: str) -> str:
     return f"`{identifier.replace('`', '``')}`"
 
 
-def split_three_part(full_name: str) -> HasTableIdentity:
+def split_three_part(full_name: str) -> tuple[str, str, str]:
     """
     Split 'catalog.schema.table' into its three parts; raise if malformed.
 
@@ -59,10 +59,11 @@ def format_tblproperties(props: Mapping[str, str]) -> str:
     """
     Format TBLPROPERTIES assignments: `'key' = 'value', 'k2' = 'v2'`.
 
-    Notes
+    Notes:
     -----
-    - Keys and values are SQL **string literals** (NOT identifiers). This matches Spark/Databricks syntax,
-      e.g., ALTER TABLE t SET TBLPROPERTIES ('delta.columnMapping.mode' = 'name').
+    - Keys and values are SQL **string literals** (NOT identifiers).
+    This matches Spark/Databricks syntax,
+    e.g., ALTER TABLE t SET TBLPROPERTIES ('delta.columnMapping.mode' = 'name').
     - Keys are sorted for deterministic output.
     """
     return ", ".join(

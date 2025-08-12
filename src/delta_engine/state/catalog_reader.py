@@ -84,7 +84,7 @@ class CatalogReader:
         """Return a `DeltaTable` handle for the given table name."""
         return DeltaTable.forName(self.spark, full_name_unescaped)
 
-    def _read_columns(self, full_name_unescaped: str, delta: DeltaTable) -> list[ColumnState]:
+    def _read_columns(self, full_name_unescaped: str, delta: DeltaTable) -> tuple[ColumnState, ...]:
         """
         Read columns (name, type, nullability, comment) from Delta metadata
         and the Spark catalog, merging comments case-insensitively.
@@ -110,7 +110,7 @@ class CatalogReader:
         self,
         struct: T.StructType,
         comments_by_lower: dict[str, str],
-    ) -> list[ColumnState]:
+    ) -> tuple[ColumnState, ...]:
         """Combine the physical schema with catalog comments into `ColumnState` objects."""
         merged: list[ColumnState] = []
         for field in struct.fields:
@@ -122,7 +122,7 @@ class CatalogReader:
                     comment=comments_by_lower.get(field.name.lower(), ""),
                 )
             )
-        return merged
+        return tuple(merged)
 
     def _read_table_comment(self, full_name_unescaped: str) -> str:
         """
@@ -157,7 +157,9 @@ class CatalogReader:
         except Exception:
             return {}
 
-    def _read_primary_key_state(self, three_part_name: ThreePartTableName) -> PrimaryKeyState | None:
+    def _read_primary_key_state(
+        self, three_part_name: ThreePartTableName
+    ) -> PrimaryKeyState | None:
         """
         Return the primary-key state (name + ordered columns), or None if no PK exists.
 

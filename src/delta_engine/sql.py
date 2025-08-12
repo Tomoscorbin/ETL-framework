@@ -37,11 +37,11 @@ def sql_set_table_properties(qualified_table_name: str, props: Mapping[str, str]
 
 
 def sql_add_column(
-        qualified_table_name: str, 
-        column_name: str, 
-        dtype: T.DataType, 
-        comment: str = "",
-    ) -> str:
+    qualified_table_name: str,
+    column_name: str,
+    dtype: T.DataType,
+    comment: str = "",
+) -> str:
     """ALTER TABLE ... ADD COLUMNS (`col` type [COMMENT '...'])."""
     full = quote_qualified_name_from_full(qualified_table_name)
     column = quote_ident(column_name)
@@ -56,11 +56,14 @@ def sql_drop_columns(qualified_table_name: str, column_names: Iterable[str]) -> 
     if not columns:
         return None
     return (
-        f"ALTER TABLE {quote_qualified_name_from_full(qualified_table_name)} DROP COLUMNS ({', '.join(columns)})"
+        f"ALTER TABLE {quote_qualified_name_from_full(qualified_table_name)}"
+        f" DROP COLUMNS ({', '.join(columns)})"
     )
 
 
-def sql_set_column_nullability(qualified_table_name: str, column_name: str, make_nullable: bool) -> str:
+def sql_set_column_nullability(
+    qualified_table_name: str, column_name: str, make_nullable: bool
+) -> str:
     """ALTER TABLE ... ALTER COLUMN `col` DROP/SET NOT NULL."""
     op = "DROP NOT NULL" if make_nullable else "SET NOT NULL"
     return (
@@ -85,7 +88,9 @@ def sql_set_table_comment(qualified_table_name: str, comment: str) -> str:
     )
 
 
-def sql_add_primary_key(qualified_table_name: str, constraint_name: str, column_names: Iterable[str]) -> str:
+def sql_add_primary_key(
+    qualified_table_name: str, constraint_name: str, column_names: Iterable[str]
+) -> str:
     """ALTER TABLE ... ADD CONSTRAINT ... PRIMARY KEY (...)."""
     cols = [quote_ident(c) for c in column_names]
     if not cols:

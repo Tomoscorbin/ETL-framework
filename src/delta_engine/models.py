@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass, field
-from typing import ClassVar, Mapping
 from types import MappingProxyType
+from typing import ClassVar
 
 import pyspark.sql.types as T
 
@@ -41,13 +42,13 @@ class Table:
     def full_name(self) -> str:
         """Fully qualified name in `catalog.schema.table` format."""
         return f"{self.catalog_name}.{self.schema_name}.{self.table_name}"
-    
+
     @property
     def effective_table_properties(self) -> Mapping[str, str]:
         """
         Default table properties merged with user overrides (read-only view).
 
-        Returns
+        Returns:
         -------
         Mapping[str, str]
             Read-only mapping combining DEFAULT_TABLE_PROPERTIES and table_properties.

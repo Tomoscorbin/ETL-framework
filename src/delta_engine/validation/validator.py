@@ -21,6 +21,7 @@ from src.delta_engine.validation.rules import (
     PrimaryKeyAddMustNotMakeColumnsNullable,
     PrimaryKeyColumnsNotNull,
     PrimaryKeyExistingColumnsMustBeSetNotNull,
+    PrimaryKeyMustBeOrderedSequence,
     PrimaryKeyNewColumnsMustBeSetNotNull,
 )
 
@@ -31,6 +32,7 @@ class Validator:
     DEFAULT_MODEL_RULES: ClassVar[tuple[ModelRule, ...]] = (
         DuplicateColumnNames(),
         PrimaryKeyColumnsNotNull(),
+        PrimaryKeyMustBeOrderedSequence(),
     )
     DEFAULT_PLAN_RULES: ClassVar[tuple[PlanRule, ...]] = (
         NoAddNotNullColumns(),

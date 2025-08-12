@@ -280,3 +280,26 @@ class DuplicateColumnNames(ModelRule):
                     f"{full_name}: duplicate column names in model: "
                     f"{self._format_columns(duplicates)}"
                 )
+
+
+class PrimaryKeyMustBeOrderedSequence(ModelRule):
+    """
+    Require `Table.primary_key` to be an ordered sequence (list or tuple).
+
+    Why: Primary-key column **order** is semantically meaningful (constraint definition and
+    validation) and is used to generate deterministic constraint names. Unordered or
+    non-sequence types (e.g., sets, dicts, strings, scalars) lead to nondeterministic
+    plans or accidental per-character iteration.
+    """
+
+    def check(self, models: Sequence[Table]) -> None:
+        """Ensure each model's `primary_key` is an ordered sequence (list or tuple)."""
+        for m in models:
+            pk = getattr(m, "primary_key", None)
+            if pk is None:
+                continue
+            if not isinstance(pk, list | tuple):
+                self.fail(
+                    f"{m.catalog_name}.{m.schema_name}.{m.table_name}: "
+                    "primary_key must be an ordered sequence (list/tuple)."
+                )

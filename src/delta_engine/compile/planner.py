@@ -295,8 +295,10 @@ class Planner:
         self, desired_definition: PrimaryKeyDefinition, actual_state: PrimaryKeyState
     ) -> bool:
         """Compare ordered columns case-insensitively"""
+
         def norm(cols: tuple[str, ...]) -> tuple[str, ...]:
             return tuple(c.lower() for c in cols)
+
         return norm(desired_definition.columns) == norm(actual_state.columns)
 
     def _desired_pk_definition(self, desired: Table) -> PrimaryKeyDefinition | None:

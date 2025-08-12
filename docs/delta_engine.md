@@ -12,7 +12,7 @@ The Delta Engine is a small, declarative schema management layer for Unity Catal
 - Reproducibility: plans are idempotent and action payloads are immutable, so what you reviewed is what gets executed.
 
 **What it is not**: 
-An orchestration system for data processing, a CDC framework, or a data backfill tool. It focuses narrowly on table metadata. You still run your ETL/ELT to populate data; the engine ensures the containers (tables) are in the right shape.
+An orchestration system for data processing, a CDC framework, or a data backfill tool. It focuses narrowly on table Delta Table interactions (creating, modifying, reading, and writing). You still run your ETL/ELT to populate data; the engine ensures the containers (tables) are in the right shape.
 
 ---
 

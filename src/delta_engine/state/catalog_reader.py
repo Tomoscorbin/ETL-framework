@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
+from typing import Mapping
+from types import MappingProxyType
 
 import pyspark.sql.types as T
 from delta.tables import DeltaTable
@@ -136,26 +138,27 @@ class CatalogReader:
             # Metadata permissions or missing description → empty string
             return ""
 
-    def _read_table_properties(self, delta: DeltaTable) -> dict[str, str]:
+    def _read_table_properties(self, delta: DeltaTable) -> Mapping[str, str]:
         """
-        Return Delta table properties as a plain dict[str, str].
+        Return Delta table properties as a read-only Mapping[str, str].
 
-        Reads the `configuration` field from `DeltaTable.detail()`. Returns `{}` when
-        the field is absent or on any error.
+        Reads the `configuration` field from `DeltaTable.detail()`.
+        Returns an empty read-only mapping on any error.
         """
         try:
             detail_df = delta.detail()
             config_col = next((c for c in detail_df.columns if c.lower() == "configuration"), None)
             if not config_col:
-                return {}
+                return MappingProxyType({})
             row = detail_df.select(config_col).first()
             if not row:
-                return {}
+                return MappingProxyType({})
             config_map = row[config_col] or {}
-            # Force to plain str->str dict
-            return {str(k): str(v) for k, v in dict(config_map).items()}
+            coerced = {str(k): str(v) for k, v in dict(config_map).items()}
+            return MappingProxyType(coerced)
         except Exception:
-            return {}
+            return MappingProxyType({})
+
 
     def _read_primary_key_state(
         self, three_part_name: ThreePartTableName

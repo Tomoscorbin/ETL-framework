@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass, field
+from types import MappingProxyType
 from typing import ClassVar
 
 import pyspark.sql.types as T
@@ -21,13 +23,6 @@ class Column:
 
 
 @dataclass(frozen=True)
-class ForeignKey:
-    source_columns: tuple[str, ...]
-    target_table: tuple[str, str, str]
-    target_columns: tuple[str, ...]
-
-
-@dataclass(frozen=True)
 class Table:
     """Declarative Delta table definition."""
 
@@ -42,7 +37,6 @@ class Table:
     comment: str = ""
     table_properties: dict[str, str] = field(default_factory=dict)
     primary_key: tuple[str, ...] | None = None
-    foreign_keys: tuple[ForeignKey, ...] = field(default_factory=tuple)
 
     @property
     def full_name(self) -> str:
@@ -50,11 +44,19 @@ class Table:
         return f"{self.catalog_name}.{self.schema_name}.{self.table_name}"
 
     @property
-    def effective_table_properties(self) -> dict[str, str]:
-        """Default table properties + user overrides."""
-        return {**self.DEFAULT_TABLE_PROPERTIES, **self.table_properties}
+    def effective_table_properties(self) -> Mapping[str, str]:
+        """
+        Default table properties merged with user overrides (read-only view).
+
+        Returns:
+        -------
+        Mapping[str, str]
+            Read-only mapping combining DEFAULT_TABLE_PROPERTIES and table_properties.
+        """
+        merged = {**self.DEFAULT_TABLE_PROPERTIES, **self.table_properties}
+        return MappingProxyType(merged)
 
     @property
     def column_names(self) -> list[str]:
-        """List of coloumn names."""
+        """List of colomn names."""
         return [column.name for column in self.columns]

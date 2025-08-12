@@ -66,7 +66,7 @@ class AlignExecutor:
             self.ddl.add_primary_key(
                 table,
                 action.add_primary_key.definition.name,
-                list(action.add_primary_key.definition.columns),
+                action.add_primary_key.definition.columns,
             )
 
     def _apply_column_comments(self, table: str, action: AlignTable) -> None:

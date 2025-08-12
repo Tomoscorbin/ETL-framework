@@ -1,3 +1,16 @@
+"""
+Low-level DDL executor for Delta tables.
+
+This module provides a thin, policy-free wrapper over Spark SQL statements.
+Callers must pass fully-qualified, backticked table identifiers (e.g.
+``catalog.schema.table`` escaped via `three_part_to_qualified_table_name`). All methods
+are idempotent where the underlying Delta/Spark behavior is idempotent.
+
+Design:
+- No validation or business rules here; higher layers (planner/validator) enforce policy.
+- Accepts normalized inputs and delegates SQL rendering to `src.delta_engine.sql.*`.
+"""
+
 from __future__ import annotations
 
 from collections.abc import Iterable, Mapping
@@ -24,69 +37,72 @@ class DeltaDDL:
         """Initialize the DDL executor with a SparkSession."""
         self.spark = spark
 
-    def _run(self, sql: str | None) -> None:
-        """Execute a single SQL statement if provided."""
-        if sql:
-            self.spark.sql(sql)
+    def _run(self, statement: str | None) -> None:
+        """Execute a single SQL statement if provided (no-op for None/empty)."""
+        if statement:
+            self.spark.sql(statement)
+
+    # ----- table creation / properties / comments -----
 
     def create_table_if_not_exists(
         self,
-        full_name: str,
+        qualified_table_name: str,
         schema: T.StructType,
         table_comment: str = "",
     ) -> None:
         """Create a Delta table if it does not already exist (uses Delta builder API)."""
         from delta.tables import DeltaTable
 
-        builder = DeltaTable.createIfNotExists(self.spark).tableName(full_name).addColumns(schema)
+        builder = DeltaTable.createIfNotExists(self.spark).tableName(qualified_table_name).addColumns(schema)
         if table_comment:
             builder = builder.comment(table_comment)
         builder.execute()
 
-    def set_table_properties(self, full_name: str, props: Mapping[str, str]) -> None:
+    def set_table_properties(self, qualified_table_name: str, props: Mapping[str, str]) -> None:
         """Set table properties using ALTER TABLE ... SET TBLPROPERTIES."""
-        self._run(sql_set_table_properties(full_name, props))
+        self._run(sql_set_table_properties(qualified_table_name, props))
 
     def add_column(
         self,
-        full_name: str,
-        name: str,
+        qualified_table_name: str,
+        column_name: str,
         dtype: T.DataType,
         comment: str = "",
     ) -> None:
         """Add a column to a table (comment is inlined when provided)."""
-        self._run(sql_add_column(full_name, name, dtype, comment))
+        self._run(sql_add_column(qualified_table_name, column_name, dtype, comment))
 
-    def drop_columns(self, full_name: str, names: Iterable[str]) -> None:
+    def drop_columns(self, qualified_table_name: str, column_names: Iterable[str]) -> None:
         """Drop one or more columns using ALTER TABLE ... DROP COLUMNS."""
-        self._run(sql_drop_columns(full_name, names))
+        names = list(column_names)
+        self._run(sql_drop_columns(qualified_table_name, names))
 
     def set_column_nullability(
         self,
-        full_name: str,
-        name: str,
+        qualified_table_name: str,
+        column_name: str,
         make_nullable: bool,
     ) -> None:
         """Change a column's nullability via ALTER COLUMN DROP/SET NOT NULL."""
-        self._run(sql_set_column_nullability(full_name, name, make_nullable))
+        self._run(sql_set_column_nullability(qualified_table_name, column_name, make_nullable))
 
-    def set_column_comment(self, full_name: str, name: str, comment: str) -> None:
+    def set_column_comment(self, qualified_table_name: str, column_name: str, comment: str) -> None:
         """Set a column comment via COMMENT ON COLUMN."""
-        self._run(sql_set_column_comment(full_name, name, comment))
+        self._run(sql_set_column_comment(qualified_table_name, column_name, comment))
 
-    def set_table_comment(self, full_name: str, comment: str) -> None:
+    def set_table_comment(self, qualified_table_name: str, comment: str) -> None:
         """Set a table comment via COMMENT ON TABLE."""
-        self._run(sql_set_table_comment(full_name, comment))
+        self._run(sql_set_table_comment(qualified_table_name, comment))
 
     def add_primary_key(
         self,
-        full_name: str,
+        qualified_table_name: str,
         constraint_name: str,
-        columns: list[str],
+        column_names: list[str],
     ) -> None:
         """Add a PRIMARY KEY constraint via ALTER TABLE ... ADD CONSTRAINT."""
-        self._run(sql_add_primary_key(full_name, constraint_name, columns))
+        self._run(sql_add_primary_key(qualified_table_name, constraint_name, column_names))
 
-    def drop_primary_key(self, full_name: str, constraint_name: str) -> None:
+    def drop_primary_key(self, qualified_table_name: str, constraint_name: str) -> None:
         """Drop a PRIMARY KEY constraint via ALTER TABLE ... DROP CONSTRAINT."""
-        self._run(sql_drop_primary_key(full_name, constraint_name))
+        self._run(sql_drop_primary_key(qualified_table_name, constraint_name))

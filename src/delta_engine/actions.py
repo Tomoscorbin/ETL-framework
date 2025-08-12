@@ -20,7 +20,7 @@ class PrimaryKeyDefinition:
     """Definition of a PRIMARY KEY (used within actions)."""
 
     name: str
-    columns: tuple[str, ...]  # ordered
+    columns: tuple[str, ...]
 
 
 # ---------- Table Operations ----------
@@ -117,16 +117,16 @@ class AlignTable:
     table_name: str
 
     # Column edits
-    add_columns: list[ColumnAdd] = field(default_factory=list)
-    drop_columns: list[ColumnDrop] = field(default_factory=list)
-    change_nullability: list[ColumnNullabilityChange] = field(default_factory=list)
+    add_columns: tuple[ColumnAdd, ...] = field(default_factory=tuple)
+    drop_columns: tuple[ColumnDrop, ...] = field(default_factory=tuple)
+    change_nullability: tuple[ColumnNullabilityChange, ...] = field(default_factory=tuple)
 
     # Metadata
     set_column_comments: SetColumnComments | None = None
     set_table_comment: SetTableComment | None = None
     set_table_properties: SetTableProperties | None = None
 
-    # PK edits (can be both in one action to “recreate”)
+    # PK edits (can be both in one action to "recreate")
     drop_primary_key: PrimaryKeyDrop | None = None
     add_primary_key: PrimaryKeyAdd | None = None
 
@@ -141,6 +141,5 @@ class TablePlan:
 
     Contains CREATE TABLE operations and ALTER TABLE alignment operations.
     """
-
-    create_tables: list[CreateTable]
-    align_tables: list[AlignTable]
+    create_tables: tuple[CreateTable, ...]
+    align_tables: tuple[AlignTable, ...]

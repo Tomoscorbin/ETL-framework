@@ -1,9 +1,9 @@
 """
-Plans schema changes for Delta tables.
+Plan schema changes for Delta tables.
 
-This module defines `TablePlanner`, which compares desired table models against
-the current catalog state and produces a `TablePlan` of `CreateTable` and
-`AlignTable` actions to bring the catalog into alignment.
+Compares desired table models to current catalog state and produces a `TablePlan`
+consisting of `CreateTable` and `AlignTable` actions. Plans are intended to be:
+- Idempotent: executing a produced plan should bring the catalog to the desired state.
 """
 
 from collections.abc import Mapping, Sequence
@@ -32,7 +32,21 @@ from src.delta_engine.state.states import CatalogState, ColumnState, PrimaryKeyS
 class TablePlanner:
     """Compares desired table definitions with actual state and builds a change plan."""
 
-    def build_plan(self, desired_tables: Sequence[Table], catalog_state: CatalogState) -> TablePlan:
+    def plan(self, desired_tables: Sequence[Table], catalog_state: CatalogState) -> TablePlan:
+        """
+        Build a change plan that makes the live catalog match the desired table models.
+
+        For each desired table, this compares the model against the snapshot in `catalog_state`.
+        - If the table does not exist, it emits a `CreateTable` action.
+        - If the table exists, it emits an `AlignTable` action capturing column adds/drops,
+        nullability changes, comment/property updates, and primary-key drop/add if needed.
+
+        The resulting `TablePlan` is idempotent: applying it once should bring the catalog
+        into alignment with the models.
+        """
+        return self._build_plan(desired_tables, catalog_state)
+
+    def _build_plan(self, desired_tables: Sequence[Table], catalog_state: CatalogState) -> TablePlan:
         """Compare desired tables against the current catalog state and produce a plan."""
         create_actions: list[CreateTable] = []
         align_actions: list[AlignTable] = []
@@ -46,11 +60,15 @@ class TablePlanner:
             else:
                 align_actions.append(self._build_align(desired, actual))
 
-        return TablePlan(create_tables=create_actions, align_tables=align_actions)
+        return TablePlan(
+            create_tables=tuple(create_actions), 
+            align_tables=tuple(align_actions),
+        )
 
     # ---------- create ----------
 
     def _build_create(self, desired: Table) -> CreateTable:
+        """Build a `CreateTable` action from the desired model."""
         schema_struct = self._to_struct(desired.columns)
         table_comment = self._normalize_comment(desired.comment)
         table_properties = dict(desired.effective_table_properties)
@@ -68,6 +86,7 @@ class TablePlanner:
         )
 
     def _to_struct(self, desired_columns: Sequence[Column]) -> T.StructType:
+        """Convert desired columns to a Spark StructType for CREATE TABLE."""
         fields = []
         for col in desired_columns:
             fields.append(
@@ -76,6 +95,7 @@ class TablePlanner:
         return T.StructType(fields)
 
     def _map_column_comments(self, desired_columns: Sequence[Column]) -> dict[str, str]:
+        """Map column name → normalized comment (empty string means no comment)."""
         mapping: dict[str, str] = {}
         for col in desired_columns:
             mapping[col.name] = self._normalize_comment(col.comment)
@@ -84,6 +104,7 @@ class TablePlanner:
     # ---------- align ----------
 
     def _build_align(self, desired: Table, actual: TableState) -> AlignTable:
+        """Build an `AlignTable` action by diffing desired vs actual."""
         additions = self._compute_columns_to_add(desired.columns, actual.columns)
         drops = self._compute_columns_to_drop(desired.columns, actual.columns)
         nullables = self._compute_nullability_changes(desired.columns, actual.columns)
@@ -92,7 +113,9 @@ class TablePlanner:
         tbl_props = self._compute_table_property_updates(
             desired.effective_table_properties, actual.table_properties
         )
-        drop_pk, add_pk = self._compute_primary_key_changes(desired, actual)
+        desired_definition = self._desired_pk_definition(desired)
+        drop_pk = self._compute_primary_key_drop(desired_definition, actual.primary_key)
+        add_pk = self._compute_primary_key_add(desired_definition, actual.primary_key)
 
         return AlignTable(
             catalog_name=desired.catalog_name,
@@ -111,27 +134,23 @@ class TablePlanner:
     # ----- column add -----
 
     def _compute_columns_to_add(
-        self, desired_columns: Sequence[Column], actual_columns: Sequence[ColumnState]
-    ) -> list[ColumnAdd]:
-        actual_names = self._actual_column_name_set(actual_columns)
+        self, 
+        desired_columns: Sequence[Column], 
+        actual_columns: Sequence[ColumnState],
+    ) -> tuple[ColumnAdd, ...]:
+        """Columns present in desired but missing in actual."""
+        actual_columns_by_name = {c.name: c for c in actual_columns}
         additions: list[ColumnAdd] = []
 
         for desired in desired_columns:
-            if self._is_missing_in_actual(desired.name, actual_names):
+            if desired.name not in actual_columns_by_name :
                 additions.append(self._build_column_add(desired))
 
-        return additions
+        return tuple(additions)
 
-    def _actual_column_name_set(self, actual_columns: Sequence[ColumnState]) -> set[str]:
-        names: set[str] = set()
-        for c in actual_columns:
-            names.add(c.name)
-        return names
-
-    def _is_missing_in_actual(self, column_name: str, actual_names: set[str]) -> bool:
-        return column_name not in actual_names
 
     def _build_column_add(self, desired: Column) -> ColumnAdd:
+        """Build a `ColumnAdd` exactly as requested by the model."""
         return ColumnAdd(
             name=desired.name,
             data_type=desired.data_type,
@@ -142,39 +161,36 @@ class TablePlanner:
     # ----- column drop -----
 
     def _compute_columns_to_drop(
-        self, desired_columns: Sequence[Column], actual_columns: Sequence[ColumnState]
-    ) -> list[ColumnDrop]:
-        desired_names = self._desired_column_name_set(desired_columns)
+        self, 
+        desired_columns: Sequence[Column], 
+        actual_columns: Sequence[ColumnState],
+    ) -> tuple[ColumnDrop, ...]:
+        """Calculate which columns are present in actual but not in desired."""
+        desired_column_names = {c.name for c in desired_columns}
         drops: list[ColumnDrop] = []
 
         for actual in actual_columns:
-            if self._is_extra_in_actual(actual.name, desired_names):
+            if actual.name not in desired_column_names:
                 drops.append(ColumnDrop(name=actual.name))
 
-        return drops
-
-    def _desired_column_name_set(self, desired_columns: Sequence[Column]) -> set[str]:
-        names: set[str] = set()
-        for c in desired_columns:
-            names.add(c.name)
-        return names
-
-    def _is_extra_in_actual(self, column_name: str, desired_names: set[str]) -> bool:
-        return column_name not in desired_names
+        return tuple(drops)
 
     # ----- nullability -----
 
     def _compute_nullability_changes(
-        self, desired_columns: Sequence[Column], actual_columns: Sequence[ColumnState]
-    ) -> list[ColumnNullabilityChange]:
-        actual_by_name = self._index_actual_by_name(actual_columns)
+        self, 
+        desired_columns: Sequence[Column], 
+        actual_columns: Sequence[ColumnState],
+    ) -> tuple[ColumnNullabilityChange, ...]:
+        """Plan nullability changes for columns that exist in both desired and actual."""
+        actual_columns_by_name = {c.name: c for c in actual_columns}
         changes: list[ColumnNullabilityChange] = []
 
         for desired in desired_columns:
-            actual = actual_by_name.get(desired.name)
+            actual = actual_columns_by_name.get(desired.name)
             if actual is None:
                 continue
-            if self._nullability_differs(desired.is_nullable, actual.is_nullable):
+            if desired.is_nullable != actual.is_nullable:
                 changes.append(
                     ColumnNullabilityChange(
                         name=desired.name,
@@ -182,28 +198,22 @@ class TablePlanner:
                     )
                 )
 
-        return changes
-
-    def _index_actual_by_name(
-        self, actual_columns: Sequence[ColumnState]
-    ) -> dict[str, ColumnState]:
-        return {c.name: c for c in actual_columns}
-
-    def _nullability_differs(self, desired_is_nullable: bool, actual_is_nullable: bool) -> bool:
-        return desired_is_nullable != actual_is_nullable
+        return tuple(changes)
 
     # ----- comments -----
 
     def _compute_column_comment_updates(
-        self, desired_columns: Sequence[Column], actual_columns: Sequence[ColumnState]
+        self, 
+        desired_columns: Sequence[Column], 
+        actual_columns: Sequence[ColumnState],
     ) -> SetColumnComments | None:
-        actual_by_name = self._index_actual_by_name(actual_columns)
+        """Return `SetColumnComments` when one or more comments differ."""
+        actual_columns_by_name = {c.name: c for c in actual_columns}
         changed: dict[str, str] = {}
 
-        actual_by_name = self._index_actual_by_name(actual_columns)
         for desired in desired_columns:
             desired_comment = self._normalize_comment(desired.comment)
-            actual = actual_by_name.get(desired.name)
+            actual = actual_columns_by_name.get(desired.name)
             actual_comment = self._normalize_comment(actual.comment if actual else "")
             if desired_comment != actual_comment:
                 changed[desired.name] = desired_comment
@@ -211,78 +221,74 @@ class TablePlanner:
         return SetColumnComments(changed) if changed else None
 
     def _compute_table_comment_update(
-        self, desired_comment: str, actual_comment: str
+        self, 
+        desired_comment: str, 
+        actual_comment: str | None,
     ) -> SetTableComment | None:
+        """Return `SetTableComment` if the normalized table comment differs."""
         desired_value = self._normalize_comment(desired_comment)
         actual_value = self._normalize_comment(actual_comment)
         return SetTableComment(desired_value) if desired_value != actual_value else None
 
     def _normalize_comment(self, comment: str | None) -> str:
+        """Normalize a nullable comment to an empty string when absent."""
         return comment or ""
 
     # ----- properties -----
 
     def _compute_table_property_updates(
-        self, desired_properties: Mapping[str, str], actual_properties: Mapping[str, str]
+        self, 
+        desired_properties: Mapping[str, str], 
+        actual_properties: Mapping[str, str],
     ) -> SetTableProperties | None:
-        to_set: dict[str, str] = {}
+        """
+        Properties to set/overwrite where desired != actual.
+        """
+        #TODO: remove properties absent from desired
+        properties_to_set: dict[str, str] = {}
 
-        for key, desired_value in desired_properties.items():
-            actual_value = actual_properties.get(key)
-            if self._property_differs(desired_value, actual_value):
-                to_set[key] = desired_value
+        for key, desired in desired_properties.items():
+            actual = actual_properties.get(key)
+            if desired != actual:
+                properties_to_set[key] = desired
 
-        return SetTableProperties(to_set) if to_set else None
-
-    def _property_differs(self, desired_value: str, actual_value: str | None) -> bool:
-        return actual_value != desired_value
+        return SetTableProperties(properties_to_set) if properties_to_set else None
 
         # ----- primary key -----
-
-    def _compute_primary_key_changes(
-        self, desired: Table, actual: TableState
-    ) -> tuple[PrimaryKeyDrop | None, PrimaryKeyAdd | None]:
-        desired_definition = self._desired_pk_definition(desired)
-        actual_state = actual.primary_key
-
-        drop_action = self._compute_primary_key_drop(desired_definition, actual_state)
-        add_action = self._compute_primary_key_add(desired_definition, actual_state)
-
-        return drop_action, add_action
 
     def _compute_primary_key_drop(
         self,
         desired_definition: PrimaryKeyDefinition | None,
-        actual_state: PrimaryKeyState | None,
+        actual_primary_key: PrimaryKeyState | None,
     ) -> PrimaryKeyDrop | None:
         """
         Drop when:
         - no desired PK but one exists, or
-        - both exist but differ.
+        - both exist but differ (name or columns, order-sensitive).
         """
-        if actual_state is None:
+        if actual_primary_key is None:
             return None
         if desired_definition is None:
-            return PrimaryKeyDrop(name=actual_state.name)
-        if not self._primary_key_definitions_equal(desired_definition, actual_state):
-            return PrimaryKeyDrop(name=actual_state.name)
+            return PrimaryKeyDrop(name=actual_primary_key.name)
+        if not self._primary_key_definitions_equal(desired_definition, actual_primary_key):
+            return PrimaryKeyDrop(name=actual_primary_key.name)
         return None
 
     def _compute_primary_key_add(
         self,
         desired_definition: PrimaryKeyDefinition | None,
-        actual_state: PrimaryKeyState | None,
+        actual_primary_key: PrimaryKeyState | None,
     ) -> PrimaryKeyAdd | None:
         """
         Add when:
         - desired PK exists but none currently, or
-        - both exist but differ.
+        - both exist but differ (name or columns, order-sensitive).
         """
         if desired_definition is None:
             return None
-        if actual_state is None:
+        if actual_primary_key is None:
             return PrimaryKeyAdd(definition=desired_definition)
-        if not self._primary_key_definitions_equal(desired_definition, actual_state):
+        if not self._primary_key_definitions_equal(desired_definition, actual_primary_key):
             return PrimaryKeyAdd(definition=desired_definition)
         return None
 
@@ -295,13 +301,14 @@ class TablePlanner:
         return names_match and columns_match
 
     def _desired_pk_definition(self, desired: Table) -> PrimaryKeyDefinition | None:
-        cols = getattr(desired, "primary_key", None)
-        if not cols:
+        """Build the desired PK definition (standardized name) if a PK is declared."""
+        columns = getattr(desired, "primary_key", None)
+        if not columns:
             return None
         name = build_primary_key_name(
             catalog=desired.catalog_name,
             schema=desired.schema_name,
             table=desired.table_name,
-            columns=cols,
+            columns=columns,
         )
-        return PrimaryKeyDefinition(name=name, columns=cols)
+        return PrimaryKeyDefinition(name=name, columns=tuple(columns))

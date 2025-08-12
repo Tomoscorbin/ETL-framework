@@ -27,6 +27,7 @@ from src.delta_engine.actions import (
 from src.delta_engine.constraints.naming import build_primary_key_name
 from src.delta_engine.models import Column, Table
 from src.delta_engine.state.states import CatalogState, ColumnState, PrimaryKeyState, TableState
+from src.logger import LOGGER
 
 
 class Planner:
@@ -119,6 +120,19 @@ class Planner:
         drop_pk = self._compute_primary_key_drop(desired_definition, actual.primary_key)
         add_pk = self._compute_primary_key_add(desired_definition, actual.primary_key)
 
+        LOGGER.debug(
+            "[Planner] Align for %s: add=%s drop=%s nullability=%s tbl_comment=%s props=%s "
+            "drop_pk=%s add_pk=%s desired_pk=%s actual_pk=%s",
+            f"{desired.catalog_name}.{desired.schema_name}.{desired.table_name}",
+            [a.name for a in additions],
+            [d.name for d in drops],
+            [(c.name, c.make_nullable) for c in nullables],
+            bool(tbl_note),                      # True if we plan to change it
+            list((tbl_props.properties.keys() if tbl_props else [])),
+            bool(drop_pk), bool(add_pk),
+            (desired_definition.columns if desired_definition else None),
+            (actual.primary_key.columns if actual.primary_key else None),
+        )
         return AlignTable(
             catalog_name=desired.catalog_name,
             schema_name=desired.schema_name,
@@ -299,7 +313,11 @@ class Planner:
         def norm(cols: tuple[str, ...]) -> tuple[str, ...]:
             return tuple(c.lower() for c in cols)
 
-        return norm(desired_definition.columns) == norm(actual_state.columns)
+        eq = norm(desired_definition.columns) == norm(actual_state.columns)
+        LOGGER.debug("[Planner] PK equality (columns only): desired=%s actual=%s -> %s",
+                    desired_definition.columns, actual_state.columns, eq)
+        return eq
+
 
     def _desired_pk_definition(self, desired: Table) -> PrimaryKeyDefinition | None:
         """Build the desired PK definition (standardized name) if a PK is declared."""

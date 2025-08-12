@@ -1,8 +1,9 @@
-import pytest
 from dataclasses import dataclass
-from typing import get_origin, get_args, Protocol
+from typing import Protocol, get_args, get_origin
 
-from src.delta_engine.types import ThreePartTableName, HasTableIdentity
+import pytest
+
+from src.delta_engine.types import HasTableIdentity, ThreePartTableName
 from src.delta_engine.utils import qualify_table_name
 
 

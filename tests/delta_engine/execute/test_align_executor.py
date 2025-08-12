@@ -1,7 +1,7 @@
-import pyspark.sql.types as T
 from collections import OrderedDict
 
-from src.delta_engine.execute.align_executor import AlignExecutor
+import pyspark.sql.types as T
+
 from src.delta_engine.actions import (
     AlignTable,
     ColumnAdd,
@@ -14,10 +14,12 @@ from src.delta_engine.actions import (
     SetTableComment,
     SetTableProperties,
 )
+from src.delta_engine.execute.align_executor import AlignExecutor
 
 
 class RecordingDDL:
     """Fake DeltaDDL that records all calls in order."""
+
     def __init__(self):
         self.calls = []
 
@@ -70,7 +72,9 @@ def make_align_full():
         drop_primary_key=PrimaryKeyDrop("pk_old"),
         add_primary_key=PrimaryKeyAdd(PrimaryKeyDefinition("pk_new", ("id",))),
         # 5) column comments (preserve insertion order)
-        set_column_comments=SetColumnComments(OrderedDict([("age", "years"), ("name", "customer")])),
+        set_column_comments=SetColumnComments(
+            OrderedDict([("age", "years"), ("name", "customer")])
+        ),
         # 6) table comment
         set_table_comment=SetTableComment("updated"),
         # 7) properties

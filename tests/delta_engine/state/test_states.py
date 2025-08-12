@@ -1,18 +1,19 @@
-import pytest
+from collections.abc import Mapping
 from dataclasses import FrozenInstanceError
 from types import MappingProxyType
-from collections.abc import Mapping
+
 import pyspark.sql.types as T
+import pytest
 
 from src.delta_engine.state.states import (
+    CatalogState,
     ColumnState,
     PrimaryKeyState,
     TableState,
-    CatalogState,
 )
 
-
 # ---------- ColumnState ----------
+
 
 def test_column_state_is_frozen_and_holds_values():
     col = ColumnState(name="id", data_type=T.IntegerType(), is_nullable=False, comment="pk")
@@ -26,6 +27,7 @@ def test_column_state_is_frozen_and_holds_values():
 
 # ---------- PrimaryKeyState ----------
 
+
 def test_primary_key_state_tuple_and_frozen():
     pk = PrimaryKeyState(name="pk_tbl", columns=("id", "created_at"))
     assert pk.name == "pk_tbl"
@@ -35,6 +37,7 @@ def test_primary_key_state_tuple_and_frozen():
 
 
 # ---------- TableState ----------
+
 
 def test_table_state_defaults_and_full_name():
     cols = (
@@ -70,8 +73,7 @@ def test_table_state_has_slots_and_no_dynamic_attrs():
 
     # assigning a new attribute should fail (slots + frozen)
     with pytest.raises((AttributeError, FrozenInstanceError, TypeError)):
-        setattr(ts, "new_attr", 1)
-
+        ts.new_attr = 1
 
 
 def test_table_state_default_table_properties_is_read_only_mappingproxy():
@@ -99,6 +101,7 @@ def test_table_state_empty_factory_produces_nonexistent_defaults():
 
 # ---------- CatalogState ----------
 
+
 def test_catalog_state_get_returns_expected_tablestate_or_none():
     present = TableState(
         catalog_name="c",
@@ -107,7 +110,6 @@ def test_catalog_state_get_returns_expected_tablestate_or_none():
         exists=True,
         columns=(),
     )
-    missing = TableState.empty("c", "s", "u")  # not inserted
 
     snap = CatalogState(tables={present.full_name: present})
     assert snap.get("c", "s", "t") is present

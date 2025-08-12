@@ -2,8 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Sequence
-from typing import Mapping
+from collections.abc import Mapping, Sequence
 from types import MappingProxyType
 
 import pyspark.sql.types as T
@@ -158,7 +157,6 @@ class CatalogReader:
             return MappingProxyType(coerced)
         except Exception:
             return MappingProxyType({})
-
 
     def _read_primary_key_state(
         self, three_part_name: ThreePartTableName

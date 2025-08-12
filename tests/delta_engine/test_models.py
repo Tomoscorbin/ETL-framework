@@ -1,7 +1,8 @@
-import pytest
-from dataclasses import FrozenInstanceError
 from collections.abc import Mapping
+from dataclasses import FrozenInstanceError
+
 import pyspark.sql.types as T
+import pytest
 
 from src.delta_engine.models import Column, Table
 from src.enums import DeltaTableProperty
@@ -13,15 +14,15 @@ def make_demo_table(**overrides) -> Table:
         Column(name="name", data_type=T.StringType(), comment="customer name"),
         Column(name="created_at", data_type=T.TimestampType()),
     ]
-    base = dict(
-        catalog_name="retail",
-        schema_name="silver",
-        table_name="customers",
-        columns=columns,
-        comment="Customer dimension",
-        table_properties={},
-        primary_key=["id"],
-    )
+    base = {
+        "catalog_name": "retail",
+        "schema_name": "silver",
+        "table_name": "customers",
+        "columns": columns,
+        "comment": "Customer dimension",
+        "table_properties": {},
+        "primary_key": ["id"],
+    }
     base.update(overrides)
     return Table(**base)
 
@@ -75,7 +76,11 @@ def test_table_is_frozen_dataclass():
 
 @pytest.mark.parametrize(
     "primary_key",
-    (None, ["id"], ["id", "created_at"]),
+    [
+        pytest.param(None, id="none"),
+        pytest.param(["id"], id="single"),
+        pytest.param(["id", "created_at"], id="composite"),
+    ],
 )
 def test_primary_key_optional(primary_key):
     table = make_demo_table(primary_key=primary_key)

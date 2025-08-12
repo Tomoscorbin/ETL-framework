@@ -1,14 +1,7 @@
-import pyspark.sql.types as T
 from types import MappingProxyType
 
-from src.delta_engine.compile.planner import Planner
-from src.delta_engine.models import Column, Table
-from src.delta_engine.state.states import (
-    CatalogState,
-    ColumnState,
-    PrimaryKeyState,
-    TableState,
-)
+import pyspark.sql.types as T
+
 from src.delta_engine.actions import (
     AlignTable,
     ColumnAdd,
@@ -21,14 +14,22 @@ from src.delta_engine.actions import (
     SetTableComment,
     SetTableProperties,
 )
-
+from src.delta_engine.compile.planner import Planner
+from src.delta_engine.models import Column, Table
+from src.delta_engine.state.states import (
+    CatalogState,
+    ColumnState,
+    PrimaryKeyState,
+    TableState,
+)
 
 # ----------------- helpers -----------------
 
 
 def str_keys(m):
     """Return a dict with keys coerced to strings (enum.value if enum)."""
-    return { (k.value if hasattr(k, "value") else k): v for k, v in m.items() }
+    return {(k.value if hasattr(k, "value") else k): v for k, v in m.items()}
+
 
 def make_struct_fields(names_types_nulls):
     return [T.StructField(n, dt, nullable=nl) for n, dt, nl in names_types_nulls]
@@ -82,6 +83,7 @@ def desired_table(
 
 # ----------------- create path -----------------
 
+
 def test_plan_emits_create_when_table_missing():
     planner = Planner()
     desired = desired_table(
@@ -96,13 +98,18 @@ def test_plan_emits_create_when_table_missing():
     state = CatalogState(tables={})  # table not present
 
     plan = planner.plan([desired], state)
-    assert isinstance(plan.create_tables, tuple) and isinstance(plan.align_tables, tuple)
-    assert len(plan.create_tables) == 1 and len(plan.align_tables) == 0
-
     ct: CreateTable = plan.create_tables[0]
-    assert ct.catalog_name == "cat" and ct.table_name == "tbl"
-    # schema
     fields = ct.schema_struct.fields
+
+    assert isinstance(plan.create_tables, tuple)
+    assert isinstance(plan.align_tables, tuple)
+    assert len(plan.create_tables) == 1
+    assert len(plan.align_tables) == 0
+
+    assert ct.catalog_name == "cat"
+    assert ct.table_name == "tbl"
+
+    # schema
     assert [(f.name, type(f.dataType), f.nullable) for f in fields] == [
         ("id", T.IntegerType, False),
         ("name", T.StringType, True),
@@ -121,10 +128,12 @@ def test_plan_emits_create_when_state_entry_exists_false():
     desired = desired_table(cols=[Column("id", T.IntegerType(), is_nullable=False)])
     snap = CatalogState(tables={"cat.sch.tbl": table_state(exists=False)})
     plan = planner.plan([desired], snap)
-    assert len(plan.create_tables) == 1 and len(plan.align_tables) == 0
+    assert len(plan.create_tables) == 1
+    assert len(plan.align_tables) == 0
 
 
 # ----------------- align path (diffing) -----------------
+
 
 def test_align_add_drop_nullability_comments_props_and_pk_add():
     planner = Planner()
@@ -140,7 +149,9 @@ def test_align_add_drop_nullability_comments_props_and_pk_add():
 
     actual = table_state(
         columns=(
-            ColumnState("id", T.IntegerType(), is_nullable=True, comment=""),  # needs tighten + comment
+            ColumnState(
+                "id", T.IntegerType(), is_nullable=True, comment=""
+            ),  # needs tighten + comment
             ColumnState("legacy", T.StringType(), is_nullable=True, comment="old"),
         ),
         table_comment="",
@@ -150,7 +161,8 @@ def test_align_add_drop_nullability_comments_props_and_pk_add():
 
     snap = CatalogState(tables={"cat.sch.tbl": actual})
     plan = planner.plan([desired], snap)
-    assert len(plan.create_tables) == 0 and len(plan.align_tables) == 1
+    assert len(plan.create_tables) == 0
+    assert len(plan.align_tables) == 1
 
     at: AlignTable = plan.align_tables[0]
 
@@ -163,7 +175,7 @@ def test_align_add_drop_nullability_comments_props_and_pk_add():
     # nullability: id -> NOT NULL
     assert at.change_nullability == (ColumnNullabilityChange("id", make_nullable=False),)
 
-    # column comments: id changed from "" -> "pk col"; name is new (actual ""), desired "customer" -> included
+    # column comments: id changed from "" -> "pk col"
     assert isinstance(at.set_column_comments, SetColumnComments)
     assert at.set_column_comments.comments == {"id": "pk col", "name": "customer"}
 
@@ -209,10 +221,12 @@ def test_align_noop_when_already_matches_emits_empty_align():
     # Defaults may still need setting depending on UC; planner sets only diffs from actual
     assert at.set_table_properties is not None
     assert props.get("delta.columnMapping.mode") == "name"  # default being applied
-    assert at.add_primary_key is None and at.drop_primary_key is None
+    assert at.add_primary_key is None
+    assert at.drop_primary_key is None
 
 
 # ----------------- properties diffing -----------------
+
 
 def test_property_updates_only_include_changed_keys_not_removals():
     planner = Planner()
@@ -223,7 +237,10 @@ def test_property_updates_only_include_changed_keys_not_removals():
     actual = table_state(
         columns=(ColumnState("id", T.IntegerType(), False, ""),),
         table_properties=MappingProxyType(
-            {"delta.appendOnly": "true", "unmanaged.extra": "keep"}  # extra should NOT be removed by planner
+            {
+                "delta.appendOnly": "true",
+                "unmanaged.extra": "keep",
+            }  # extra should NOT be removed by planner
         ),
     )
     snap = CatalogState(tables={"cat.sch.tbl": actual})
@@ -234,7 +251,9 @@ def test_property_updates_only_include_changed_keys_not_removals():
     assert props["delta.appendOnly"] == "false"
     assert "unmanaged.extra" not in props  # planner doesn’t remove extras, only sets diffs
 
+
 # ----------------- PK logic -----------------
+
 
 def test_pk_add_when_desired_exists_and_actual_none():
     planner = Planner()
@@ -259,14 +278,19 @@ def test_pk_drop_when_actual_exists_and_desired_none():
 
 def test_pk_recreate_when_columns_differ_or_order_differs_case_insensitive():
     planner = Planner()
-    desired = desired_table(cols=[Column("id", T.IntegerType(), False), Column("name", T.StringType(), False)], pk_cols=["name", "id"])
-    # actual has same set different order and different case -> should differ (order-sensitive, case-insensitive)
+    desired = desired_table(
+        cols=[Column("id", T.IntegerType(), False), Column("name", T.StringType(), False)],
+        pk_cols=["name", "id"],
+    )
+    # actual has same set different order and different case
     actual = table_state(
         columns=(
             ColumnState("id", T.IntegerType(), False, ""),
             ColumnState("name", T.StringType(), False, ""),
         ),
-        pk=PrimaryKeyState(name="pk_old", columns=("ID", "NAME")),  # same columns but different order than desired
+        pk=PrimaryKeyState(
+            name="pk_old", columns=("ID", "NAME")
+        ),  # same columns but different order than desired
     )
     at = planner.plan([desired], CatalogState(tables={"cat.sch.tbl": actual})).align_tables[0]
     assert isinstance(at.drop_primary_key, PrimaryKeyDrop)
@@ -276,11 +300,12 @@ def test_pk_recreate_when_columns_differ_or_order_differs_case_insensitive():
 
 # ----------------- internal helpers (light checks) -----------------
 
+
 def test_to_struct_builds_structtype_in_order():
     planner = Planner()
     st = planner._to_struct(
-            [
-                Column("a", T.StringType(), is_nullable=True),
+        [
+            Column("a", T.StringType(), is_nullable=True),
             Column("b", T.IntegerType(), is_nullable=False),
         ]
     )
@@ -293,11 +318,13 @@ def test_to_struct_builds_structtype_in_order():
 def test_compute_column_comment_updates_normalizes_and_includes_new_columns():
     planner = Planner()
     desired_cols = [
-        Column("id", T.IntegerType(), is_nullable=False, comment=None),   # -> ""
-        Column("name", T.StringType(), is_nullable=True, comment="cust"), # -> "cust"
+        Column("id", T.IntegerType(), is_nullable=False, comment=None),  # -> ""
+        Column("name", T.StringType(), is_nullable=True, comment="cust"),  # -> "cust"
     ]
     actual_cols = [
-        ColumnState("id", T.IntegerType(), is_nullable=False, comment=""),  # same after normalize -> no change
+        ColumnState(
+            "id", T.IntegerType(), is_nullable=False, comment=""
+        ),  # same after normalize -> no change
         # name absent -> treated as "" actual, so will be set to "cust"
     ]
     op = planner._compute_column_comment_updates(desired_cols, actual_cols)
@@ -312,4 +339,5 @@ def test_table_comment_update_uses_normalization():
     assert planner._compute_table_comment_update("", None) is None
     # change when different after normalize
     sc = planner._compute_table_comment_update("x", "")
-    assert isinstance(sc, SetTableComment) and sc.comment == "x"
+    assert isinstance(sc, SetTableComment)
+    assert sc.comment == "x"

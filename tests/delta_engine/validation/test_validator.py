@@ -2,8 +2,8 @@ import pytest
 
 from src.delta_engine.validation.validator import Validator
 
-
 # --------- Stubs ---------
+
 
 class StubModelViolation(Exception):
     pass
@@ -41,6 +41,7 @@ class StubPlanRule:
 
 # --------- Defaults ---------
 
+
 def test_defaults_are_used_and_are_tuples():
     v = Validator()
     # identity and type checks on defaults (don’t execute them)
@@ -54,6 +55,7 @@ def test_defaults_are_used_and_are_tuples():
 
 
 # --------- Overrides ---------
+
 
 def test_overrides_are_coerced_to_tuples_and_order_preserved():
     log = []
@@ -77,6 +79,7 @@ def test_empty_override_lists_mean_noops():
 
 
 # --------- validate_models behavior ---------
+
 
 def test_validate_models_calls_each_rule_in_order_and_passes_models_through():
     log = []
@@ -107,6 +110,7 @@ def test_validate_models_is_fail_fast_on_first_violation():
 
 
 # --------- validate_plan behavior ---------
+
 
 def test_validate_plan_calls_each_rule_in_order_and_passes_plan_through():
     log = []

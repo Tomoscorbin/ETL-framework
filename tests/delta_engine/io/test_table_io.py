@@ -1,18 +1,19 @@
 import pyspark.sql.types as T
 
-from src.delta_engine.io.table_io import TableIO
-from src.delta_engine.models import Table, Column
 import src.delta_engine.io.table_io as table_io_mod  # for monkeypatching LOGGER
-
+from src.delta_engine.io.table_io import TableIO
+from src.delta_engine.models import Column, Table
 
 # --------- fakes ---------
+
 
 class FakeWrite:
     def __init__(self):
         self.calls = []
 
-    def saveAsTable(self, *, name, mode, format):
-        self.calls.append((name, mode, format))
+    def saveAsTable(self, *, name, mode, **kwargs):
+        fmt = kwargs.get("format")
+        self.calls.append((name, mode, fmt))
 
 
 class FakeDataFrame:
@@ -45,6 +46,7 @@ class FakeLogger:
 
 # --------- helpers ---------
 
+
 def make_table():
     return Table(
         catalog_name="cat",
@@ -60,6 +62,7 @@ def make_table():
 
 
 # --------- tests ---------
+
 
 def test_read_uses_fully_qualified_name_and_returns_df():
     spark = FakeSpark()

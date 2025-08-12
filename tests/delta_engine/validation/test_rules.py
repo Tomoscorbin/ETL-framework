@@ -1,5 +1,5 @@
-import pytest
 import pyspark.sql.types as T
+import pytest
 
 from src.delta_engine.actions import (
     AlignTable,
@@ -12,16 +12,16 @@ from src.delta_engine.actions import (
 )
 from src.delta_engine.models import Column, Table
 from src.delta_engine.validation.rules import (
-    UnsafePlanError,
+    CreatePrimaryKeyColumnsNotNull,
+    DuplicateColumnNames,
     InvalidModelError,
     NoAddNotNullColumns,
-    CreatePrimaryKeyColumnsNotNull,
     PrimaryKeyAddMustNotMakeColumnsNullable,
-    PrimaryKeyNewColumnsMustBeSetNotNull,
-    PrimaryKeyExistingColumnsMustBeSetNotNull,
     PrimaryKeyColumnsNotNull,
-    DuplicateColumnNames,
+    PrimaryKeyExistingColumnsMustBeSetNotNull,
     PrimaryKeyMustBeOrderedSequence,
+    PrimaryKeyNewColumnsMustBeSetNotNull,
+    UnsafePlanError,
 )
 
 # ----------------- Helpers -----------------
@@ -36,9 +36,7 @@ def make_create(
     with_pk: bool = True,
     fields: tuple[str, T.DataType, bool] | None = None,
 ) -> CreateTable:
-    schema = struct(
-        *(fields or (("id", T.IntegerType(), False), ("name", T.StringType(), True)))
-    )
+    schema = struct(*(fields or (("id", T.IntegerType(), False), ("name", T.StringType(), True))))
     pk = PrimaryKeyDefinition("pk_customers", ("id",)) if with_pk else None
     return CreateTable(
         catalog_name="cat",
@@ -53,19 +51,19 @@ def make_create(
 
 
 def make_align(**kwargs) -> AlignTable:
-    base = dict(
-        catalog_name="cat",
-        schema_name="sch",
-        table_name="tbl",
-        add_columns=tuple(),
-        drop_columns=tuple(),
-        change_nullability=tuple(),
-        set_column_comments=None,
-        set_table_comment=None,
-        set_table_properties=None,
-        drop_primary_key=None,
-        add_primary_key=None,
-    )
+    base = {
+        "catalog_name": "cat",
+        "schema_name": "sch",
+        "table_name": "tbl",
+        "add_columns": (),
+        "drop_columns": (),
+        "change_nullability": (),
+        "set_column_comments": None,
+        "set_table_comment": None,
+        "set_table_properties": None,
+        "drop_primary_key": None,
+        "add_primary_key": None,
+    }
     base.update(kwargs)
     return AlignTable(**base)
 
@@ -76,9 +74,7 @@ def make_align(**kwargs) -> AlignTable:
 def test_no_add_not_null_columns_allows_nullable_adds():
     plan = TablePlan(
         create_tables=(),
-        align_tables=(
-            make_align(add_columns=(ColumnAdd("age", T.IntegerType(), True),)),
-        ),
+        align_tables=(make_align(add_columns=(ColumnAdd("age", T.IntegerType(), True),)),),
     )
     NoAddNotNullColumns().check(plan)  # should not raise
 
@@ -86,9 +82,7 @@ def test_no_add_not_null_columns_allows_nullable_adds():
 def test_no_add_not_null_columns_rejects_not_null_add():
     plan = TablePlan(
         create_tables=(),
-        align_tables=(
-            make_align(add_columns=(ColumnAdd("age", T.IntegerType(), False),)),
-        ),
+        align_tables=(make_align(add_columns=(ColumnAdd("age", T.IntegerType(), False),)),),
     )
     with pytest.raises(UnsafePlanError) as err:
         NoAddNotNullColumns().check(plan)

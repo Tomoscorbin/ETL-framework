@@ -1,14 +1,14 @@
 import types
+
 import pyspark.sql.types as T
-import pytest
 
 import src.delta_engine.execute.ddl as ddl_mod
 from src.delta_engine.execute.ddl import DeltaDDL
 
-
 # ---------------------------
 # Fakes / helpers
 # ---------------------------
+
 
 class FakeSpark:
     def __init__(self):
@@ -76,6 +76,7 @@ def make_schema():
 # Tests
 # ---------------------------
 
+
 def test_create_table_if_not_exists_with_comment(monkeypatch):
     install_fake_delta(monkeypatch)
     spark = FakeSpark()
@@ -85,12 +86,10 @@ def test_create_table_if_not_exists_with_comment(monkeypatch):
     ddl.create_table_if_not_exists("`cat`.`sch`.`tbl`", schema, table_comment="hello")
 
     # pull the fake builder from the installed module to inspect state
-    from delta.tables import DeltaTable  # type: ignore
     # The builder's state isn't directly exposed; we rely on type/attributes via our fake
     # Create a new builder just to assert type; the executed one isn't stored.
     # Instead, rely on the behavior contract: if no exception, the builder executed.
     # More direct check: monkeypatch the FakeDeltaBuilder to record last built instance.
-    # For simplicity, just ensure no exception and behavior is covered in the "without comment" case below.
 
 
 def test_create_table_if_not_exists_without_comment(monkeypatch):
@@ -134,8 +133,9 @@ def test_set_table_properties_runs_sql_for_nonempty_and_noops_for_empty(monkeypa
     ddl = DeltaDDL(spark)
 
     # stub formatter to predictable SQL / None
-    monkeypatch.setattr(ddl_mod, "sql_set_table_properties", lambda tbl, props: "SQL PROPS" if props else None)
-
+    monkeypatch.setattr(
+        ddl_mod, "sql_set_table_properties", lambda _, props: "SQL PROPS" if props else None
+    )
     ddl.set_table_properties("`t`", {"k": "v"})
     ddl.set_table_properties("`t`", {})
 
@@ -147,6 +147,7 @@ def test_add_column_passes_comment_and_dtype(monkeypatch):
     ddl = DeltaDDL(spark)
 
     calls = []
+
     def fake_sql_add(tbl, col, dtype, comment=""):
         calls.append((tbl, col, dtype.simpleString(), comment))
         return f"ADD {col} {dtype.simpleString()}"
@@ -167,7 +168,7 @@ def test_drop_columns_noops_for_empty_and_runs_when_nonempty(monkeypatch):
     spark = FakeSpark()
     ddl = DeltaDDL(spark)
 
-    def fake_sql_drop(tbl, names):
+    def fake_sql_drop(_, names):
         return None if not names else f"DROP {','.join(names)}"
 
     monkeypatch.setattr(ddl_mod, "sql_drop_columns", fake_sql_drop)
@@ -182,8 +183,9 @@ def test_set_column_nullability_builds_sql(monkeypatch):
     spark = FakeSpark()
     ddl = DeltaDDL(spark)
 
-    monkeypatch.setattr(ddl_mod, "sql_set_column_nullability", lambda t, c, m: f"NULL {c} {'DROP' if m else 'SET'}")
-
+    monkeypatch.setattr(
+        ddl_mod, "sql_set_column_nullability", lambda _, c, m: f"NULL {c} {'DROP' if m else 'SET'}"
+    )
     ddl.set_column_nullability("`t`", "name", True)
     ddl.set_column_nullability("`t`", "id", False)
 
@@ -194,8 +196,8 @@ def test_set_column_and_table_comments_build_sql(monkeypatch):
     spark = FakeSpark()
     ddl = DeltaDDL(spark)
 
-    monkeypatch.setattr(ddl_mod, "sql_set_column_comment", lambda t, c, s: f"COLCMT {c} {s}")
-    monkeypatch.setattr(ddl_mod, "sql_set_table_comment", lambda t, s: f"TBLCMT {s}")
+    monkeypatch.setattr(ddl_mod, "sql_set_column_comment", lambda _, c, s: f"COLCMT {c} {s}")
+    monkeypatch.setattr(ddl_mod, "sql_set_table_comment", lambda _, s: f"TBLCMT {s}")
 
     ddl.set_column_comment("`t`", "n", "hello")
     ddl.set_table_comment("`t`", "world")
@@ -207,8 +209,10 @@ def test_add_and_drop_primary_key_build_sql(monkeypatch):
     spark = FakeSpark()
     ddl = DeltaDDL(spark)
 
-    monkeypatch.setattr(ddl_mod, "sql_add_primary_key", lambda t, n, cols: f"ADD PK {n} ({','.join(cols)})")
-    monkeypatch.setattr(ddl_mod, "sql_drop_primary_key", lambda t, n: f"DROP PK {n}")
+    monkeypatch.setattr(
+        ddl_mod, "sql_add_primary_key", lambda _t, n, cols: f"ADD PK {n} ({','.join(cols)})"
+    )
+    monkeypatch.setattr(ddl_mod, "sql_drop_primary_key", lambda _t, n: f"DROP PK {n}")
 
     ddl.add_primary_key("`t`", "pk_x", ["id", "name"])
     ddl.drop_primary_key("`t`", "pk_x")

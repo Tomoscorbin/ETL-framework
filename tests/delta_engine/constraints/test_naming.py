@@ -1,10 +1,10 @@
 import re
 
 from src.delta_engine.constraints.naming import (
-    build_primary_key_name,
-    _truncate_with_hash,
-    _short_hash,
     MAX_IDENTIFIER_LEN,
+    _short_hash,
+    _truncate_with_hash,
+    build_primary_key_name,
 )
 
 
@@ -66,7 +66,7 @@ def test_truncate_with_hash_without_space_for_sep_keeps_no_sep():
     out = _truncate_with_hash(s, max_len=9)
     assert len(out) == 9
     assert out.endswith(h)
-    assert out[:-len(h)] == s[:1]  # one char prefix, then hash
+    assert out[: -len(h)] == s[:1]  # one char prefix, then hash
 
 
 def test_short_hash_is_deterministic_and_hex():

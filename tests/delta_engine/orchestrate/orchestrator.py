@@ -1,14 +1,14 @@
 import pyspark.sql.types as T
 import pytest
 
-from src.delta_engine.orchestrate.orchestrator import Orchestrator
-from src.delta_engine.models import Table, Column
-from src.delta_engine.state.states import CatalogState
-from src.delta_engine.actions import TablePlan
 import src.delta_engine.orchestrate.orchestrator as orch_mod  # for monkeypatching LOGGER
-
+from src.delta_engine.actions import TablePlan
+from src.delta_engine.models import Column, Table
+from src.delta_engine.orchestrate.orchestrator import Orchestrator
+from src.delta_engine.state.states import CatalogState
 
 # ---------- fakes ----------
+
 
 class FakeSpark:
     pass
@@ -32,7 +32,6 @@ class FakePlanner:
     def plan(self, desired_tables, catalog_state):
         self.calls.append(("plan", tuple(desired_tables), catalog_state))
         return self._plan
-
 
 
 class FakeValidator:
@@ -83,6 +82,7 @@ def make_table():
 
 # ---------- tests ----------
 
+
 def test_default_components_wire_spark(monkeypatch):
     # use real classes but ensure LOGGER doesn't blow up
     monkeypatch.setattr(orch_mod, "LOGGER", FakeLogger(), raising=True)
@@ -129,12 +129,14 @@ def test_sync_tables_happy_path_calls_in_order_and_logs(monkeypatch):
 
     # call order
     assert reader.calls == [("snapshot", tuple(desired))]
-    assert planner.calls and planner.calls[0][0] == "plan"
+    assert planner.calls
+    assert planner.calls[0][0] == "plan"
     # validator called with models then plan
     assert validator.calls[0][0] == "validate_models"
     assert validator.calls[1][0] == "validate_plan"
     # runner executed
-    assert runner.calls and runner.calls[0][0] == "apply"
+    assert runner.calls
+    assert runner.calls[0][0] == "apply"
 
     # logs
     assert any("Starting orchestration for 1 table" in m for m in log.messages)
@@ -151,7 +153,9 @@ def test_sync_tables_fail_fast_on_model_validation(monkeypatch):
     validator = FakeValidator(model_exc=RuntimeError("model boom"))
     runner = FakeRunner()
 
-    o = Orchestrator(FakeSpark(), reader=reader, planner=planner, validator=validator, runner=runner)
+    o = Orchestrator(
+        FakeSpark(), reader=reader, planner=planner, validator=validator, runner=runner
+    )
 
     with pytest.raises(RuntimeError):
         o.sync_tables([make_table()])
@@ -170,7 +174,9 @@ def test_sync_tables_fail_fast_on_plan_validation(monkeypatch):
     validator = FakeValidator(plan_exc=RuntimeError("plan boom"))
     runner = FakeRunner()
 
-    o = Orchestrator(FakeSpark(), reader=reader, planner=planner, validator=validator, runner=runner)
+    o = Orchestrator(
+        FakeSpark(), reader=reader, planner=planner, validator=validator, runner=runner
+    )
 
     with pytest.raises(RuntimeError):
         o.sync_tables([make_table()])
@@ -180,7 +186,7 @@ def test_sync_tables_fail_fast_on_plan_validation(monkeypatch):
     assert [c[0] for c in validator.calls] == ["validate_models", "validate_plan"]
 
 
-def test_snapshot_compile_validate_execute_helpers_are_thin_wrappers(monkeypatch):
+def test_snapshot_compile_validate_execute_helpers_are_thin_wrappers():
     """Smoke-test the private helpers map straight to the collaborators."""
     # no logger patch needed
     reader = FakeReader()
@@ -188,7 +194,9 @@ def test_snapshot_compile_validate_execute_helpers_are_thin_wrappers(monkeypatch
     validator = FakeValidator()
     runner = FakeRunner()
 
-    o = Orchestrator(FakeSpark(), reader=reader, planner=planner, validator=validator, runner=runner)
+    o = Orchestrator(
+        FakeSpark(), reader=reader, planner=planner, validator=validator, runner=runner
+    )
 
     desired = [make_table()]
     snap = o._snapshot(desired)
@@ -196,8 +204,10 @@ def test_snapshot_compile_validate_execute_helpers_are_thin_wrappers(monkeypatch
 
     plan = o._compile(desired, snap)
     assert isinstance(plan, TablePlan)
-    assert len(plan.create_tables) == 1 and len(plan.align_tables) == 1
+    assert len(plan.create_tables) == 1
+    assert len(plan.align_tables) == 1
 
     o._validate(desired, plan)  # should not raise
     o._execute(plan)
-    assert runner.calls and runner.calls[0] == ("apply", plan)
+    assert runner.calls
+    assert runner.calls[0] == ("apply", plan)

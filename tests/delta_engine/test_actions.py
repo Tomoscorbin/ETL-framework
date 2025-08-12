@@ -1,27 +1,28 @@
 # tests/test_actions.py
-import pytest
+from collections.abc import Mapping
 from dataclasses import FrozenInstanceError
 from types import MappingProxyType
-from collections.abc import Mapping
+
 import pyspark.sql.types as T
+import pytest
 
 from src.delta_engine.actions import (
-    PrimaryKeyDefinition,
+    AlignTable,
     ColumnAdd,
     ColumnDrop,
     ColumnNullabilityChange,
+    CreateTable,
+    PrimaryKeyAdd,
+    PrimaryKeyDefinition,
+    PrimaryKeyDrop,
     SetColumnComments,
     SetTableComment,
     SetTableProperties,
-    PrimaryKeyAdd,
-    PrimaryKeyDrop,
-    CreateTable,
-    AlignTable,
     TablePlan,
 )
 
-
 # ---- Helpers ----
+
 
 def make_schema() -> T.StructType:
     return T.StructType(
@@ -31,8 +32,10 @@ def make_schema() -> T.StructType:
         ]
     )
 
+
 def make_pk() -> PrimaryKeyDefinition:
     return PrimaryKeyDefinition(name="pk_customers", columns=("id",))
+
 
 def make_create_table(with_pk: bool = False) -> CreateTable:
     return CreateTable(
@@ -48,6 +51,7 @@ def make_create_table(with_pk: bool = False) -> CreateTable:
 
 
 # ---- Core payloads ----
+
 
 def test_primary_key_definition_is_tuple_and_frozen():
     pk = make_pk()
@@ -104,6 +108,7 @@ def test_primary_key_add_and_drop_wrap_payloads():
 
 # ---- CreateTable ----
 
+
 def test_create_table_without_pk():
     ct = make_create_table(with_pk=False)
     assert ct.catalog_name == "retail"
@@ -130,11 +135,15 @@ def test_create_table_is_frozen():
 
 # ---- AlignTable ----
 
+
 def test_align_table_defaults_are_empty_and_none():
     at = AlignTable(catalog_name="retail", schema_name="silver", table_name="customers")
-    assert isinstance(at.add_columns, tuple) and at.add_columns == ()
-    assert isinstance(at.drop_columns, tuple) and at.drop_columns == ()
-    assert isinstance(at.change_nullability, tuple) and at.change_nullability == ()
+    assert isinstance(at.add_columns, tuple)
+    assert at.add_columns == ()
+    assert isinstance(at.drop_columns, tuple)
+    assert at.drop_columns == ()
+    assert isinstance(at.change_nullability, tuple)
+    assert at.change_nullability == ()
     assert at.set_column_comments is None
     assert at.set_table_comment is None
     assert at.set_table_properties is None
@@ -174,6 +183,7 @@ def test_align_table_is_frozen():
 
 # ---- TablePlan ----
 
+
 def test_table_plan_holds_create_and_align_and_is_frozen():
     ct = make_create_table()
     at = AlignTable(catalog_name="retail", schema_name="silver", table_name="customers")
@@ -181,4 +191,4 @@ def test_table_plan_holds_create_and_align_and_is_frozen():
     assert plan.create_tables[0] is ct
     assert plan.align_tables[0] is at
     with pytest.raises(FrozenInstanceError):
-        plan.create_tables = tuple()  # type: ignore[attr-defined]
+        plan.create_tables = ()  # type: ignore[attr-defined]

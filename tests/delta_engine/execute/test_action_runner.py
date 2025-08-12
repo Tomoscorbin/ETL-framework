@@ -1,11 +1,12 @@
-from src.delta_engine.execute.action_runner import ActionRunner
 from src.delta_engine.actions import TablePlan
-
+from src.delta_engine.execute.action_runner import ActionRunner
 
 # ---------- helpers ----------
 
+
 class RecordingExecutor:
     """Minimal fake executor that records apply() calls."""
+
     def __init__(self, call_log, label):
         self.call_log = call_log
         self.label = label
@@ -38,9 +39,11 @@ class FakeSpark:
 
 # ---------- tests ----------
 
+
 def test_initializes_executors_with_same_spark(monkeypatch):
     """Constructor should pass the same SparkSession to both executors."""
     created = {}
+
     def make_create_exec(spark):
         ce = StubCreateExec(spark)
         created["create"] = ce
@@ -53,6 +56,7 @@ def test_initializes_executors_with_same_spark(monkeypatch):
 
     # Patch the executor classes in the module under test
     import src.delta_engine.execute.action_runner as mod
+
     monkeypatch.setattr(mod, "CreateExecutor", make_create_exec)
     monkeypatch.setattr(mod, "AlignExecutor", make_align_exec)
 
@@ -66,7 +70,7 @@ def test_initializes_executors_with_same_spark(monkeypatch):
     assert runner._align_executor is created["align"]
 
 
-def test_apply_noop_when_plan_empty(monkeypatch):
+def test_apply_noop_when_plan_empty():
     spark = FakeSpark()
     runner = ActionRunner(spark)
 

@@ -1,12 +1,11 @@
 # tests/delta_engine/execute/test_create_executor.py
 import pyspark.sql.types as T
-import pytest
 
-from src.delta_engine.execute.create_executor import CreateExecutor
 from src.delta_engine.actions import CreateTable, PrimaryKeyDefinition
-
+from src.delta_engine.execute.create_executor import CreateExecutor
 
 # --- fakes ---
+
 
 class RecordingDDL:
     def __init__(self, spark):
@@ -33,37 +32,42 @@ class FakeSpark:
 
 
 def make_schema():
-    return T.StructType([
-        T.StructField("id", T.IntegerType(), nullable=False),
-        T.StructField("name", T.StringType(), nullable=True),
-    ])
+    return T.StructType(
+        [
+            T.StructField("id", T.IntegerType(), nullable=False),
+            T.StructField("name", T.StringType(), nullable=True),
+        ]
+    )
 
 
 def make_create(**overrides) -> CreateTable:
-    base = dict(
-        catalog_name="cat",
-        schema_name="sch",
-        table_name="tbl",
-        schema_struct=make_schema(),
-        table_comment="hello",
-        table_properties={"delta.appendOnly": "false"},
-        column_comments={"id": "primary key", "name": ""},
-        primary_key=PrimaryKeyDefinition(name="pk_cat_sch_tbl__id", columns=("id",)),
-    )
+    base = {
+        "catalog_name": "cat",
+        "schema_name": "sch",
+        "table_name": "tbl",
+        "schema_struct": make_schema(),
+        "table_comment": "hello",
+        "table_properties": {"delta.appendOnly": "false"},
+        "column_comments": {"id": "primary key", "name": ""},
+        "primary_key": PrimaryKeyDefinition(name="pk_cat_sch_tbl__id", columns=("id",)),
+    }
     base.update(overrides)
     return CreateTable(**base)
 
 
 # --- tests ---
 
+
 def test_constructor_wires_spark_into_DeltaDDL(monkeypatch):
     created = {}
+
     def ddl_factory(spark):
         created["ddl"] = RecordingDDL(spark)
         return created["ddl"]
 
     # patch the class in the module under test
     import src.delta_engine.execute.create_executor as create_mod
+
     monkeypatch.setattr(create_mod, "DeltaDDL", ddl_factory)
 
     spark = FakeSpark()
@@ -83,9 +87,7 @@ def test_apply_calls_steps_in_order_and_with_right_args():
     runner.apply(action)
 
     assert recorder.calls == [
-        ("create", "cat.sch.tbl",
-         (("id", "int", False), ("name", "string", True)),
-         "hello"),
+        ("create", "cat.sch.tbl", (("id", "int", False), ("name", "string", True)), "hello"),
         ("props", "cat.sch.tbl", {"delta.appendOnly": "false"}),
         ("col_comment", "cat.sch.tbl", "id", "primary key"),
         ("pk", "cat.sch.tbl", "pk_cat_sch_tbl__id", ["id"]),
@@ -99,17 +101,20 @@ def test_apply_noops_for_empty_props_no_comments_no_pk():
     runner._ddl = recorder
 
     action = make_create(
-        table_properties={},               # falsy -> skip
-        column_comments={"id": ""},        # only empty -> skip
-        primary_key=None,                  # skip
-        table_comment="",                  # allowed; still passed to create
+        table_properties={},  # falsy -> skip
+        column_comments={"id": ""},  # only empty -> skip
+        primary_key=None,  # skip
+        table_comment="",  # allowed; still passed to create
     )
     runner.apply(action)
 
     assert recorder.calls == [
-        ("create", "cat.sch.tbl",
-         (("id", "int", False), ("name", "string", True)),
-         ""),  # empty comment still passed on creation
+        (
+            "create",
+            "cat.sch.tbl",
+            (("id", "int", False), ("name", "string", True)),
+            "",
+        ),  # empty comment still passed on creation
     ]
 
 

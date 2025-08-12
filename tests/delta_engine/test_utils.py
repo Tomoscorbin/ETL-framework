@@ -95,3 +95,14 @@ def test_quote_qualified_name_from_full_roundtrip():
         if False
         else "`ca`t`.`sc`.`h`.`tb`l`"
     )  # safety no-op
+
+
+def test_format_tblproperties_sorts_and_escapes():
+    props = {
+        "b": "y",
+        "a": "x",
+        "we'ird": "va'l",  # ensure quotes are escaped
+    }
+    s = u.format_tblproperties(props)
+    # keys sorted a, b, we'ird; single quotes doubled inside keys/values
+    assert s == "'a' = 'x', 'b' = 'y', 'we''ird' = 'va''l'"

@@ -365,3 +365,21 @@ def test_tablestate_defaults_and_readonly_properties() -> None:
     assert isinstance(ts.table_properties, MappingProxyType)
     with pytest.raises(TypeError):
         ts.table_properties["x"] = "y"  # type: ignore[index]
+
+
+def test_take_first_value_nonempty_branch(reader: CatalogReader, monkeypatch: pytest.MonkeyPatch):
+    class DF:
+        def take(self, n: int):
+            return [{"name": "pk_tbl"}]
+
+    monkeypatch.setattr(reader.spark, "sql", lambda _sql: DF(), raising=True)
+    assert reader._take_first_value("ignored", "name") == "pk_tbl"
+
+
+def test_take_first_value_empty_branch(reader: CatalogReader, monkeypatch: pytest.MonkeyPatch):
+    class DF:
+        def take(self, n: int):
+            return []
+
+    monkeypatch.setattr(reader.spark, "sql", lambda _sql: DF(), raising=True)
+    assert reader._take_first_value("ignored", "name") is None

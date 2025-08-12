@@ -58,25 +58,28 @@ flowchart LR
 
 ```mermaid
 sequenceDiagram
-  participant Author as Author (models)
-  participant Reader as CatalogReader
-  participant Planner as TablePlanner
-  participant Validator as PlanValidator
-  participant Runner as ActionRunner
-  participant DDL as DeltaDDL
+  autonumber
+  participant M as Models
+  participant R as CatalogReader
+  participant P as TablePlanner
+  participant V as PlanValidator
+  participant A as ActionRunner
+  participant D as DeltaDDL
   participant UC as Unity Catalog
 
-  Author->>Reader: tables (models)
-  Reader->>UC: discover schema/props/comments/PK
-  Reader-->>Author: TableState
-  Author->>Planner: Table + TableState
-  Planner-->>Author: TablePlan (actions)
-  Author->>Validator: models + plan
-  Validator-->>Author: OK or UnsafePlanError/InvalidModelError
-  Author->>Runner: apply(plan)
-  Runner->>DDL: create & alter SQL
-  DDL->>UC: execute statements
-  UC-->>Author: catalog aligned
+  M->>R: desired tables
+  R->>UC: read schema / props / comments / PK
+  UC-->>R: metadata
+  R-->>P: TableState
+  M->>P: models
+  P-->>V: TablePlan
+  M->>V: models
+  V-->>A: validated plan
+  Note over A,D: Pass unescaped names (catalog.schema.table)\nSQL builders handle quoting/escaping
+  A->>D: create & alter SQL
+  D->>UC: execute statements
+  UC-->>M: catalog aligned
+
 ```
 
 ---

@@ -20,63 +20,33 @@ This guide explains **what the Delta Engine does**, **how it works end‑to‑en
 ### Logical flow (block diagram)
 
 ```mermaid
-flowchart TB
-  subgraph Authoring
-    M[Models]
-  end
-
-  subgraph Read
-    R[CatalogReader]
-    UC[(Unity Catalog / Delta)]
-  end
-
-  subgraph Plan
-    P[TablePlanner]
-    V[PlanValidator]
-  end
-
-  subgraph Exec
-    A[ActionRunner]
-    DDL[DeltaDDL]
-    SQL[sql.py]
-  end
-
-  %% data flows
-  M --> R
-  R -->|CatalogState| P
-  M --> P
-  P -->|TablePlan| V
-  V -->|Plan OK| A
-  A --> DDL --> SQL --> UC
-
-  %% optional feedback
-  V -.->|Error| M
+flowchart LR
+        A["Models"]
+        A --> B["Catalog State"]
+        B --> C["Planner"]
+        C --> D["Validator"]
+        D --> E["Executor"]
 ```
 
 ### Sequence view (single table)
 
 ```mermaid
 sequenceDiagram
-  autonumber
   participant M as Models
   participant R as CatalogReader
-  participant P as TablePlanner
-  participant V as PlanValidator
-  participant A as ActionRunner
-  participant D as DeltaDDL
+  participant P as Planner
+  participant V as Validator
+  participant E as Executor
   participant UC as Unity Catalog
 
   M->>R: desired tables
-  R->>UC: read schema / props / comments / PK
-  UC-->>R: metadata
   R-->>P: TableState
-  M->>P: models
-  P-->>V: TablePlan
-  M->>V: models
-  V-->>A: validated plan
-  A->>D: create & alter SQL
-  D->>UC: execute statements
-  UC-->>M: catalog aligned
+  M->>P: Models
+  P-->>V: Plan
+  M->>V: Models
+  V-->>E: Validated plan
+  E->>UC: Executed plan
+  UC-->>M: Catalog aligned
 
 ```
 

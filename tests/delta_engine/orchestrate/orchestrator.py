@@ -1,74 +1,78 @@
+from __future__ import annotations
+
 import pyspark.sql.types as T
 import pytest
 
-import src.delta_engine.orchestrate.orchestrator as orch_mod  # for monkeypatching LOGGER
-from src.delta_engine.actions import TablePlan
-from src.delta_engine.models import Column, Table
 from src.delta_engine.orchestrate.orchestrator import Orchestrator
+from src.delta_engine.actions import TablePlan
+from src.delta_engine.models import Table, Column
 from src.delta_engine.state.states import CatalogState
+import src.delta_engine.orchestrate.orchestrator as orch_mod  # for monkeypatching LOGGER
+
 
 # ---------- fakes ----------
-
 
 class FakeSpark:
     pass
 
 
 class FakeReader:
-    def __init__(self):
-        self.calls = []
+    def __init__(self) -> None:
+        self.calls: list[tuple[str, tuple[Table, ...]]] = []
         self.result = CatalogState(tables={})
 
-    def snapshot(self, desired_tables):
+    def snapshot(self, desired_tables: list[Table] | tuple[Table, ...]) -> CatalogState:
         self.calls.append(("snapshot", tuple(desired_tables)))
         return self.result
 
 
 class FakePlanner:
-    def __init__(self, create=(), align=()):
-        self.calls = []
+    def __init__(self, create: tuple = (), align: tuple = ()) -> None:
+        self.calls: list[tuple[str, tuple[Table, ...], CatalogState]] = []
         self._plan = TablePlan(create_tables=tuple(create), align_tables=tuple(align))
 
-    def plan(self, desired_tables, catalog_state):
+    def plan(self, desired_tables: list[Table] | tuple[Table, ...], catalog_state: CatalogState) -> TablePlan:
         self.calls.append(("plan", tuple(desired_tables), catalog_state))
         return self._plan
 
 
 class FakeValidator:
-    def __init__(self, model_exc=None, plan_exc=None):
-        self.calls = []
+    def __init__(self, model_exc: Exception | None = None, plan_exc: Exception | None = None) -> None:
+        self.calls: list[tuple[str, object]] = []
         self.model_exc = model_exc
         self.plan_exc = plan_exc
 
-    def validate_models(self, models):
+    def validate_models(self, models: list[Table] | tuple[Table, ...]) -> None:
         self.calls.append(("validate_models", tuple(models)))
         if self.model_exc:
             raise self.model_exc
 
-    def validate_plan(self, plan):
+    def validate_plan(self, plan: TablePlan) -> None:
         self.calls.append(("validate_plan", plan))
         if self.plan_exc:
             raise self.plan_exc
 
 
 class FakeRunner:
-    def __init__(self):
-        self.calls = []
+    def __init__(self) -> None:
+        self.calls: list[tuple[str, TablePlan]] = []
 
-    def apply(self, plan):
+    def apply(self, plan: TablePlan) -> None:
         self.calls.append(("apply", plan))
 
 
 class FakeLogger:
-    def __init__(self):
-        self.messages = []
+    def __init__(self) -> None:
+        self.messages: list[str] = []
 
-    def info(self, msg, *args):
-        # support %-format args used in logger calls
+    def info(self, msg: str, *args) -> None:
+        # match logging API: %-style formatting
         self.messages.append(msg % args if args else msg)
 
 
-def make_table():
+# ---------- helpers ----------
+
+def make_table() -> Table:
     return Table(
         catalog_name="cat",
         schema_name="sch",
@@ -82,22 +86,18 @@ def make_table():
 
 # ---------- tests ----------
 
-
-def test_default_components_wire_spark(monkeypatch):
-    # use real classes but ensure LOGGER doesn't blow up
+def test_default_components_wire_spark(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(orch_mod, "LOGGER", FakeLogger(), raising=True)
     spark = FakeSpark()
-    o = Orchestrator(spark)
+    orchestrator = Orchestrator(spark)
 
-    # Reader and Runner should hold the same spark instance
-    assert o.reader.spark is spark
-    assert o.runner.spark is spark
-    # Planner/Validator exist
-    assert o.table_planner is not None
-    assert o.validator is not None
+    assert orchestrator.reader.spark is spark
+    assert orchestrator.runner.spark is spark
+    assert orchestrator.table_planner is not None
+    assert orchestrator.validator is not None
 
 
-def test_injected_components_are_used(monkeypatch):
+def test_injected_components_are_used(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(orch_mod, "LOGGER", FakeLogger(), raising=True)
     spark = FakeSpark()
     reader = FakeReader()
@@ -105,14 +105,15 @@ def test_injected_components_are_used(monkeypatch):
     validator = FakeValidator()
     runner = FakeRunner()
 
-    o = Orchestrator(spark, reader=reader, planner=planner, validator=validator, runner=runner)
-    assert o.reader is reader
-    assert o.table_planner is planner
-    assert o.validator is validator
-    assert o.runner is runner
+    orchestrator = Orchestrator(spark, reader=reader, planner=planner, validator=validator, runner=runner)
+
+    assert orchestrator.reader is reader
+    assert orchestrator.table_planner is planner
+    assert orchestrator.validator is validator
+    assert orchestrator.runner is runner
 
 
-def test_sync_tables_happy_path_calls_in_order_and_logs(monkeypatch):
+def test_sync_tables_happy_path_calls_in_order_and_logs(monkeypatch: pytest.MonkeyPatch) -> None:
     log = FakeLogger()
     monkeypatch.setattr(orch_mod, "LOGGER", log, raising=True)
 
@@ -121,51 +122,41 @@ def test_sync_tables_happy_path_calls_in_order_and_logs(monkeypatch):
     validator = FakeValidator()
     runner = FakeRunner()
 
-    spark = FakeSpark()
-    o = Orchestrator(spark, reader=reader, planner=planner, validator=validator, runner=runner)
+    orchestrator = Orchestrator(FakeSpark(), reader=reader, planner=planner, validator=validator, runner=runner)
 
     desired = [make_table()]
-    o.sync_tables(desired)
+    orchestrator.sync_tables(desired)
 
-    # call order
     assert reader.calls == [("snapshot", tuple(desired))]
-    assert planner.calls
+    assert planner.calls  # not empty
     assert planner.calls[0][0] == "plan"
-    # validator called with models then plan
-    assert validator.calls[0][0] == "validate_models"
-    assert validator.calls[1][0] == "validate_plan"
-    # runner executed
-    assert runner.calls
-    assert runner.calls[0][0] == "apply"
+    assert [c[0] for c in validator.calls] == ["validate_models", "validate_plan"]
+    assert runner.calls and runner.calls[0][0] == "apply"
 
-    # logs
     assert any("Starting orchestration for 1 table" in m for m in log.messages)
     assert any("Plan generated" in m and "create=1, align=2" in m for m in log.messages)
     assert any("Orchestration completed." in m for m in log.messages)
 
 
-def test_sync_tables_fail_fast_on_model_validation(monkeypatch):
+def test_sync_tables_fail_fast_on_model_validation(monkeypatch: pytest.MonkeyPatch) -> None:
     log = FakeLogger()
     monkeypatch.setattr(orch_mod, "LOGGER", log, raising=True)
 
     reader = FakeReader()
-    planner = FakePlanner(create=(), align=())
+    planner = FakePlanner()
     validator = FakeValidator(model_exc=RuntimeError("model boom"))
     runner = FakeRunner()
 
-    o = Orchestrator(
-        FakeSpark(), reader=reader, planner=planner, validator=validator, runner=runner
-    )
+    orchestrator = Orchestrator(FakeSpark(), reader=reader, planner=planner, validator=validator, runner=runner)
 
-    with pytest.raises(RuntimeError):
-        o.sync_tables([make_table()])
+    with pytest.raises(RuntimeError, match="model boom"):
+        orchestrator.sync_tables([make_table()])
 
-    # runner not called; plan validation not called
-    assert not runner.calls
     assert [c[0] for c in validator.calls] == ["validate_models"]
+    assert not runner.calls  # nothing executed
 
 
-def test_sync_tables_fail_fast_on_plan_validation(monkeypatch):
+def test_sync_tables_fail_fast_on_plan_validation(monkeypatch: pytest.MonkeyPatch) -> None:
     log = FakeLogger()
     monkeypatch.setattr(orch_mod, "LOGGER", log, raising=True)
 
@@ -174,40 +165,34 @@ def test_sync_tables_fail_fast_on_plan_validation(monkeypatch):
     validator = FakeValidator(plan_exc=RuntimeError("plan boom"))
     runner = FakeRunner()
 
-    o = Orchestrator(
-        FakeSpark(), reader=reader, planner=planner, validator=validator, runner=runner
-    )
+    orchestrator = Orchestrator(FakeSpark(), reader=reader, planner=planner, validator=validator, runner=runner)
 
-    with pytest.raises(RuntimeError):
-        o.sync_tables([make_table()])
+    with pytest.raises(RuntimeError, match="plan boom"):
+        orchestrator.sync_tables([make_table()])
 
-    # runner not called; both validations were attempted
-    assert not runner.calls
     assert [c[0] for c in validator.calls] == ["validate_models", "validate_plan"]
+    assert not runner.calls
 
 
-def test_snapshot_compile_validate_execute_helpers_are_thin_wrappers():
-    """Smoke-test the private helpers map straight to the collaborators."""
-    # no logger patch needed
+def test_private_helpers_are_thin_wrappers(monkeypatch: pytest.MonkeyPatch) -> None:
     reader = FakeReader()
     planner = FakePlanner(create=("X",), align=("Y",))
     validator = FakeValidator()
     runner = FakeRunner()
 
-    o = Orchestrator(
-        FakeSpark(), reader=reader, planner=planner, validator=validator, runner=runner
-    )
+    orchestrator = Orchestrator(FakeSpark(), reader=reader, planner=planner, validator=validator, runner=runner)
 
     desired = [make_table()]
-    snap = o._snapshot(desired)
+    snap = orchestrator._snapshot(desired)
     assert isinstance(snap, CatalogState)
 
-    plan = o._compile(desired, snap)
+    plan = orchestrator._compile(desired, snap)
     assert isinstance(plan, TablePlan)
     assert len(plan.create_tables) == 1
     assert len(plan.align_tables) == 1
 
-    o._validate(desired, plan)  # should not raise
-    o._execute(plan)
+    orchestrator._validate(desired, plan)  # should not raise
+    orchestrator._execute(plan)
+
     assert runner.calls
     assert runner.calls[0] == ("apply", plan)

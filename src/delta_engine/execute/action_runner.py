@@ -7,10 +7,9 @@ by delegating to the appropriate executor for each action type.
 
 from pyspark.sql import SparkSession
 
-from src.delta_engine.actions import TablePlan, ConstraintPlan
+from src.delta_engine.actions import TablePlan
 from src.delta_engine.execute.align_executor import AlignExecutor
 from src.delta_engine.execute.create_executor import CreateExecutor
-from src.delta_engine.execute.constraint_executor import ConstraintExecutor
 
 
 class ActionRunner:
@@ -19,18 +18,27 @@ class ActionRunner:
     def __init__(self, spark: SparkSession) -> None:
         """Initialize the runner."""
         self.spark = spark
+        self._create_executor = CreateExecutor(spark)
+        self._align_executor = AlignExecutor(spark)
 
-    def apply_table_plan(self, plan: TablePlan) -> None:
-        """Execute all actions in the given plan."""
-        create_executor = CreateExecutor(self.spark)
-        align_executor = AlignExecutor(self.spark)
+    def apply(self, plan: TablePlan) -> None:
+        """
+        Execute all actions in `plan` in a deterministic order.
 
-        for create_action in plan.create_tables:
-            create_executor.apply(create_action)
+        The runner applies:
+          1) `CreateTable` actions (in listed order),
+          2) `AlignTable` actions (in listed order).
+        """
+        if not plan.create_tables and not plan.align_tables:
+            return
 
-        for align_action in plan.align_tables:
-            align_executor.apply(align_action)
+        self._apply_creates(plan)
+        self._apply_aligns(plan)
 
-    def apply_constraint_plan(self, plan: ConstraintPlan):
-        constraint_executor = ConstraintExecutor(self.spark)
-        constraint_executor.apply(plan)
+    def _apply_creates(self, plan: TablePlan) -> None:
+        for action in plan.create_tables:
+            self._create_executor.apply(action)
+
+    def _apply_aligns(self, plan: TablePlan) -> None:
+        for action in plan.align_tables:
+            self._align_executor.apply(action)

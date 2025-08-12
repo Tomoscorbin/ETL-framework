@@ -12,19 +12,19 @@ from dataclasses import dataclass, field
 
 import pyspark.sql.types as T
 
-from src.delta_engine.common_types import ThreePartTableName
-
-
 # ---------- Common payloads ----------
+
 
 @dataclass(frozen=True)
 class PrimaryKeyDefinition:
     """Definition of a PRIMARY KEY (used within actions)."""
+
     name: str
-    columns: tuple[str, ...]  # ordered
+    columns: tuple[str, ...]
 
 
 # ---------- Table Operations ----------
+
 
 @dataclass(frozen=True)
 class ColumnAdd:
@@ -80,18 +80,21 @@ class SetTableProperties:
 @dataclass(frozen=True)
 class PrimaryKeyAdd:
     """ADD PRIMARY KEY constraint on a table."""
+
     definition: PrimaryKeyDefinition
 
 
 @dataclass(frozen=True)
 class PrimaryKeyDrop:
     """DROP PRIMARY KEY constraint from a table."""
+
     name: str
 
 
 @dataclass(frozen=True)
 class CreateTable:
     """CREATE TABLE with schema, metadata, and optional PRIMARY KEY."""
+
     catalog_name: str
     schema_name: str
     table_name: str
@@ -99,7 +102,7 @@ class CreateTable:
     table_comment: str
     table_properties: Mapping[str, str]
     column_comments: Mapping[str, str]
-    primary_key: PrimaryKeyDefinition | None = None 
+    primary_key: PrimaryKeyDefinition | None = None
 
 
 @dataclass(frozen=True)
@@ -108,6 +111,7 @@ class AlignTable:
     ALTER TABLE to align an existing table to the desired state.
     Includes column edits, metadata tweaks, and PK add/drop for this table.
     """
+
     catalog_name: str
     schema_name: str
     table_name: str
@@ -122,30 +126,13 @@ class AlignTable:
     set_table_comment: SetTableComment | None = None
     set_table_properties: SetTableProperties | None = None
 
-    # PK edits (can be both in one action to “recreate”)
-    drop_primary_key: PrimaryKeyDropAction | None = None
-    add_primary_key: PrimaryKeyAddAction | None = None
-
-
-# # ---------- Constraints ----------
-
-# @dataclass(frozen=True)
-# class CreateForeignKey:
-#     """Add a FOREIGN KEY constraint from source to target table."""
-#     source_three_part_table_name: ThreePartTableName
-#     name: str
-#     source_columns: tuple[str, ...]
-#     target_three_part_table_name: ThreePartTableName
-#     target_columns: tuple[str, ...]
-
-# @dataclass(frozen=True)
-# class DropForeignKey:
-#     """Drop a FOREIGN KEY constraint from the source table by name."""
-#     source_three_part_table_name: ThreePartTableName
-#     name: str
+    # PK edits (can be both in one action to "recreate")
+    drop_primary_key: PrimaryKeyDrop | None = None
+    add_primary_key: PrimaryKeyAdd | None = None
 
 
 # ---------- Plans ----------
+
 
 @dataclass(frozen=True)
 class TablePlan:
@@ -155,15 +142,5 @@ class TablePlan:
     Contains CREATE TABLE operations and ALTER TABLE alignment operations.
     """
 
-    create_tables: tuple[CreateTable]
-    align_tables: tuple[AlignTable]
-
-
-@dataclass(frozen=True)
-class ConstraintPlan:
-    """
-    Ordered constraint actions.
-    Primary keys MUST be created before foreign keys.
-    """
-    create_foreign_keys: tuple[CreateForeignKey, ...]
-    drop_foreign_keys: tuple[DropForeignKey, ...]
+    create_tables: tuple[CreateTable, ...]
+    align_tables: tuple[AlignTable, ...]

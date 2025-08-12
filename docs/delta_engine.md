@@ -1,8 +1,18 @@
 # Delta Engine — Architecture & Design Guide
 
-This guide explains **what the Delta Engine does**, **how it works end‑to‑end**, and **why** certain design choices were made. It starts high‑level and then dives into implementation details you’ll need when extending or debugging the system.
-
 > TL;DR: You declare desired tables (models). The engine reads what actually exists (state), plans immutable **actions** to close the gap, validates the plan for safety, then executes via thin, policy‑free DDL/SQL. Idempotent, deterministic, and safe by design.
+
+The Delta Engine is a small, declarative schema management layer for Unity Catalog/Delta Lake. You describe the desired shape of your tables in Python (names, types, nullability, comments, properties, primary keys, etc). The engine compares that intent with what actually exists in the catalog, plans the minimal set of changes, validates the plan for safety, and then executes it in a deterministic order. The goal is to make schema evolution boring, reviewable, and repeatable.
+
+**Problems it solves**:
+- Drift between environments (dev/stage/prod) and over time.
+- Unsafe changes (e.g., adding NOT NULL columns to existing tables) caught at validation time, not after a failed migration.
+- No partially created tables or inconsistent schema states as validation catches all issues before execution.
+- Inconsistent metadata: comments and table properties are kept aligned with the model.
+- Reproducibility: plans are idempotent and action payloads are immutable, so what you reviewed is what gets executed.
+
+**What it is not**: 
+An orchestration system for data processing, a CDC framework, or a data backfill tool. It focuses narrowly on table metadata. You still run your ETL/ELT to populate data; the engine ensures the containers (tables) are in the right shape.
 
 ---
 
@@ -17,7 +27,15 @@ This guide explains **what the Delta Engine does**, **how it works end‑to‑en
 3. **Validate** the plan against safety **rules** (e.g., don’t add NOT NULL columns on existing tables).
 4. **Execute** actions in a deterministic order via thin **DDL/SQL**.
 
-### Logical flow (block diagram)
+### How the pieces fit together
+Models declare the desired end‑state; the reader discovers what actually exists; the planner computes a minimal, immutable plan to close the gap; the validator enforces operational safety; and the executor applies the plan to Unity Catalog via thin DDL/SQL. Each stage consumes the previous stage’s output, so the flow forms a straight, reviewable pipeline.
+
+- **Models → Catalog State.** Models provide table identities (catalog/schema/table) and desired schema/metadata. The CatalogReader uses these identities to read live metadata and produce a CatalogState snapshot. It does not trust models for reality - only for where to look.
+- **Catalog State + Models → Plan.** TablePlanner diffs each model against its TableState. Non-existent tables become CreateTable actions; existing tables get an AlignTable that captures column adds/drops, nullability changes, comments, properties, and PK drop/add.
+- **Plan + Models → Validated plan.** The Validator runs safety rules that block risky or inconsistent changes (e.g., NOT NULL on add during align; PK columns must exist and be NOT NULL). Clear, table‑qualified errors stop execution early.
+- **Validated plan → Executed changes.** ActionRunner dispatches each action to CreateExecutor or AlignExecutor, which call DeltaDDL to run SQL statements. SQL builders handle quoting and literal escaping. Execution order ensures any intermediate state is still non‑breaking, and plans are idempotent so re‑runs converge.
+
+### Logical flow
 
 ```mermaid
 flowchart LR
@@ -47,7 +65,6 @@ sequenceDiagram
   V-->>E: Validated plan
   E->>UC: Executed plan
   UC-->>M: Catalog aligned
-
 ```
 
 ---
@@ -56,11 +73,14 @@ sequenceDiagram
 
 1. **Separation of concerns**
 
-   * *Models* declare intent (author‑friendly, may use lists/dicts).
-   * *State* mirrors reality (immutable tuples/mappings).
+   * *Models* declare intent.
+   * *State* mirrors reality.
    * *Actions* are immutable payloads (what to do).
-   * *Planner* computes actions; *Validator* enforces policy; *Executors* just do what the plan says.
+   * *Planner* computes actions
+   * *Validator* enforces policy
+   * *Executors* just do what the plan says.
    * *DDL/SQL* only renders/executes SQL—no policy.
+    * *Orchestrator* puts it all together.
 
 2. **Immutability**
 

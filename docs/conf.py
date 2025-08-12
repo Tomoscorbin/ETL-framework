@@ -16,6 +16,7 @@ release = "0.1.0"
 
 extensions: list[str] = [
     "myst_parser",
+    "sphinxcontrib.mermaid",
 ]
 
 source_suffix = {

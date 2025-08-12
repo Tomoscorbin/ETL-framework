@@ -43,6 +43,7 @@ ignore = [
 "tests/*" = [
     "S101",  # allow `assert` in tests
     "D",     # docstring linting not required in tests
+    "INP001", # tests aren't packages; no __init__.py require
 ]
 "scripts/*" = [
     "INP001", # allow no `__init__.py`

@@ -12,18 +12,18 @@ from dataclasses import dataclass, field
 
 import pyspark.sql.types as T
 
+# ---------- Common payloads ----------
+
 
 @dataclass(frozen=True)
-class CreateTable:
-    """Represents a CREATE TABLE operation."""
+class PrimaryKeyDefinition:
+    """Definition of a PRIMARY KEY (used within actions)."""
 
-    catalog_name: str
-    schema_name: str
-    table_name: str
-    schema_struct: T.StructType
-    table_comment: str
-    table_properties: Mapping[str, str]
-    column_comments: Mapping[str, str]
+    name: str
+    columns: tuple[str, ...]
+
+
+# ---------- Table Operations ----------
 
 
 @dataclass(frozen=True)
@@ -78,32 +78,69 @@ class SetTableProperties:
 
 
 @dataclass(frozen=True)
+class PrimaryKeyAdd:
+    """ADD PRIMARY KEY constraint on a table."""
+
+    definition: PrimaryKeyDefinition
+
+
+@dataclass(frozen=True)
+class PrimaryKeyDrop:
+    """DROP PRIMARY KEY constraint from a table."""
+
+    name: str
+
+
+@dataclass(frozen=True)
+class CreateTable:
+    """CREATE TABLE with schema, metadata, and optional PRIMARY KEY."""
+
+    catalog_name: str
+    schema_name: str
+    table_name: str
+    schema_struct: T.StructType
+    table_comment: str
+    table_properties: Mapping[str, str]
+    column_comments: Mapping[str, str]
+    primary_key: PrimaryKeyDefinition | None = None
+
+
+@dataclass(frozen=True)
 class AlignTable:
     """
-    Represents an ALTER TABLE operation to align an existing
-    table to its desired state.
+    ALTER TABLE to align an existing table to the desired state.
+    Includes column edits, metadata tweaks, and PK add/drop for this table.
     """
 
     catalog_name: str
     schema_name: str
     table_name: str
+
+    # Column edits
+    add_columns: tuple[ColumnAdd, ...] = field(default_factory=tuple)
+    drop_columns: tuple[ColumnDrop, ...] = field(default_factory=tuple)
+    change_nullability: tuple[ColumnNullabilityChange, ...] = field(default_factory=tuple)
+
+    # Metadata
     set_column_comments: SetColumnComments | None = None
     set_table_comment: SetTableComment | None = None
     set_table_properties: SetTableProperties | None = None
 
-    add_columns: list[ColumnAdd] = field(default_factory=list)
-    change_nullability: list[ColumnNullabilityChange] = field(default_factory=list)
-    drop_columns: list[ColumnDrop] = field(default_factory=list)
+    # PK edits (can be both in one action to "recreate")
+    drop_primary_key: PrimaryKeyDrop | None = None
+    add_primary_key: PrimaryKeyAdd | None = None
 
 
-# ---------- Plan ----------
+# ---------- Plans ----------
+
+
 @dataclass(frozen=True)
-class Plan:
+class TablePlan:
     """
     Represents a table change plan.
 
     Contains CREATE TABLE operations and ALTER TABLE alignment operations.
     """
 
-    create_tables: list[CreateTable]
-    align_tables: list[AlignTable]
+    create_tables: tuple[CreateTable, ...]
+    align_tables: tuple[AlignTable, ...]

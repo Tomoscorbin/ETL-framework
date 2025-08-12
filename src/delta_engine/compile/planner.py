@@ -294,10 +294,10 @@ class Planner:
     def _primary_key_definitions_equal(
         self, desired_definition: PrimaryKeyDefinition, actual_state: PrimaryKeyState
     ) -> bool:
-        """Order-sensitive equality on name and columns."""
-        names_match = desired_definition.name == actual_state.name
-        columns_match = desired_definition.columns == actual_state.columns
-        return names_match and columns_match
+        """Compare ordered columns case-insensitively"""
+        def norm(cols: tuple[str, ...]) -> tuple[str, ...]:
+            return tuple(c.lower() for c in cols)
+        return norm(desired_definition.columns) == norm(actual_state.columns)
 
     def _desired_pk_definition(self, desired: Table) -> PrimaryKeyDefinition | None:
         """Build the desired PK definition (standardized name) if a PK is declared."""

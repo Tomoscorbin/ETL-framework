@@ -22,6 +22,8 @@ from src.delta_engine.state.states import (
     PrimaryKeyState,
     TableState,
 )
+from src.delta_engine.actions import PrimaryKeyDefinition
+
 
 # ----------------- helpers -----------------
 
@@ -341,3 +343,35 @@ def test_table_comment_update_uses_normalization():
     sc = planner._compute_table_comment_update("x", "")
     assert isinstance(sc, SetTableComment)
     assert sc.comment == "x"
+
+def test_compute_table_property_updates_returns_none_when_no_changes():
+    planner = Planner()
+    desired_props = {"delta.appendOnly": "false", "k": "v"}
+    actual_props = {"delta.appendOnly": "false", "k": "v"}  # identical
+    op = planner._compute_table_property_updates(desired_props, actual_props)
+    assert op is None
+
+
+def test_pk_helpers_noops_when_definitions_equal():
+    planner = Planner()
+    desired_def = PrimaryKeyDefinition(name="pk_x", columns=("id",))
+    actual_state = PrimaryKeyState(name="anything", columns=("ID",))  # equal ignoring case
+
+    # drop/add should both be None when equal
+    assert planner._compute_primary_key_drop(desired_def, actual_state) is None
+    assert planner._compute_primary_key_add(desired_def, actual_state) is None
+
+    # and equality helper returns True
+    assert planner._primary_key_definitions_equal(desired_def, actual_state)
+
+
+def test_desired_pk_definition_none_when_absent():
+    planner = Planner()
+    t = Table(
+        catalog_name="c",
+        schema_name="s",
+        table_name="t",
+        columns=[Column("id", T.IntegerType(), is_nullable=False)],
+        primary_key=None,
+    )
+    assert planner._desired_pk_definition(t) is None

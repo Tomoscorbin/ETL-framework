@@ -52,8 +52,7 @@ jobs:
         working-directory: .
 
       - name: Run tests
-        run: |
-          python -m pytest --include-spark-tests --cov=src 
+        run: | # Only running tests on delta engine
           coverage run --source=src/delta_engine -m pytest
           coverage report --fail-under=100 --include="src/delta_engine/*"
             

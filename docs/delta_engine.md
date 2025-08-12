@@ -32,7 +32,7 @@ flowchart LR
 
 ```mermaid
 sequenceDiagram
-  participant M as Models
+  participant M as Model
   participant R as CatalogReader
   participant P as Planner
   participant V as Validator
@@ -41,9 +41,9 @@ sequenceDiagram
 
   M->>R: desired tables
   R-->>P: TableState
-  M->>P: Models
+  M->>P: Model
   P-->>V: Plan
-  M->>V: Models
+  M->>V: Model
   V-->>E: Validated plan
   E->>UC: Executed plan
   UC-->>M: Catalog aligned

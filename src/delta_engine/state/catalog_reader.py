@@ -20,7 +20,6 @@ from src.delta_engine.state.states import (
     TableState,
 )
 from src.delta_engine.types import ThreePartTableName
-from src.logger import LOGGER
 
 
 class CatalogReader:
@@ -175,10 +174,8 @@ class CatalogReader:
     def _read_primary_key_name_for_table(self, three_part_name: ThreePartTableName) -> str | None:
         """Return the PK constraint name for the table, or None if not present."""
         sql = sql_select_primary_key_name_for_table(three_part_name)
-        value = self._take_first_value(sql, "name")
-        LOGGER.info("[CatalogReader] PK name result for %s.%s.%s: %r", *three_part_name, value)
-        return value
-    
+        return self._take_first_value(sql, "name")
+
     def _read_primary_key_columns_for_table(self, three_part_name: ThreePartTableName) -> list[str]:
         """
         Return the list of PK column names ordered by `ordinal_position`.
@@ -187,10 +184,6 @@ class CatalogReader:
         """
         sql = sql_select_primary_key_columns_for_table(three_part_name)
         rows = self._run(sql)
-        LOGGER.info(
-            "[CatalogReader] PK columns for %s.%s.%s: %s",
-            *three_part_name, [dict(r) for r in rows]
-        )
         # SQL already orders, but keep a defensive sort
         return [r["column_name"] for r in sorted(rows, key=lambda r: r["ordinal_position"])]
 

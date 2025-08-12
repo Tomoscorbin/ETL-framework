@@ -391,7 +391,3 @@ src/delta_engine/
 ```
 
 ---
-
-### Appendix: alternate diagrams
-
-If Mermaid isn’t rendered in your environment, paste the code blocks into a Mermaid‑enabled Markdown viewer (e.g., VS Code+extension, GitHub, Databricks Markdown with Mermaid support), or export via a Mermaid CLI.

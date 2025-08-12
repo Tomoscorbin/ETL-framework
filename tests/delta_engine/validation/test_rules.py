@@ -16,6 +16,7 @@ from src.delta_engine.validation.rules import (
     DuplicateColumnNames,
     InvalidModelError,
     NoAddNotNullColumns,
+    PlanRule,
     PrimaryKeyAddMustNotMakeColumnsNullable,
     PrimaryKeyColumnsNotNull,
     PrimaryKeyExistingColumnsMustBeSetNotNull,
@@ -66,6 +67,12 @@ def make_align(**kwargs) -> AlignTable:
     }
     base.update(kwargs)
     return AlignTable(**base)
+
+
+class _ExplodeQualify(PlanRule):
+    def check(self, _: TablePlan) -> None:  # pragma: no cover - we want the fail path
+        # Pass an object that does NOT have catalog/schema/table attrs
+        self.fail(f"bad target: {self._qualify(object())}")
 
 
 # ----------------- NoAddNotNullColumns -----------------
@@ -314,5 +321,56 @@ def test_primary_key_must_be_ordered_sequence_accepts_list_or_tuple(good_pk):
             Column("name", T.StringType(), is_nullable=False),
         ],
         primary_key=list(good_pk) if isinstance(good_pk, list) else good_pk,  # keep order
+    )
+    PrimaryKeyMustBeOrderedSequence().check([model])  # no raise
+
+
+def test_create_pk_columns_not_null_no_pk_is_noop():
+    ct = CreateTable(
+        catalog_name="c",
+        schema_name="s",
+        table_name="t",
+        schema_struct=T.StructType([T.StructField("id", T.IntegerType(), nullable=False)]),
+        table_comment="",
+        table_properties={},
+        column_comments={},
+        primary_key=None,  # exercise the `if not ct.primary_key: continue` path
+    )
+    plan = TablePlan(create_tables=(ct,), align_tables=())
+    CreatePrimaryKeyColumnsNotNull().check(plan)  # should not raise
+
+
+def test_pk_add_must_not_make_columns_nullable_no_pk_action_is_noop():
+    at = AlignTable(catalog_name="c", schema_name="s", table_name="t")  # no add_primary_key
+    plan = TablePlan(create_tables=(), align_tables=(at,))
+    PrimaryKeyAddMustNotMakeColumnsNullable().check(plan)  # no raise
+
+
+def test_pk_new_columns_must_be_set_not_null_no_pk_action_is_noop():
+    at = AlignTable(catalog_name="c", schema_name="s", table_name="t")  # no add_primary_key
+    plan = TablePlan(create_tables=(), align_tables=(at,))
+    PrimaryKeyNewColumnsMustBeSetNotNull().check(plan)  # no raise
+
+
+def test_pk_existing_columns_must_be_set_not_null_no_pk_action_is_noop():
+    at = AlignTable(catalog_name="c", schema_name="s", table_name="t")  # no add_primary_key
+    plan = TablePlan(create_tables=(), align_tables=(at,))
+    PrimaryKeyExistingColumnsMustBeSetNotNull().check(plan)  # no raise
+
+
+def test_qualify_fallback_to_unknown_in_error_message():
+    plan = TablePlan(create_tables=(), align_tables=())
+    with pytest.raises(UnsafePlanError) as err:
+        _ExplodeQualify().check(plan)
+    assert "<unknown>" in str(err.value)
+
+
+def test_primary_key_must_be_ordered_sequence_no_pk_is_noop():
+    model = Table(
+        catalog_name="c",
+        schema_name="s",
+        table_name="t",
+        columns=[Column("id", T.IntegerType(), is_nullable=False)],
+        primary_key=None,  # triggers `if pk is None: continue`
     )
     PrimaryKeyMustBeOrderedSequence().check([model])  # no raise

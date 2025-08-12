@@ -176,7 +176,7 @@ class CatalogReader:
         """Return the PK constraint name for the table, or None if not present."""
         sql = sql_select_primary_key_name_for_table(three_part_name)
         value = self._take_first_value(sql, "name")
-        LOGGER.debug("[CatalogReader] PK name result for %s.%s.%s: %r", *three_part_name, value)
+        LOGGER.info("[CatalogReader] PK name result for %s.%s.%s: %r", *three_part_name, value)
         return value
     
     def _read_primary_key_columns_for_table(self, three_part_name: ThreePartTableName) -> list[str]:
@@ -187,7 +187,7 @@ class CatalogReader:
         """
         sql = sql_select_primary_key_columns_for_table(three_part_name)
         rows = self._run(sql)
-        LOGGER.debug(
+        LOGGER.info(
             "[CatalogReader] PK columns for %s.%s.%s: %s",
             *three_part_name, [dict(r) for r in rows]
         )

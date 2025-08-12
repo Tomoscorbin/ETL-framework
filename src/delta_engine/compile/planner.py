@@ -120,7 +120,7 @@ class Planner:
         drop_pk = self._compute_primary_key_drop(desired_definition, actual.primary_key)
         add_pk = self._compute_primary_key_add(desired_definition, actual.primary_key)
 
-        LOGGER.debug(
+        LOGGER.info(
             "[Planner] Align for %s: add=%s drop=%s nullability=%s tbl_comment=%s props=%s "
             "drop_pk=%s add_pk=%s desired_pk=%s actual_pk=%s",
             f"{desired.catalog_name}.{desired.schema_name}.{desired.table_name}",
@@ -314,7 +314,7 @@ class Planner:
             return tuple(c.lower() for c in cols)
 
         eq = norm(desired_definition.columns) == norm(actual_state.columns)
-        LOGGER.debug("[Planner] PK equality (columns only): desired=%s actual=%s -> %s",
+        LOGGER.info("[Planner] PK equality (columns only): desired=%s actual=%s -> %s",
                     desired_definition.columns, actual_state.columns, eq)
         return eq
 

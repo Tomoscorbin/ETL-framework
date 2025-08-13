@@ -21,7 +21,7 @@ from dataclasses import dataclass, field
 from types import MappingProxyType
 from typing import Self
 
-from src.delta_engine.state.ports import TableIdentity
+from src.delta_engine.identifiers import FullyQualifiedTableName
 
 import pyspark.sql.types as T
 
@@ -90,10 +90,10 @@ class CatalogState:
     Example key: "catalog.schema.table"
     """
 
-    tables: Mapping[TableIdentity, TableState]
+    tables: Mapping[FullyQualifiedTableName, TableState]
 
-    def get(self, identity: TableIdentity) -> TableState | None:
+    def get(self, identity: FullyQualifiedTableName) -> TableState | None:
         return self.tables.get(identity)
 
-    def contains(self, identity: TableIdentity) -> bool:
+    def contains(self, identity: FullyQualifiedTableName) -> bool:
         return identity in self.tables

@@ -11,12 +11,6 @@ class FullyQualifiedTableName:
     table: str
 
 @dataclass(frozen=True)
-class SchemaQualifiedTableName:
-    """A two-part table name that is only meaningful within a catalog."""
-    schema: str
-    table: str
-
-@dataclass(frozen=True)
 class CatalogTargets:
     """Schema and table targets for a single catalog."""
     catalog: str
@@ -54,15 +48,11 @@ def _group_schema_qualified_by_catalog(
     # Convert defaultdict to a plain dict to avoid leaking mutability semantics
     return dict(grouped)
 
-def make_fully_qualified(catalog: str, two_part: SchemaQualifiedTableName) -> TableIdentity:
-    """Combine catalog + schema.table into a full identity."""
-    return TableIdentity(catalog=catalog, schema=two_part.schema, table=two_part.table)
-
 # Identifier quoting/rendering (single source of truth)
 def quote_identifier(identifier: str) -> str:
     return f"`{identifier.replace('`', '``')}`"
 
-def qualify_fully_qualified_name(name: TableIdentity) -> str:
+def fully_qualified_name_to_string(name: FullyQualifiedTableName) -> str:
     return ".".join([
         quote_identifier(name.catalog),
         quote_identifier(name.schema),
@@ -82,3 +72,15 @@ def parse_fully_qualified(three_part: str) -> FullyQualifiedTableName:
     if len(parts) != 3 or any(p == "" for p in parts):
         raise ValueError(f"Expected three-part name 'catalog.schema.table', got: {three_part!r}")
     return FullyQualifiedTableName(parts[0], parts[1], parts[2])
+
+def render_fully_qualified_name_from_parts(
+    catalog: str,
+    schema: str,
+    table: str,
+) -> str:
+    """
+    Return 'catalog.schema.table' with no quoting/escaping.
+    """
+    return fully_qualified_name_to_string(
+        FullyQualifiedTableName(catalog=catalog, schema=schema, table=table)
+    )

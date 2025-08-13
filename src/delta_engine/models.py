@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from enum import StrEnum
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 from types import MappingProxyType
@@ -9,7 +10,11 @@ from typing import ClassVar
 
 import pyspark.sql.types as T
 
-from src.enums import DeltaTableProperty
+
+class TableProperty(StrEnum):
+    ENABLE_DELETION_VECTORS = "delta.enableDeletionVectors"
+    ENABLE_TYPE_WIDENING    = "delta.enableTypeWidening"
+    COLUMN_MAPPING_MODE     = "delta.columnMapping.mode"
 
 
 @dataclass(frozen=True)
@@ -26,8 +31,8 @@ class Column:
 class Table:
     """Declarative Delta table definition."""
 
-    DEFAULT_TABLE_PROPERTIES: ClassVar[dict[str, str]] = {
-        DeltaTableProperty.COLUMN_MAPPING_MODE: "name",
+    DEFAULT_PROPERTIES: ClassVar[dict[str, str]] = {
+        TableProperty.COLUMN_MAPPING_MODE: "name",
     }
 
     catalog_name: str
@@ -35,7 +40,7 @@ class Table:
     table_name: str
     columns: list[Column]
     comment: str = ""
-    table_properties: dict[str, str] = field(default_factory=dict)
+    properties: dict[str, str] = field(default_factory=dict)
     primary_key: list[str] | None = None
 
     @property
@@ -51,9 +56,9 @@ class Table:
         Returns:
         -------
         Mapping[str, str]
-            Read-only mapping combining DEFAULT_TABLE_PROPERTIES and table_properties.
+            Read-only mapping combining DEFAULT_TABLE_PROPERTIES and properties.
         """
-        merged = {**self.DEFAULT_TABLE_PROPERTIES, **self.table_properties}
+        merged = {**self.DEFAULT_PROPERTIES, **self.properties}
         return MappingProxyType(merged)
 
     @property

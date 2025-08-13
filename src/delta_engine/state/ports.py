@@ -1,7 +1,7 @@
 from __future__ import annotations
 from dataclasses import dataclass
 from enum import StrEnum
-from typing import Protocol
+from typing import Protocol, ClassVar
 
 from src.delta_engine.identifiers import FullyQualifiedTableName
 from src.delta_engine.state.states import CatalogState
@@ -9,7 +9,7 @@ from src.delta_engine.state.states import CatalogState
 _MAX_WARNING_LENGTH = 300  # single source of truth
 
 
-class Aspect(Enum):
+class Aspect(StrEnum):
     SCHEMA = "SCHEMA"
     PRIMARY_KEY = "PRIMARY_KEY"
     COMMENTS = "COMMENTS"
@@ -43,7 +43,7 @@ class SnapshotWarning:
     message: str
 
     # ---- Defaults for each aspect (used when caller doesn't supply a prefix) ----
-    _DEFAULT_PREFIX: dict[Aspect, str] = {
+    _DEFAULT_PREFIX: ClassVar[dict[Aspect, str]] = {
         Aspect.SCHEMA: "Failed to read table schema",
         Aspect.PRIMARY_KEY: "Failed to read primary key metadata",
         Aspect.COMMENTS: "Failed to read column comments",

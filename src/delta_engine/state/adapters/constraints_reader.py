@@ -1,5 +1,5 @@
 """
-Adapter: Primary Key Reader (one-table-at-a-time)
+Adapter: Primary Key Reader
 
 This module reads **primary key metadata** for Delta tables using the
 catalog's `information_schema`, querying one table at a time.
@@ -8,7 +8,6 @@ High-level flow
 ---------------
 1) Inputs are **FullyQualifiedTableName** values (catalog.schema.table).
 2) For each table:
-   - Convert to a **SchemaQualifiedTableName** (schema.table) scoped to its catalog.
    - Run an information_schema query for that one table.
    - Collect primary key facts: constraint name and (ordinal_position, column_name) pairs.
    - If a constraint exists, order columns by `ordinal_position` and build a `PrimaryKeyState`.
@@ -28,10 +27,9 @@ from typing import NamedTuple
 from pyspark.sql import SparkSession
 
 from src.delta_engine.state.ports import SnapshotWarning, Aspect
-from src.delta_engine.identifiers import FullyQualifiedTableName, SchemaQualifiedTableName
+from src.delta_engine.identifiers import FullyQualifiedTableName
 from src.delta_engine.state.states import PrimaryKeyState
-from src.delta_engine.state.adapters._sql import sql_select_primary_key_for_table
-
+from src.delta_engine.state.adapters._sql_executor import select_primary_key_rows_for_table
 
 class PrimaryKeyBatchReadResult(NamedTuple):
     """
@@ -73,7 +71,7 @@ class ConstraintsReader:
     """
 
     def __init__(self, spark: SparkSession) -> None:
-        """Initialise the ConstraintReader."""
+        """Initialise the Reader."""
         self.spark = spark
 
     def read_primary_keys(
@@ -101,32 +99,28 @@ class ConstraintsReader:
         primary_key_by_table: dict[FullyQualifiedTableName, PrimaryKeyState | None] = {}
         warnings: list[SnapshotWarning] = []
 
-        for fully_qualified_table_name in table_names:
-            schema_qualified_table_name = SchemaQualifiedTableName(
-                schema=fully_qualified_table_name.schema,
-                table=fully_qualified_table_name.table,
-            )
-
+        for name in table_names:
             try:
-                sql = sql_select_primary_key_for_table(
-                    fully_qualified_table_name.catalog,
-                    schema_qualified_table_name,
+                rows = select_primary_key_rows_for_table(
+                    self.spark,
+                    name.catalog,
+                    name.schema,
+                    name.table,
                 )
-                rows = self.spark.sql(sql).collect()
                 state = build_primary_key_state_from_rows(rows)
-                primary_key_by_table[fully_qualified_table_name] = state  # None means “no PK”
+                primary_key_by_table[name] = state  # None means "no PK"
 
             except Exception as error:
-                warnings.append(
-                    SnapshotWarning.from_exception(
-                        aspect=Aspect.PRIMARY_KEY,
-                        error=error,
-                        table=fully_qualified_table_name,
-                        prefix="Failed to read primary key",
-                    )
+                warning = SnapshotWarning.from_exception(
+                    aspect=Aspect.PRIMARY_KEY,
+                    error=error,
+                    table=name,
+                    prefix="Failed to read primary key",
                 )
+                warnings.append(warning)
+                
                 # On failure, still produce a value so callers always see a complete map
-                primary_key_by_table.setdefault(fully_qualified_table_name, None)
+                primary_key_by_table.setdefault(name, None)
 
         return PrimaryKeyBatchReadResult(
             primary_key_by_table=primary_key_by_table,

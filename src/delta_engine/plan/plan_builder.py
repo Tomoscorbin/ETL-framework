@@ -9,7 +9,7 @@ from src.delta_engine.plan.actions import (
     AddColumns,
     AlterColumnNullability,
     DropPrimaryKey,
-    CreatePrimaryKey,
+    AddPrimaryKey,
     SetTableProperties,
     SetTableComment,
     SetColumnComments,
@@ -70,7 +70,7 @@ class PlanBuilder:
         cols   = [a for a in actions if isinstance(a, AddColumns)]
         nulls  = [a for a in actions if isinstance(a, AlterColumnNullability)]
         drops  = [a for a in actions if isinstance(a, DropPrimaryKey)]
-        pks    = [a for a in actions if isinstance(a, CreatePrimaryKey)]
+        pks    = [a for a in actions if isinstance(a, AddPrimaryKey)]
         props  = [a for a in actions if isinstance(a, SetTableProperties)]
         tcomm  = [a for a in actions if isinstance(a, SetTableComment)]
         ccomm  = [a for a in actions if isinstance(a, SetColumnComments)]

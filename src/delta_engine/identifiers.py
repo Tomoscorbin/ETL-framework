@@ -150,7 +150,7 @@ def build_primary_key_name(
 
     - All parts are sanitised to [A-Za-z0-9_].
     - The final string is truncated with a stable hash suffix to stay within
-      MAX_IDENTIFIER_LEN.
+      _MAX_IDENTIFIER_LEN.
     - Column order is preserved.
 
     Raises
@@ -170,7 +170,7 @@ def build_primary_key_name(
     base = f"pk_{c}_{s}_{t}__" + "_".join(cols_sanitised)
     # Remove any accidental double underscores introduced by empty parts (defensive)
     base = base.replace("__", "__").strip("_")
-    return _truncate_with_hash(base, MAX_IDENTIFIER_LEN)
+    return _truncate_with_hash(base, _MAX_IDENTIFIER_LEN)
 
 
 def build_primary_key_name_for_identity(

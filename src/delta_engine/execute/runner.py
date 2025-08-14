@@ -29,8 +29,6 @@ def split_plan(plan: Plan) -> TablePlan:
         elif isinstance(action, AlignTable):
             aligns.append(action)
         else:
-            # If you still have granular actions (AddColumns, …),
-            # either wrap them into AlignTable earlier, or handle here.
             raise TypeError(f"Unexpected action type for runner: {type(action).__name__}")
     return TablePlan(create_tables=tuple(creates), align_tables=tuple(aligns))
 

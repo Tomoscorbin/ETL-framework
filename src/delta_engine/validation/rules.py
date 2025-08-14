@@ -13,7 +13,7 @@ from typing import Dict, List, Tuple
 from src.delta_engine.desired.models import DesiredTable
 from src.delta_engine.state.states import TableState, ColumnState
 from src.delta_engine.state.ports import SnapshotWarning, Aspect
-from src.delta_engine.plan.actions import Action, DropPrimaryKey, CreatePrimaryKey
+from src.delta_engine.plan.actions import Action, DropPrimaryKey, AddPrimaryKey
 from src.delta_engine.validation.diagnostics import Diagnostic, DiagnosticLevel
 
 
@@ -130,7 +130,7 @@ class DropPrimaryKeyRequiresExplicitNone:
             return []
 
         # Drop+create = PK change → allowed
-        will_create = any(isinstance(a, CreatePrimaryKey) for a in planned_actions)
+        will_create = any(isinstance(a, AddPrimaryKey) for a in planned_actions)
         if will_create:
             return []
 

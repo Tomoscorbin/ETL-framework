@@ -3,7 +3,7 @@ Diff engine: desired spec + live state -> concrete plan actions.
 
 Principles
 ----------
-- Explicit helpers per concern (properties, table comment, columns, PK).
+- Small helpers per concern (properties, table comment, columns, PK).
 - No side effects; this module only computes actions.
 - Tri-state semantics:
   - desired.table_comment is None  → unmanaged (no action)
@@ -11,12 +11,12 @@ Principles
   - desired.table_comment == "x"   → set to "x"
   - desired.table_properties is None → unmanaged (no action)
   - desired.table_properties is dict → enforce exactly those (executor may whitelist)
-- Column comments are set only when a non-empty desired comment differs from live.
+- Column comments: only set when a non-empty desired comment differs from live.
 - No ad-hoc name assembly; use identifier helpers.
 
 Output
 ------
-Flat list of `Action` objects (see plan/actions.py). PlanBuilder will order them.
+Flat list of `Action` objects (see plan/actions.py). PlanBuilder orders them.
 """
 
 from __future__ import annotations
@@ -27,22 +27,22 @@ from typing import Dict, List, Tuple
 from src.delta_engine.identifiers import (
     fully_qualified_name_to_string,
     FullyQualifiedTableName,
+    build_primary_key_name,
 )
-from src.delta_engine.identifiers import build_primary_key_name
 from src.delta_engine.desired.models import DesiredCatalog, DesiredTable
 from src.delta_engine.models import Column
 from src.delta_engine.state.states import CatalogState, TableState, ColumnState
 from src.delta_engine.plan.actions import (
     Action,
-    ColumnSpec,
-    CreateTable,
     AddColumns,
     AlterColumnNullability,
     SetColumnComments,
     SetTableComment,
     SetTableProperties,
-    CreatePrimaryKey,
+    AddPrimaryKey,
     DropPrimaryKey,
+    AlignTable,
+    AlterColumnNullability,
 )
 
 
@@ -63,7 +63,6 @@ class DiffOptions:
 # ---------- public API ----------
 
 class Differ:
-    """Thin OO wrapper so Orchestrator can DI a differ with a stable .diff() API."""
     def diff(self, desired: DesiredCatalog, live: CatalogState, options: DiffOptions) -> list[Action]:
         return self._diff_catalog(desired, live, options)
 
@@ -73,12 +72,11 @@ class Differ:
         live: CatalogState,
         options: DiffOptions = DiffOptions(),
     ) -> list[Action]:
-        """Compute actions for every desired table against the live catalog state."""
         actions: list[Action] = []
-        for desired_table in desired.tables:
-            live_key = fully_qualified_name_to_string(desired_table.fully_qualified_table_name)
-            live_table_state = live.tables.get(live_key)
-            actions.extend(self._diff_table(desired_table, live_table_state, options))
+        for d in desired.tables:
+            live_key = fully_qualified_name_to_string(d.fully_qualified_table_name)
+            live_table = live.tables.get(live_key)
+            actions.extend(self._diff_table(d, live_table, options))
         return actions
 
     @staticmethod
@@ -87,46 +85,84 @@ class Differ:
         live: TableState | None,
         options: DiffOptions,
     ) -> list[Action]:
-        """Compute actions to make a single live table match the desired spec."""
-        # Table does not exist → create with everything we know up-front
+        # 1) create from scratch
         if live is None or not live.exists:
             return [_create_from_scratch(desired)]
 
-        out: list[Action] = []
+        # 2) collect granular changes
+        granular: list[Action] = []
 
         if options.manage_properties:
-            out.extend(_diff_properties(desired, live))
-
+            granular.extend(_diff_properties(desired, live))
         if options.manage_table_comment:
-            out.extend(_diff_table_comment(desired, live))
-
+            granular.extend(_diff_table_comment(desired, live))
         if options.manage_schema:
-            out.extend(_diff_columns(desired, live))
-
+            granular.extend(_diff_columns(desired, live))
         if options.manage_primary_key:
-            out.extend(_diff_primary_key(desired, live))
+            granular.extend(_diff_primary_key(desired, live))
 
-        return out
+        # 3) coalesce → AlignTable (or nothing)
+        align = _coalesce_to_align(desired.fully_qualified_table_name, granular)
+        return [align] if align is not None else []
 
 
 # ---------- aspect helpers ----------
 
 def _create_from_scratch(desired: DesiredTable) -> CreateTable:
     """
-    CreateTable action with all columns, properties, and table comment.
-    (Executor will apply any whitelisting of properties.)
+    Build a composed CreateTable action for a single desired table.
+
+    Semantics:
+      - Table comment:
+          None  -> omit COMMENT clause
+          ""    -> clear comment
+          "x"   -> set to "x"
+      - Table properties:
+          None  -> unmanaged (omit)
+          dict  -> pass through (even empty {}) to executor
+      - Primary key:
+          None / empty -> omit
+          non-empty    -> add with deterministic/override name
     """
-    column_specs = tuple(_to_column_spec(c) for c in desired.columns)
-    properties_dict = {} if desired.table_properties is None else dict(desired.table_properties)
-    # Pass-through tri-state comment (None => no COMMENT clause on create)
-    table_comment_value = desired.table_comment
+    # 1) required schema (always present on create)
+    columns_tuple: Tuple[Column, ...] = tuple(desired.columns)
+    add_columns = AddColumns(columns=columns_tuple)
+
+    # 2) optional table comment (tri-state)
+    set_table_comment: Optional[SetTableComment] = (
+        SetTableComment(comment=(desired.table_comment or ""))
+        if desired.table_comment is not None
+        else None
+    )
+
+    # 3) optional table properties (tri-state: None => unmanaged)
+    set_table_properties: Optional[SetTableProperties] = (
+        SetTableProperties(properties=dict(desired.table_properties))
+        if desired.table_properties is not None
+        else None
+    )
+
+    # 4) optional primary key
+    add_primary_key: Optional[AddPrimaryKey] = None
+    if desired.primary_key_columns and len(desired.primary_key_columns) > 0:
+        pk_cols = tuple(desired.primary_key_columns)
+        pk_name = desired.primary_key_name_override or build_primary_key_name(
+            catalog=desired.fully_qualified_table_name.catalog,
+            schema=desired.fully_qualified_table_name.schema,
+            table=desired.fully_qualified_table_name.table,
+            columns=pk_cols,
+        )
+        add_primary_key = AddPrimaryKey(name=pk_name, columns=pk_cols)
 
     return CreateTable(
         table=desired.fully_qualified_table_name,
-        columns=column_specs,
-        properties=properties_dict,
-        comment=table_comment_value,
+        add_columns=add_columns,
+        set_table_comment=set_table_comment,
+        set_table_properties=set_table_properties,
+        add_primary_key=add_primary_key,
     )
+
+
 
 
 def _diff_properties(desired: DesiredTable, live: TableState) -> list[Action]:
@@ -136,7 +172,7 @@ def _diff_properties(desired: DesiredTable, live: TableState) -> list[Action]:
     desired_props = {str(k): str(v) for k, v in dict(desired.table_properties).items()}
     live_props = {str(k): str(v) for k, v in dict(live.table_properties).items()}
     if desired_props != live_props:
-        return [SetTableProperties(table=desired.fully_qualified_table_name, properties=desired_props)]
+        return [SetTableProperties(properties=desired_props)]
     return []
 
 
@@ -150,7 +186,7 @@ def _diff_table_comment(desired: DesiredTable, live: TableState) -> list[Action]
     desired_comment = desired.table_comment or ""  # allow clearing via ""
     live_comment = live.table_comment or ""
     if desired_comment != live_comment:
-        return [SetTableComment(table=desired.fully_qualified_table_name, comment=desired_comment)]
+        return [SetTableComment(comment=desired_comment)]
     return []
 
 
@@ -165,35 +201,52 @@ def _diff_columns(desired: DesiredTable, live: TableState) -> list[Action]:
 
     live_by_lower: Dict[str, ColumnState] = {c.name.lower(): c for c in live.columns}
 
-    # 1) Missing columns → build specs one by one, then aggregate
-    add_specs = _compute_add_column_specs(desired.columns, live_by_lower)
-    if add_specs:
-        actions.append(AddColumns(table=desired.fully_qualified_table_name, columns=tuple(add_specs)))
+    # 1) Missing columns → emit AddColumns with user-facing Column objects
+    missing = _compute_missing_columns(desired.columns, live_by_lower)
+    if missing:
+        actions.append(AddColumns(columns=tuple(missing)))
 
     # 2) Nullability changes
-    actions.extend(_compute_nullability_actions(desired.columns, desired.fully_qualified_table_name, live_by_lower))
+    actions.extend(
+        _compute_nullability_actions(
+            desired.columns,
+            desired.fully_qualified_table_name,
+            live_by_lower,
+        )
+    )
 
     # 3) Column comments (only set when desired has a non-empty comment and it differs)
     comment_updates = _compute_column_comment_updates(desired.columns, live_by_lower)
     if comment_updates:
-        actions.append(SetColumnComments(table=desired.fully_qualified_table_name, comments=comment_updates))
+        actions.append(SetColumnComments(comments=comment_updates))
 
     return actions
 
 
 def _diff_primary_key(desired: DesiredTable, live: TableState) -> list[Action]:
+    """
+    PK semantics:
+      - desired.primary_key_columns is None  => unmanaged (no action)
+      - desired.primary_key_columns == ()    => ensure NO PK (drop if exists)
+      - desired.primary_key_columns non-empty => ensure PK with those columns
+        - name = desired.primary_key_name_override or derived default
+    """
     cols = desired.primary_key_columns
     live_pk = live.primary_key
 
+    # unmanaged
     if cols is None:
         return []
 
+    # enforce no PK
     if len(cols) == 0:
-        return [DropPrimaryKey(
-            table=desired.fully_qualified_table_name,
-            name=live_pk.name,                        # <-- include the live name
-        )] if live_pk is not None else []
+        return (
+            [DropPrimaryKey(name=live_pk.name)]
+            if live_pk is not None
+            else []
+        )
 
+    # enforce PK with derived/override name
     desired_name = desired.primary_key_name_override or build_primary_key_name(
         catalog=desired.fully_qualified_table_name.catalog,
         schema=desired.fully_qualified_table_name.schema,
@@ -201,44 +254,111 @@ def _diff_primary_key(desired: DesiredTable, live: TableState) -> list[Action]:
         columns=cols,
     )
 
+    # live has no PK -> create
     if live_pk is None:
-        return [CreatePrimaryKey(
-            table=desired.fully_qualified_table_name,
-            name=desired_name,
-            columns=tuple(cols),
-        )]
+        return [
+            AddPrimaryKey(
+                name=desired_name,
+                columns=tuple(cols),
+            )
+        ]
 
+    # live has PK -> compare name + ordered columns
     if desired_name != live_pk.name or tuple(cols) != tuple(live_pk.columns):
         return [
-            DropPrimaryKey(table=desired.fully_qualified_table_name, name=live_pk.name),  # <-- include name
-            CreatePrimaryKey(table=desired.fully_qualified_table_name, name=desired_name, columns=tuple(cols)),
+            DropPrimaryKey(name=live_pk.name),
+            AddPrimaryKey(name=desired_name, columns=tuple(cols)),
         ]
     return []
 
 
-# ---------- utilities ----------
+def _coalesce_to_align(
+    table: FullyQualifiedTableName,
+    action: Iterable[object],  # sub-actions payloads (not top-level Action)
+) -> Optional[AlignTable]:
+    """
+    Fold a sequence of granular sub-actions into one AlignTable.
 
-def _to_column_spec(desired_column: Column) -> ColumnSpec:
-    """Construct a single ColumnSpec from a desired Column."""
-    return ColumnSpec(
-        name=desired_column.name,
-        data_type=desired_column.data_type,
-        is_nullable=desired_column.is_nullable,
-        comment=desired_column.comment or "",
+    Rules:
+    - AddColumns: merge into a single payload (append order preserved).
+    - AlterColumnNullability: accumulate as-is (one per column).
+    - SetColumnComments: merged; later entries override earlier ones.
+    - SetTableComment / SetTableProperties: last writer wins (there should be at most one of each).
+    - AddPrimaryKey / DropPrimaryKey: keep the last seen of each kind.
+    - If nothing to do, return None.
+    """
+    add_columns_buf: list[Column] = []
+    nullability_buf: list[AlterColumnNullability] = []
+    comments_buf: dict[str, str] = {}
+
+    table_comment_payload: Optional[SetTableComment] = None
+    table_props_payload: Optional[SetTableProperties] = None
+    add_pk_payload: Optional[AddPrimaryKey] = None
+    drop_pk_payload: Optional[DropPrimaryKey] = None
+
+    for a in action:
+        if isinstance(a, AddColumns):
+            add_columns_buf.extend(a.columns)
+        elif isinstance(a, AlterColumnNullability):
+            nullability_buf.append(g)
+        elif isinstance(a, SetColumnComments):
+            # merge; later wins
+            comments_buf.update(dict(a.comments))
+        elif isinstance(a, SetTableComment):
+            table_comment_payload = a  # last writer wins
+        elif isinstance(a, SetTableProperties):
+            table_props_payload = a  # last writer wins
+        elif isinstance(a, DropPrimaryKey):
+            drop_pk_payload = a      # last writer wins
+        elif isinstance(a, AddPrimaryKey):
+            add_pk_payload = a       # last writer wins
+        else:
+            # Ignore unknown items by design.
+            continue
+
+    add_columns_payload: Optional[AddColumns] = (
+        AddColumns(columns=tuple(add_columns_buf)) if add_columns_buf else None
+    )
+    set_col_comments_payload: Optional[SetColumnComments] = (
+        SetColumnComments(comments=comments_buf) if comments_buf else None
+    )
+
+    has_any = any([
+        add_columns_payload is not None,
+        bool(nullability_buf),
+        set_col_comments_payload is not None,
+        table_comment_payload is not None,
+        table_props_payload is not None,
+        drop_pk_payload is not None,
+        add_pk_payload is not None,
+    ])
+    if not has_any:
+        return None
+
+    return AlignTable(
+        table=table,
+        add_columns=add_columns_payload,
+        alter_nullability=tuple(nullability_buf),
+        set_column_comments=set_col_comments_payload,
+        set_table_comment=table_comment_payload,
+        set_table_properties=table_props_payload,
+        add_primary_key=add_pk_payload,
+        drop_primary_key=drop_pk_payload,
     )
 
 
-def _compute_add_column_specs(
+# ---------- utilities ----------
+
+def _compute_missing_columns(
     desired_columns: Tuple[Column, ...],
     live_by_lower: Dict[str, ColumnState],
-) -> list[ColumnSpec]:
-    """For each desired column that does not exist live, build a ColumnSpec."""
-    specs: list[ColumnSpec] = []
+) -> list[Column]:
+    """Return desired Column objects that are not present in live."""
+    missing: list[Column] = []
     for col in desired_columns:
-        if col.name.lower() in live_by_lower:
-            continue
-        specs.append(_to_column_spec(col))
-    return specs
+        if col.name.lower() not in live_by_lower:
+            missing.append(col)
+    return missing
 
 
 def _compute_nullability_actions(
@@ -260,7 +380,6 @@ def _compute_nullability_actions(
         if desired_is_nullable != live_is_nullable:
             actions.append(
                 AlterColumnNullability(
-                    table=table_name,
                     column_name=col.name,
                     make_nullable=desired_is_nullable,
                 )

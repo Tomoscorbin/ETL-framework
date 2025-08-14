@@ -1,305 +1,213 @@
 """
-Validation rules for table plans and models.
+Concrete validation rules.
 
-This module defines a validation framework for `TablePlan` objects and
-for desired `Table` models. Rules enforce safety constraints before execution.
-Each rule inspects the input and raises `UnsafePlanError` (for plan rules)
-or `InvalidModelError` (for model rules) if violations are found.
-
-To add a rule, implement either:
-- `PlanRule.check(plan: TablePlan) -> None`
-- `ModelRule.check(models: Sequence[Table]) -> None`
+- Centralised RuleCode (StrEnum)
+- One example of each kind: model, state, plan, warnings
+- A 'default_rule_set()' factory that returns (model_rules, state_rules, plan_rules, warnings_rules)
 """
 
 from __future__ import annotations
+from enum import StrEnum
+from typing import Dict, List, Tuple
 
-from abc import ABC, abstractmethod
-from collections import Counter
-from collections.abc import Iterable, Sequence
-from typing import Any
-
-from src.delta_engine.actions import TablePlan
-from src.delta_engine.models import Table
-from src.delta_engine.utils import qualify_table_name
-
-# ----------------- EXCEPTIONS -----------------
+from src.delta_engine.desired.models import DesiredTable
+from src.delta_engine.state.states import TableState, ColumnState
+from src.delta_engine.state.ports import SnapshotWarning, Aspect
+from src.delta_engine.plan.actions import Action, DropPrimaryKey, CreatePrimaryKey
+from src.delta_engine.validation.diagnostics import Diagnostic, DiagnosticLevel
 
 
-class UnsafePlanError(Exception):
-    """Plan violates safety rules."""
+# ---------- Centralised rule codes ----------
+
+class RuleCode(StrEnum):
+    PK_COLUMNS_PRESENT = "PK_COLUMNS_PRESENT"
+    TYPE_NARROWING_FORBIDDEN = "TYPE_NARROWING_FORBIDDEN"
+    DROP_PK_REQUIRES_EXPLICIT_NONE = "DROP_PK_REQUIRES_EXPLICIT_NONE"
+    SNAPSHOT_WARNINGS = "SNAPSHOT_WARNINGS"   # we suffix by aspect at emission time
 
 
-class InvalidModelError(Exception):
-    """The defined model is invalid."""
+# ---------- MODEL RULES (desired only) ----------
+
+class PrimaryKeyColumnsMustBePresent:
+    """Every desired PK column must exist in the desired column list."""
+    code = RuleCode.PK_COLUMNS_PRESENT.value
+    description = "Primary key columns must exist in the desired column list."
+
+    def check(self, desired: DesiredTable) -> List[Diagnostic]:
+        if not desired.primary_key_columns:
+            return []
+
+        desired_lower = {c.name.lower() for c in desired.columns}
+        missing = [c for c in desired.primary_key_columns if c.lower() not in desired_lower]
+        if not missing:
+            return []
+
+        key = (
+            f"{desired.fully_qualified_table_name.catalog}."
+            f"{desired.fully_qualified_table_name.schema}."
+            f"{desired.fully_qualified_table_name.table}"
+        )
+        return [
+            Diagnostic(
+                table_key=key,
+                level=DiagnosticLevel.ERROR,
+                code=self.code,
+                message=f"Primary key references unknown columns: {missing}",
+                hint="Fix the column names or remove them from primary_key_columns.",
+            )
+        ]
 
 
-# ----------------- BASE RULES -----------------
+# ---------- STATE RULES (desired + live) ----------
 
+_NUMERIC_ORDER = {
+    "byte": 1, "short": 2, "int": 3, "long": 4,
+    "float": 5, "double": 6, "decimal": 7, "string": 8,
+}
 
-class ValidationRule:
-    """Shared utilities for all rules."""
+def _rank(simple: str) -> int:
+    """Normalize e.g. 'decimal(10,2)' -> 'decimal' and return a widening rank (lower = narrower)."""
+    base = simple.split("(")[0].lower()
+    return _NUMERIC_ORDER.get(base, 100)  # unknown types rank wide
 
-    @property
-    def name(self) -> str:
-        """Rule's class name for error prefixes."""
-        return self.__class__.__name__
+class TypeNarrowingForbidden:
+    """Changing an existing column to a narrower type is forbidden."""
+    code = RuleCode.TYPE_NARROWING_FORBIDDEN.value
+    description = "Changing a column to a narrower type is forbidden."
 
-    @staticmethod
-    def _qualify(obj: Any) -> str:
-        """Return 'catalog.schema.table' for an action-like object, or '<unknown>'."""
-        try:
-            return qualify_table_name(obj)
-        except Exception:
-            return "<unknown>"
+    def check(self, desired: DesiredTable, live: TableState | None) -> List[Diagnostic]:
+        if live is None or not live.exists:
+            return []
 
-    @staticmethod
-    def _format_columns(cols: Iterable[str]) -> str:
-        """Format a list of column names for error messages."""
-        return ", ".join(f"`{c}`" for c in cols)
+        live_by_lower: Dict[str, ColumnState] = {c.name.lower(): c for c in live.columns}
+        out: List[Diagnostic] = []
 
-
-class PlanRule(ValidationRule, ABC):
-    """Rules that validate a compiled TablePlan."""
-
-    def fail(self, message: str) -> None:
-        """Raise UnsafePlanError with a standardized prefix."""
-        raise UnsafePlanError(f"[{self.name}] {message}")
-
-    @abstractmethod
-    def check(self, plan: TablePlan) -> None:
-        """Validate the table plan; raise UnsafePlanError on violation."""
-        ...
-
-
-class ModelRule(ValidationRule, ABC):
-    """Rules that validate desired Table models (no catalog state)."""
-
-    def fail(self, message: str) -> None:
-        """Raise InvalidModelError with a standardized prefix."""
-        raise InvalidModelError(f"[{self.name}] {message}")
-
-    @abstractmethod
-    def check(self, models: Sequence[Table]) -> None:
-        """Validate the models; raise InvalidModelError on violation."""
-        ...
-
-
-# ----------------- TABLE RULES -----------------
-
-
-class NoAddNotNullColumns(PlanRule):
-    """
-    Rejects adding columns as NOT NULL during an AlignTable.
-
-    Why: in Delta/UC, adding a NOT NULL column is unsafe because legacy rows violate the constraint.
-    Safer pattern: add as NULLABLE → backfill → SET NOT NULL.
-    """
-
-    def check(self, plan: TablePlan) -> None:
-        """Scan AlignTable.add_columns and fail if any new column is declared NOT NULL."""
-        for at in plan.align_tables:
-            for add in at.add_columns:
-                if add.is_nullable is False:
-                    self.fail(
-                        f"{self._qualify(at)}: ADD COLUMN `{add.name}` must be"
-                        " created as NULLABLE. backfill, then tighten with SET NOT NULL."
+        for col in desired.columns:
+            live_col = live_by_lower.get(col.name.lower())
+            if live_col is None:
+                continue
+            if _rank(col.data_type.simpleString()) < _rank(live_col.data_type.simpleString()):
+                key = (
+                    f"{desired.fully_qualified_table_name.catalog}."
+                    f"{desired.fully_qualified_table_name.schema}."
+                    f"{desired.fully_qualified_table_name.table}"
+                )
+                out.append(
+                    Diagnostic(
+                        table_key=key,
+                        level=DiagnosticLevel.ERROR,
+                        code=self.code,
+                        message=(
+                            f"Column '{col.name}' narrowing from "
+                            f"{live_col.data_type.simpleString()} to {col.data_type.simpleString()}"
+                        ),
+                        hint="Use a widening type or backfill/migrate first.",
                     )
-
-
-class CreatePrimaryKeyColumnsNotNull(PlanRule):
-    """
-    Ensures CREATE TABLE primary key columns exist and are NOT NULL in the create schema.
-
-    Why: UC enforces PK columns to be non-nullable; creating an invalid PK will fail on apply.
-    """
-
-    def check(self, plan: TablePlan) -> None:
-        """For each CreateTable with a PK, require all PK columns to exist and be NOT NULL."""
-        for ct in plan.create_tables:
-            if not ct.primary_key:
-                continue
-
-            column_nullable_by_name = {
-                f.name.lower(): bool(f.nullable) for f in ct.schema_struct.fields
-            }
-            missing = [
-                c for c in ct.primary_key.columns if c.lower() not in column_nullable_by_name
-            ]
-            if missing:
-                self.fail(
-                    f"{self._qualify(ct)}: PRIMARY KEY references missing column(s): "
-                    f"{self._format_columns(missing)}"
                 )
+        return out
 
-            nullable_cols = [
-                c for c in ct.primary_key.columns if column_nullable_by_name[c.lower()] is True
-            ]
-            if nullable_cols:
-                self.fail(
-                    f"{self._qualify(ct)}: PRIMARY KEY columns must be NOT NULL in CREATE TABLE: "
-                    f"{self._format_columns(nullable_cols)}"
+
+# ---------- PLAN RULES (desired + live + planned actions) ----------
+
+class DropPrimaryKeyRequiresExplicitNone:
+    """
+    Guardrail: a *pure drop* of the primary key (drop with no matching create)
+    must be explicitly requested via desired.primary_key_columns == ().
+
+    Changing PK (drop+create) is allowed.
+    """
+    code = RuleCode.DROP_PK_REQUIRES_EXPLICIT_NONE.value
+    description = "Dropping a primary key must be explicitly requested."
+
+    def check(
+        self,
+        desired: DesiredTable,
+        live: TableState | None,
+        planned_actions: Tuple[Action, ...],
+    ) -> List[Diagnostic]:
+        will_drop = any(isinstance(a, DropPrimaryKey) for a in planned_actions)
+        if not will_drop:
+            return []
+
+        # Drop+create = PK change → allowed
+        will_create = any(isinstance(a, CreatePrimaryKey) for a in planned_actions)
+        if will_create:
+            return []
+
+        # Pure drop: require explicit empty tuple in desired
+        explicitly_none = (desired.primary_key_columns is not None) and (len(desired.primary_key_columns) == 0)
+        if explicitly_none:
+            return []
+
+        key = (
+            f"{desired.fully_qualified_table_name.catalog}."
+            f"{desired.fully_qualified_table_name.schema}."
+            f"{desired.fully_qualified_table_name.table}"
+        )
+        return [
+            Diagnostic(
+                table_key=key,
+                level=DiagnosticLevel.ERROR,
+                code=self.code,
+                message=(
+                    "Plan drops a primary key but the desired spec did not explicitly request 'no primary key'."
+                ),
+                hint="Set desired.primary_key_columns=() to affirm the drop, or update the desired PK.",
+            )
+        ]
+
+
+# ---------- WARNINGS RULES (global snapshot warnings) ----------
+
+class WarningsToDiagnostics:
+    """Convert snapshot warnings to diagnostics (policy: SCHEMA → error, others → warning)."""
+    code = RuleCode.SNAPSHOT_WARNINGS.value
+    description = "Convert snapshot warnings into diagnostics."
+
+    def check(self, warnings: Tuple[SnapshotWarning, ...]) -> List[Diagnostic]:
+        out: List[Diagnostic] = []
+        for w in warnings:
+            level = DiagnosticLevel.ERROR if w.aspect == Aspect.SCHEMA else DiagnosticLevel.WARNING
+            table_key = ""
+            try:
+                if getattr(w, "table", None) and hasattr(w.table, "catalog"):
+                    table_key = f"{w.table.catalog}.{w.table.schema}.{w.table.table}"
+            except Exception:
+                table_key = ""
+            out.append(
+                Diagnostic(
+                    table_key=table_key,
+                    level=level,
+                    code=f"{self.code}_{w.aspect.name}",
+                    message=w.message,
+                    hint="Investigate snapshot permissions/connectivity or adjust requested aspects.",
                 )
+            )
+        return out
 
 
-class PrimaryKeyAddMustNotMakeColumnsNullable(PlanRule):
+# ---------- convenience factory ----------
+
+def default_rule_set() -> tuple[
+    tuple[object, ...],  # model rules
+    tuple[object, ...],  # state rules
+    tuple[object, ...],  # plan rules
+    tuple[object, ...],  # warnings rules
+]:
     """
-    Disallows loosening PK columns in the same AlignTable that adds a PK.
+    Return a default bundle of rules as 4 tuples that you can pass to Validator:
 
-    Why: adding a PK while also making one of its columns NULLABLE is contradictory and unsafe.
+        model_rules, state_rules, plan_rules, warnings_rules = default_rule_set()
+        validator = Validator(
+            model_rules=model_rules,
+            state_rules=state_rules,
+            plan_rules=plan_rules,
+            warnings_rules=warnings_rules,
+        )
     """
-
-    def check(self, plan: TablePlan) -> None:
-        """When add_primary_key is present, fail if any PK column has make_nullable=True."""
-        for at in plan.align_tables:
-            if not at.add_primary_key:
-                continue
-            pk_cols = {c.lower() for c in at.add_primary_key.definition.columns}
-            null_change_by_col = {c.name.lower(): c.make_nullable for c in at.change_nullability}
-            illegal = [c for c in pk_cols if null_change_by_col.get(c) is True]
-            if illegal:
-                self.fail(
-                    f"{self._qualify(at)}: PRIMARY KEY columns cannot be made NULLABLE"
-                    f" in the same plan: {self._format_columns(illegal)}"
-                )
-
-
-class PrimaryKeyNewColumnsMustBeSetNotNull(PlanRule):
-    """
-    Requires tightening newly added PK columns to NOT NULL in the same AlignTable.
-
-    Why: ADD COLUMN creates the column as NULLABLE; a PK over it would fail unless
-    you also SET NOT NULL.
-    """
-
-    def check(self, plan: TablePlan) -> None:
-        """
-        When adding a PK, any PK column added in this AlignTable must
-        have make_nullable=False.
-        """
-        for at in plan.align_tables:
-            if not at.add_primary_key:
-                continue
-            pk_cols = {c.lower() for c in at.add_primary_key.definition.columns}
-            added_cols = {a.name.lower() for a in at.add_columns}
-            null_change_by_col = {c.name.lower(): c.make_nullable for c in at.change_nullability}
-            missing_notnull = [
-                c for c in pk_cols if c in added_cols and null_change_by_col.get(c) is not False
-            ]
-            if missing_notnull:
-                self.fail(
-                    f"{self._qualify(at)}: Newly added PRIMARY KEY columns must be SET NOT NULL"
-                    f" in the same plan: {self._format_columns(missing_notnull)}"
-                )
-
-
-class PrimaryKeyExistingColumnsMustBeSetNotNull(PlanRule):
-    """
-    Requires tightening *existing* PK columns to NOT NULL in the same AlignTable
-    that adds the PK.
-
-    Policy note: this rule is deliberately conservative because the validator
-    does not see live state.
-    Requiring an explicit SET NOT NULL for existing PK columns guarantees UC will
-    accept the PK, regardless of current nullability.
-    """
-
-    def check(self, plan: TablePlan) -> None:
-        """
-        When adding a PK, any PK column that is not added in this AlignTable must
-        have make_nullable=False.
-        """
-        for at in plan.align_tables:
-            if not at.add_primary_key:
-                continue
-            pk_cols = {c.lower() for c in at.add_primary_key.definition.columns}
-            added_cols = {a.name.lower() for a in at.add_columns}
-            existing_pk_cols = sorted(pk_cols - added_cols)
-            null_change_by_col = {c.name.lower(): c.make_nullable for c in at.change_nullability}
-            missing_tighten = [
-                c for c in existing_pk_cols if null_change_by_col.get(c) is not False
-            ]
-            if missing_tighten:
-                self.fail(
-                    f"{self._qualify(at)}: Existing PRIMARY KEY columns must be SET NOT NULL"
-                    f" in the same plan: {self._format_columns(missing_tighten)}"
-                )
-
-
-class PrimaryKeyColumnsNotNull(ModelRule):
-    """
-    Ensure that, in the desired models, primary-key columns exist and are NOT NULL.
-
-    Why: Unity Catalog requires PK columns to be non-nullable. If the model marks a PK column as
-    nullable, later DDL will fail; catch it at authoring time.
-    """
-
-    def check(self, models: Sequence[Table]) -> None:
-        """For each model with a PK, verify each PK column exists and has is_nullable=False."""
-        for m in models:
-            pk = m.primary_key
-            if pk is None:
-                continue
-
-            nullable_by_name = {c.name.lower(): bool(c.is_nullable) for c in m.columns}
-
-            # must exist
-            missing = [c for c in pk if c.lower() not in nullable_by_name]
-            if missing:
-                full_name = f"{m.catalog_name}.{m.schema_name}.{m.table_name}"
-                self.fail(
-                    f"{full_name}: primary key columns missing from model: "
-                    f"{self._format_columns(missing)}"
-                )
-
-            # must be NOT NULL
-            nullable = [c for c in pk if nullable_by_name.get(c.lower()) is True]
-            if nullable:
-                full_name = f"{m.catalog_name}.{m.schema_name}.{m.table_name}"
-                self.fail(
-                    f"{full_name}: primary key columns must be NOT NULL in model: "
-                    f"{self._format_columns(nullable)}"
-                )
-
-
-class DuplicateColumnNames(ModelRule):
-    """
-    Reject duplicate column names in a model's column list (case-insensitive).
-
-    Why: ambiguous schemas lead to brittle queries and may fail at runtime.
-    """
-
-    def check(self, models: Sequence[Table]) -> None:
-        """Fail any model whose declared columns include case-insensitive duplicates."""
-        for m in models:
-            names = [c.name for c in m.columns]
-            lower_counts = Counter(n.lower() for n in names)
-            duplicates = sorted({n for n, count in lower_counts.items() if count > 1})
-            if duplicates:
-                full_name = f"{m.catalog_name}.{m.schema_name}.{m.table_name}"
-                self.fail(
-                    f"{full_name}: duplicate column names in model: "
-                    f"{self._format_columns(duplicates)}"
-                )
-
-
-class PrimaryKeyMustBeOrderedSequence(ModelRule):
-    """
-    Require `Table.primary_key` to be an ordered sequence (list or tuple).
-
-    Why: Primary-key column **order** is semantically meaningful (constraint definition and
-    validation) and is used to generate deterministic constraint names. Unordered or
-    non-sequence types (e.g., sets, dicts, strings, scalars) lead to nondeterministic
-    plans or accidental per-character iteration.
-    """
-
-    def check(self, models: Sequence[Table]) -> None:
-        """Ensure each model's `primary_key` is an ordered sequence (list or tuple)."""
-        for m in models:
-            pk = getattr(m, "primary_key", None)
-            if pk is None:
-                continue
-            if not isinstance(pk, list | tuple):
-                self.fail(
-                    f"{m.catalog_name}.{m.schema_name}.{m.table_name}: "
-                    "primary_key must be an ordered sequence (list/tuple)."
-                )
+    return (
+        (PrimaryKeyColumnsMustBePresent(),),
+        (TypeNarrowingForbidden(),),
+        (DropPrimaryKeyRequiresExplicitNone(),),
+        (WarningsToDiagnostics(),),
+    )

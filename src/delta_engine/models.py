@@ -43,11 +43,26 @@ class Table:
     properties: dict[str, str] = field(default_factory=dict)
     primary_key: list[str] | None = None
 
+
     @property
     def full_name(self) -> str:
-        """Fully qualified name in `catalog.schema.table` format."""
-        return f"{self.catalog_name}.{self.schema_name}.{self.table_name}"
+        """Full table name in catalgog.schema.table format"""
+        return render_fully_qualified_name_from_parts(
+            self.catalog_name, self.schema_name, self.table_name
+        )
 
+    @property
+    def column_names(self) -> list[str]:
+        """List of colomn names."""
+        return [column.name for column in self.columns]
+    
+    @property
+    def primary_key_name(self) -> str | None:
+        """Compute the default PK name (None if no PK columns provided)."""
+        if not self.primary_key_columns:
+            return None
+        return generate_primary_key_name(self.identity, self.primary_key_columns)
+    
     @property
     def effective_table_properties(self) -> Mapping[str, str]:
         """
@@ -60,8 +75,3 @@ class Table:
         """
         merged = {**self.DEFAULT_PROPERTIES, **self.properties}
         return MappingProxyType(merged)
-
-    @property
-    def column_names(self) -> list[str]:
-        """List of colomn names."""
-        return [column.name for column in self.columns]

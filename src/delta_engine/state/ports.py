@@ -65,7 +65,6 @@ class SnapshotWarning:
     @classmethod
     def from_exception(
         cls,
-        *,
         aspect: Aspect,
         error: object,
         table: object | None = None,

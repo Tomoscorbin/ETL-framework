@@ -32,7 +32,7 @@ from src.delta_engine.validation.diagnostics import ValidationReport
 
 from src.delta_engine.execute.create_executor import CreateExecutor
 from src.delta_engine.execute.align_executor import AlignExecutor
-from src.delta_engine.execute.runner import TablePlan, split_plan, PlanRunner
+from src.delta_engine.execute.runner import TablePlan, PlanRunner
 
 
 # ---------- orchestration inputs/outputs ----------
@@ -129,6 +129,7 @@ class Orchestrator:
             manage_table_comment=(Aspect.COMMENTS in aspects),
             manage_properties=(Aspect.PROPERTIES in aspects),
             manage_primary_key=(Aspect.PRIMARY_KEY in aspects),
+            
         )
         actions: list[Action] = self._differ.diff(desired=desired, live=live, options=options)
         return self._plan_builder.build(actions)
@@ -150,6 +151,5 @@ class Orchestrator:
 
     def _execute(self, plan: Plan) -> None:
         """Create first, then align (per-table)."""
-        table_plan: TablePlan = split_plan(plan)
         runner = PlanRunner(self._create_executor, self._align_executor)
-        runner.apply(table_plan)
+        runner.apply(plan)

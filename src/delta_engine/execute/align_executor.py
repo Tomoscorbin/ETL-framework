@@ -42,19 +42,22 @@ class AlignExecutor:
         # 1) schema adds
         self._add_columns(table, action.add_columns)
 
-        # 2) nullability
+        # 2) schema drops
+        self._drop_columns(table, action.drop_columns)
+
+        # 3) nullability
         self._alter_nullability(table, action.alter_nullability)
 
-        # 3) constraints (add after schema changes)
+        # 4) constraints (add after schema changes)
         self._add_primary_key(table, action.add_primary_key)
 
-        # 4) comments (columns)
+        # 5) comments (columns)
         self._set_column_comments(table, action.set_column_comments)
 
-        # 5) comment (table)
+        # 6) comment (table)
         self._set_table_comment(table, action.set_table_comment)
 
-        # 6) properties
+        # 7) properties
         self._set_table_properties(table, action.set_table_properties)
 
     # ----- tiny helpers -----
@@ -70,6 +73,11 @@ class AlignExecutor:
                 is_nullable=col.is_nullable,
                 comment=(col.comment or None),
             )
+
+    def _drop_columns(self, table: FullyQualifiedTableName, drop: DropColumns | None) -> None:
+        if not drop or not drop.columns:
+            return
+        self._ddl.drop_columns(full_table_name=table, column_names=drop.columns)
 
     def _alter_nullability(
         self,

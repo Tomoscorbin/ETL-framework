@@ -23,6 +23,10 @@ class AddColumns:
     """Add one or more columns."""
     columns: Tuple[Column, ...]
 
+@dataclass(frozen=True)
+class DropColumns:
+    """Drop one or more columns by name."""
+    columns: Tuple[str, ...]
 
 @dataclass(frozen=True)
 class AlterColumnNullability:
@@ -87,6 +91,7 @@ class AlignTable(Action):
     Coalesced, per-table alignment. Any field None/empty => no-op for that slice.
     """
     add_columns: Optional[AddColumns] = None
+    drop_columns: Optional[DropColumns] = None
     alter_nullability: Tuple[AlterColumnNullability, ...] = ()
     set_column_comments: Optional[SetColumnComments] = None
     set_table_comment: Optional[SetTableComment] = None

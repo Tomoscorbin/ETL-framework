@@ -5,6 +5,7 @@ from typing import Dict, Iterable, List, Tuple
 
 from src.delta_engine.plan.actions import (
     Action,
+    AlignTable,
     CreateTable,
     AddColumns,
     AlterColumnNullability,
@@ -62,26 +63,10 @@ class PlanBuilder:
         return Plan(actions=tuple(ordered))
 
 
-    def _order_for_one_table(self, actions: List[Action]) -> List[Action]:
-        """
-        Bucketing for a single table.
-        """
-        create = [a for a in actions if isinstance(a, CreateTable)]
-        cols   = [a for a in actions if isinstance(a, AddColumns)]
-        nulls  = [a for a in actions if isinstance(a, AlterColumnNullability)]
-        drops  = [a for a in actions if isinstance(a, DropPrimaryKey)]
-        pks    = [a for a in actions if isinstance(a, AddPrimaryKey)]
-        props  = [a for a in actions if isinstance(a, SetTableProperties)]
-        tcomm  = [a for a in actions if isinstance(a, SetTableComment)]
-        ccomm  = [a for a in actions if isinstance(a, SetColumnComments)]
 
-        ordered: List[Action] = []
-        ordered += create
-        ordered += cols
-        ordered += nulls
-        ordered += drops
-        ordered += pks
-        ordered += props
-        ordered += tcomm
-        ordered += ccomm
-        return ordered
+    def _order_for_one_table(self, actions: List[Action]) -> List[Action]:
+        creates = [a for a in actions if isinstance(a, CreateTable)]
+        aligns  = [a for a in actions if isinstance(a, AlignTable)]
+        # anything else means a refactor leak; keep for development/testing purposes
+        leftovers = [a for a in actions if a not in creates and a not in aligns]
+        return [*creates, *aligns, *leftovers]

@@ -36,6 +36,8 @@ from src.delta_engine.plan.actions import (
     Action,
     AddColumns,
     AlterColumnNullability,
+    CreateTable,
+    DropColumns,
     SetColumnComments,
     SetTableComment,
     SetTableProperties,
@@ -90,19 +92,19 @@ class Differ:
             return [_create_from_scratch(desired)]
 
         # 2) collect granular changes
-        granular: list[Action] = []
+        actions: list[Action] = []
 
         if options.manage_properties:
-            granular.extend(_diff_properties(desired, live))
+            actions.extend(_diff_properties(desired, live))
         if options.manage_table_comment:
-            granular.extend(_diff_table_comment(desired, live))
+            actions.extend(_diff_table_comment(desired, live))
         if options.manage_schema:
-            granular.extend(_diff_columns(desired, live))
+            actions.extend(_diff_columns(desired, live))
         if options.manage_primary_key:
-            granular.extend(_diff_primary_key(desired, live))
+            actions.extend(_diff_primary_key(desired, live))
 
         # 3) coalesce → AlignTable (or nothing)
-        align = _coalesce_to_align(desired.fully_qualified_table_name, granular)
+        align = _coalesce_to_align(desired.fully_qualified_table_name, actions)
         return [align] if align is not None else []
 
 
@@ -190,30 +192,31 @@ def _diff_table_comment(desired: DesiredTable, live: TableState) -> list[Action]
     return []
 
 
-def _diff_columns(desired: DesiredTable, live: TableState) -> list[Action]:
-    """
-    Handle:
-    - Adding missing columns (batched into a single AddColumns action).
-    - Nullability changes (one AlterColumnNullability per column).
-    - Column comments (SetColumnComments for only the ones that changed and are non-empty).
-    """
-    actions: list[Action] = []
-
+def _diff_columns(desired: DesiredTable, live: TableState) -> list[object]:
+    """Return granular sub-actions (AddColumns, DropColumns, AlterColumnNullability, SetColumnComments)."""
+    actions: list[object] = []
     live_by_lower: Dict[str, ColumnState] = {c.name.lower(): c for c in live.columns}
 
-    # 1) Missing columns → emit AddColumns with user-facing Column objects
-    missing = _compute_missing_columns(desired.columns, live_by_lower)
-    if missing:
-        actions.append(AddColumns(columns=tuple(missing)))
+    # 1) Adds
+    desired_missing = [c for c in desired.columns if c.name.lower() not in live_by_lower]
+    if desired_missing:
+        actions.append(AddColumns(columns=tuple(desired_missing)))
 
-    # 2) Nullability changes
-    actions.extend(
-        _compute_nullability_actions(
-            desired.columns,
-            desired.fully_qualified_table_name,
-            live_by_lower,
-        )
-    )
+    # 2) Drops
+    desired_lower = {c.name.lower() for c in desired.columns}
+    live_extras = tuple(c.name for c in live.columns if c.name.lower() not in desired_lower)
+    if live_extras:
+        actions.append(DropColumns(columns=live_extras))
+
+    # 3) Nullability deltas
+    actions.extend(_compute_nullability_actions(desired.columns, live_by_lower))
+
+    # 4) Column comments
+    comment_updates = _compute_column_comment_updates(desired.columns, live_by_lower)
+    if comment_updates:
+        actions.append(SetColumnComments(comments=comment_updates))
+
+    return actions
 
     # 3) Column comments (only set when desired has a non-empty comment and it differs)
     comment_updates = _compute_column_comment_updates(desired.columns, live_by_lower)
@@ -288,6 +291,7 @@ def _coalesce_to_align(
     - If nothing to do, return None.
     """
     add_columns_buf: list[Column] = []
+    drop_columns_buf: list[Column] = []
     nullability_buf: list[AlterColumnNullability] = []
     comments_buf: dict[str, str] = {}
 
@@ -299,6 +303,8 @@ def _coalesce_to_align(
     for a in action:
         if isinstance(a, AddColumns):
             add_columns_buf.extend(a.columns)
+        elif isinstance(a, DropColumns):
+            drop_columns_buf.extend(a.columns)
         elif isinstance(a, AlterColumnNullability):
             nullability_buf.append(g)
         elif isinstance(a, SetColumnComments):
@@ -319,12 +325,16 @@ def _coalesce_to_align(
     add_columns_payload: Optional[AddColumns] = (
         AddColumns(columns=tuple(add_columns_buf)) if add_columns_buf else None
     )
+    drop_columns_payload: Optional[AddColumns] = (
+        AddColumns(columns=tuple(drop_columns_buf)) if drop_columns_buf else None
+    )
     set_col_comments_payload: Optional[SetColumnComments] = (
         SetColumnComments(comments=comments_buf) if comments_buf else None
     )
 
     has_any = any([
         add_columns_payload is not None,
+        drop_columns_payload is not None,
         bool(nullability_buf),
         set_col_comments_payload is not None,
         table_comment_payload is not None,
@@ -338,6 +348,7 @@ def _coalesce_to_align(
     return AlignTable(
         table=table,
         add_columns=add_columns_payload,
+        drop_columns=drop_columns_payload,
         alter_nullability=tuple(nullability_buf),
         set_column_comments=set_col_comments_payload,
         set_table_comment=table_comment_payload,
@@ -363,7 +374,6 @@ def _compute_missing_columns(
 
 def _compute_nullability_actions(
     desired_columns: Tuple[Column, ...],
-    table_name: FullyQualifiedTableName,
     live_by_lower: Dict[str, ColumnState],
 ) -> list[AlterColumnNullability]:
     """

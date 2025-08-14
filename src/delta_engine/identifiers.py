@@ -5,6 +5,8 @@ from dataclasses import dataclass
 from typing import Iterable, TypeAlias
 from collections import defaultdict
 
+from src.delta_engine.utils import quote_identifier
+
 
 _MAX_IDENTIFIER_LEN = 128                           # Unity Catalog identifier length limit
 _INVALID_CHARACTER = re.compile(r"[^A-Za-z0-9]+")   # anything not alnum
@@ -54,10 +56,6 @@ def _group_schema_qualified_by_catalog(
         )
     # Convert defaultdict to a plain dict to avoid leaking mutability semantics
     return dict(grouped)
-
-# Identifier quoting/rendering (single source of truth)
-def quote_identifier(identifier: str) -> str:
-    return f"`{identifier.replace('`', '``')}`"
 
 def render_fully_qualified_name(catalog: str, schema: str, table: str) -> str:
     """`catalog`.`schema`.`table`"""

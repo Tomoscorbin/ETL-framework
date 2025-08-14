@@ -1,6 +1,10 @@
 from __future__ import annotations
 from collections.abc import Mapping
 
+
+def quote_identifier(identifier: str) -> str:
+    return f"`{identifier.replace('`', '``')}`"
+
 def escape_sql_literal(value: str) -> str:
     """
     Escape a Python string for use as a single-quoted SQL literal.

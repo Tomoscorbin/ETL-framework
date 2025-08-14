@@ -4,7 +4,7 @@ from pyspark.sql import SparkSession
 import pyspark.sql.types as T
 
 from src.delta_engine.identifiers import FullyQualifiedTableName
-from src.delta_engine.exec.ddl import DDLExecutor
+from src.delta_engine.execute.ddl_executor import DDLExecutor
 from src.delta_engine.plan.actions import CreateTable
 
 

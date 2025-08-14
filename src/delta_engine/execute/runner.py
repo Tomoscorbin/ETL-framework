@@ -3,8 +3,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Tuple
 
-from src.delta_engine.exec.create_executor import CreateExecutor
-from src.delta_engine.exec.align_executor import AlignExecutor
+from src.delta_engine.execute.create_executor import CreateExecutor
+from src.delta_engine.execute.align_executor import AlignExecutor
 from src.delta_engine.plan.plan_builder import Plan
 from src.delta_engine.plan.actions import CreateTable, AlignTable, Action
 

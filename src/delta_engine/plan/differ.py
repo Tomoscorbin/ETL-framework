@@ -62,45 +62,51 @@ class DiffOptions:
 
 # ---------- public API ----------
 
-def diff_catalog(
-    desired: DesiredCatalog,
-    live: CatalogState,
-    options: DiffOptions = DiffOptions(),
-) -> list[Action]:
-    """Compute actions for every desired table against the live catalog state."""
-    actions: list[Action] = []
-    for desired_table in desired.tables:
-        live_key = fully_qualified_name_to_string(desired_table.fully_qualified_table_name)
-        live_table_state = live.tables.get(live_key)
-        actions.extend(diff_table(desired_table, live_table_state, options))
-    return actions
+class Differ:
+    """Thin OO wrapper so Orchestrator can DI a differ with a stable .diff() API."""
+    def diff(self, desired: DesiredCatalog, live: CatalogState, options: DiffOptions) -> list[Action]:
+        return self._diff_catalog(desired, live, options)
 
+    def _diff_catalog(
+        self,
+        desired: DesiredCatalog,
+        live: CatalogState,
+        options: DiffOptions = DiffOptions(),
+    ) -> list[Action]:
+        """Compute actions for every desired table against the live catalog state."""
+        actions: list[Action] = []
+        for desired_table in desired.tables:
+            live_key = fully_qualified_name_to_string(desired_table.fully_qualified_table_name)
+            live_table_state = live.tables.get(live_key)
+            actions.extend(self._diff_table(desired_table, live_table_state, options))
+        return actions
 
-def diff_table(
-    desired: DesiredTable,
-    live: TableState | None,
-    options: DiffOptions,
-) -> list[Action]:
-    """Compute actions to make a single live table match the desired spec."""
-    # Table does not exist → create with everything we know up-front
-    if live is None or not live.exists:
-        return [_create_from_scratch(desired)]
+    @staticmethod
+    def _diff_table(
+        desired: DesiredTable,
+        live: TableState | None,
+        options: DiffOptions,
+    ) -> list[Action]:
+        """Compute actions to make a single live table match the desired spec."""
+        # Table does not exist → create with everything we know up-front
+        if live is None or not live.exists:
+            return [_create_from_scratch(desired)]
 
-    out: list[Action] = []
+        out: list[Action] = []
 
-    if options.manage_properties:
-        out.extend(_diff_properties(desired, live))
+        if options.manage_properties:
+            out.extend(_diff_properties(desired, live))
 
-    if options.manage_table_comment:
-        out.extend(_diff_table_comment(desired, live))
+        if options.manage_table_comment:
+            out.extend(_diff_table_comment(desired, live))
 
-    if options.manage_schema:
-        out.extend(_diff_columns(desired, live))
+        if options.manage_schema:
+            out.extend(_diff_columns(desired, live))
 
-    if options.manage_primary_key:
-        out.extend(_diff_primary_key(desired, live))
+        if options.manage_primary_key:
+            out.extend(_diff_primary_key(desired, live))
 
-    return out
+        return out
 
 
 # ---------- aspect helpers ----------
@@ -116,7 +122,7 @@ def _create_from_scratch(desired: DesiredTable) -> CreateTable:
     table_comment_value = desired.table_comment
 
     return CreateTable(
-        fully_qualified_table_name=desired.fully_qualified_table_name,
+        table=desired.fully_qualified_table_name,
         columns=column_specs,
         properties=properties_dict,
         comment=table_comment_value,
@@ -176,25 +182,18 @@ def _diff_columns(desired: DesiredTable, live: TableState) -> list[Action]:
 
 
 def _diff_primary_key(desired: DesiredTable, live: TableState) -> list[Action]:
-    """
-    Semantics:
-      - desired.primary_key_columns is None  => unmanaged (no action)
-      - desired.primary_key_columns == ()    => ensure NO PK (drop if exists)
-      - desired.primary_key_columns non-empty => ensure PK with those columns
-        - name = desired.primary_key_name_override or derived default
-    """
     cols = desired.primary_key_columns
     live_pk = live.primary_key
 
-    # unmanaged (skip)
     if cols is None:
         return []
 
-    # enforce no PK
     if len(cols) == 0:
-        return [DropPrimaryKey(table=desired.fully_qualified_table_name)] if live_pk is not None else []
+        return [DropPrimaryKey(
+            table=desired.fully_qualified_table_name,
+            name=live_pk.name,                        # <-- include the live name
+        )] if live_pk is not None else []
 
-    # enforce PK with derived/override name
     desired_name = desired.primary_key_name_override or build_primary_key_name(
         catalog=desired.fully_qualified_table_name.catalog,
         schema=desired.fully_qualified_table_name.schema,
@@ -202,14 +201,16 @@ def _diff_primary_key(desired: DesiredTable, live: TableState) -> list[Action]:
         columns=cols,
     )
 
-    # live has no PK -> create
     if live_pk is None:
-        return [CreatePrimaryKey(table=desired.fully_qualified_table_name, name=desired_name, columns=tuple(cols))]
+        return [CreatePrimaryKey(
+            table=desired.fully_qualified_table_name,
+            name=desired_name,
+            columns=tuple(cols),
+        )]
 
-    # live has PK -> compare name + ordered columns
     if desired_name != live_pk.name or tuple(cols) != tuple(live_pk.columns):
         return [
-            DropPrimaryKey(table=desired.fully_qualified_table_name),
+            DropPrimaryKey(table=desired.fully_qualified_table_name, name=live_pk.name),  # <-- include name
             CreatePrimaryKey(table=desired.fully_qualified_table_name, name=desired_name, columns=tuple(cols)),
         ]
     return []

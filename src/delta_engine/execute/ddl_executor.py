@@ -5,7 +5,7 @@ import pyspark.sql.types as T
 from pyspark.sql import SparkSession
 
 from src.delta_engine.identifiers import FullyQualifiedTableName, fully_qualified_name_to_string
-from src.delta_engine.utils import quote_ident as quote_identifier, escape_sql_literal, format_tblproperties
+from src.delta_engine.utils import quote_identifier, escape_sql_literal, format_tblproperties
 
 
 class DDLExecutor:

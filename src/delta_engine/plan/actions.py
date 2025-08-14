@@ -16,12 +16,6 @@ class ColumnSpec:
     comment: str = ""
 
 @dataclass(frozen=True)
-class CreateTable(Action):
-    columns: Tuple[ColumnSpec, ...]
-    properties: Mapping[str, str]
-    comment: str
-
-@dataclass(frozen=True)
 class AddColumns(Action):
     columns: Tuple[ColumnSpec, ...]
 
@@ -50,3 +44,25 @@ class CreatePrimaryKey(Action):
 @dataclass(frozen=True)
 class DropPrimaryKey(Action):
     pass
+
+
+@dataclass(frozen=True)
+class CreateTable(Action):
+    columns: Tuple[ColumnSpec, ...]
+    properties: Mapping[str, str]
+    comment: str
+
+@dataclass(frozen=True)
+class AlignTable(Action):
+    catalog_name: str
+    schema_name: str
+    table_name: str
+
+    add_columns: Tuple[AddColumnSpec, ...] = ()
+    drop_columns: Tuple[DropColumnSpec, ...] = ()
+    change_nullability: Tuple[NullabilityChangeSpec, ...] = ()
+    add_primary_key: AddPrimaryKey | None = None
+    drop_primary_key: DropPrimaryKey | None = None
+    set_column_comments: ColumnCommentsSpec | None = None
+    set_table_comment: TableCommentSpec | None = None
+    set_table_properties: TablePropertiesSpec | None = None

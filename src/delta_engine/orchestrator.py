@@ -30,9 +30,9 @@ from src.delta_engine.plan.differ import Differ, DiffOptions
 from src.delta_engine.validation.validator import Validator
 from src.delta_engine.validation.diagnostics import ValidationReport
 
-from src.delta_engine.exec.create_executor import CreateExecutor
-from src.delta_engine.exec.align_executor import AlignExecutor
-from src.delta_engine.exec.runner import TablePlan, split_plan, PlanRunner
+from src.delta_engine.execute.create_executor import CreateExecutor
+from src.delta_engine.execute.align_executor import AlignExecutor
+from src.delta_engine.execute.runner import TablePlan, split_plan, PlanRunner
 
 
 # ---------- orchestration inputs/outputs ----------

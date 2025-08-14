@@ -116,6 +116,6 @@ def _index_actions_by_table(plan: Plan) -> Dict[str, Tuple[Action, ...]]:
     """
     grouped: Dict[str, List[Action]] = {}
     for action in plan.actions:
-        key = fully_qualified_name_to_string(action.fully_qualified_table_name)
+        key = fully_qualified_name_to_string(action.table)
         grouped.setdefault(key, []).append(action)
     return {k: tuple(v) for k, v in grouped.items()}

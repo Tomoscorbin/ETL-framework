@@ -132,11 +132,11 @@ class CatalogReader:
     def _step_schema(
         self,
         *,
-        tables: _tuple[FullyQualifiedTableName, ...],
+        tables: tuple[FullyQualifiedTableName, ...],
         include_schema: bool,
-    ) -> _tuple[
+    ) -> tuple[
         dict[FullyQualifiedTableName, bool],
-        dict[FullyQualifiedTableName, _tuple[ColumnState, ...]],
+        dict[FullyQualifiedTableName, tuple[ColumnState, ...]],
         list[SnapshotWarning],
     ]:
         """Read existence for all tables, and optionally their physical schema."""
@@ -149,9 +149,9 @@ class CatalogReader:
     def _step_column_comments(
         self,
         *,
-        tables: _tuple[FullyQualifiedTableName, ...],
+        tables: tuple[FullyQualifiedTableName, ...],
         enabled: bool,
-    ) -> _tuple[dict[FullyQualifiedTableName, dict[str, str]], list[SnapshotWarning]]:
+    ) -> tuple[dict[FullyQualifiedTableName, dict[str, str]], list[SnapshotWarning]]:
         """Read per-column comments as {lower_name -> comment}. If disabled, return empty dicts."""
         if not enabled:
             empty_map = {t: {} for t in tables}
@@ -164,9 +164,9 @@ class CatalogReader:
     def _step_table_comment(
         self,
         *,
-        tables: _tuple[FullyQualifiedTableName, ...],
+        tables: tuple[FullyQualifiedTableName, ...],
         enabled: bool,
-    ) -> _tuple[dict[FullyQualifiedTableName, str], list[SnapshotWarning]]:
+    ) -> tuple[dict[FullyQualifiedTableName, str], list[SnapshotWarning]]:
         """Read table-level comments as strings. If disabled, return empty strings."""
         if not enabled:
             empty_comments = dict.fromkeys(tables, "")
@@ -179,9 +179,9 @@ class CatalogReader:
     def _step_properties(
         self,
         *,
-        tables: _tuple[FullyQualifiedTableName, ...],
+        tables: tuple[FullyQualifiedTableName, ...],
         enabled: bool,
-    ) -> _tuple[dict[FullyQualifiedTableName, dict[str, str]], list[SnapshotWarning]]:
+    ) -> tuple[dict[FullyQualifiedTableName, dict[str, str]], list[SnapshotWarning]]:
         """Read table properties (Delta configuration) as {key -> value}. If disabled, return empty dicts."""
         if not enabled:
             empty_map = {t: {} for t in tables}
@@ -194,9 +194,9 @@ class CatalogReader:
     def _step_primary_keys(
         self,
         *,
-        tables: _tuple[FullyQualifiedTableName, ...],
+        tables: tuple[FullyQualifiedTableName, ...],
         enabled: bool,
-    ) -> _tuple[dict[FullyQualifiedTableName, PrimaryKeyState | None], list[SnapshotWarning]]:
+    ) -> tuple[dict[FullyQualifiedTableName, PrimaryKeyState | None], list[SnapshotWarning]]:
         """Read primary keys (name + ordered columns). If disabled, return None for all."""
         if not enabled:
             none_map = dict.fromkeys(tables)

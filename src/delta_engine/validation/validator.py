@@ -11,15 +11,15 @@ from collections.abc import Iterable
 from typing import Protocol
 
 from src.delta_engine.desired.models import DesiredCatalog, DesiredTable
-from src.delta_engine.identifiers import fully_qualified_name_to_string
+from src.delta_engine.identifiers import format_fully_qualified_table_name_from_parts
 from src.delta_engine.plan.actions import Action
 from src.delta_engine.plan.plan_builder import Plan
 from src.delta_engine.state.ports import SnapshotWarning
 from src.delta_engine.state.states import CatalogState, TableState
 from src.delta_engine.validation.diagnostics import Diagnostic, ValidationReport
 
-# ---------- rule protocols ----------
 
+# ---------- rule protocols ----------
 
 class ModelRule(Protocol):
     code: str
@@ -54,8 +54,35 @@ class WarningsRule(Protocol):
     def check(self, warnings: tuple[SnapshotWarning, ...]) -> list[Diagnostic]: ...
 
 
-# ---------- validator orchestrator ----------
+# ---------- tiny helpers ----------
 
+def _table_key_from_desired(desired: DesiredTable) -> str:
+    fq = desired.fully_qualified_table_name
+    return format_fully_qualified_table_name_from_parts(fq.catalog, fq.schema, fq.table)
+
+
+def _table_key_from_action(action: Action) -> str:
+    fq = action.table
+    return format_fully_qualified_table_name_from_parts(fq.catalog, fq.schema, fq.table)
+
+
+def _index_actions_by_table(plan: Plan) -> dict[str, tuple[Action, ...]]:
+    """
+    Build a lookup: 'catalog.schema.table' (unescaped) -> tuple of actions targeting that table.
+    """
+    grouped: dict[str, list[Action]] = {}
+    for action in plan.actions:
+        key = _table_key_from_action(action)
+        grouped.setdefault(key, []).append(action)
+
+    by_table: dict[str, tuple[Action, ...]] = {}
+    for key, items in grouped.items():
+        actions_tuple = tuple(items)
+        by_table[key] = actions_tuple
+    return by_table
+
+
+# ---------- validator orchestrator ----------
 
 class Validator:
     """
@@ -89,40 +116,29 @@ class Validator:
         actions_by_table_key = _index_actions_by_table(plan)
 
         for desired_table in desired.tables:
-            table_key = fully_qualified_name_to_string(desired_table.fully_qualified_table_name)
+            table_key = _table_key_from_desired(desired_table)
             live_state = live.tables.get(table_key)
             planned_actions = actions_by_table_key.get(table_key, ())
 
             # 1) model-only
             for rule in self._model_rules:
-                diagnostics.extend(rule.check(desired_table))
+                findings = rule.check(desired_table)
+                diagnostics.extend(findings)
 
             # 2) state-aware
             for rule in self._state_rules:
-                diagnostics.extend(rule.check(desired_table, live_state))
+                findings = rule.check(desired_table, live_state)
+                diagnostics.extend(findings)
 
             # 3) plan-aware
             for rule in self._plan_rules:
-                diagnostics.extend(rule.check(desired_table, live_state, planned_actions))
+                findings = rule.check(desired_table, live_state, planned_actions)
+                diagnostics.extend(findings)
 
         # 4) snapshot warnings (global)
         if snapshot_warnings and self._warnings_rules:
             for rule in self._warnings_rules:
-                diagnostics.extend(rule.check(snapshot_warnings))
+                findings = rule.check(snapshot_warnings)
+                diagnostics.extend(findings)
 
         return ValidationReport(diagnostics=tuple(diagnostics))
-
-
-# ---------- tiny helper ----------
-
-
-def _index_actions_by_table(plan: Plan) -> dict[str, tuple[Action, ...]]:
-    """
-    Build a lookup: 'catalog.schema.table' (unescaped) -> tuple of actions
-    targeting that table.
-    """
-    grouped: dict[str, list[Action]] = {}
-    for action in plan.actions:
-        key = fully_qualified_name_to_string(action.table)
-        grouped.setdefault(key, []).append(action)
-    return {k: tuple(v) for k, v in grouped.items()}

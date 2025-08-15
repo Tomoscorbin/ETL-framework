@@ -104,14 +104,14 @@ class WarningsRule(Protocol):
 
 def _table_key_from_desired(desired: DesiredTable) -> str:
     """Render the unquoted table key 'catalog.schema.table' from a DesiredTable."""
-    fq = desired.fully_qualified_table_name
+    fq = desired.full_table_name
     key = format_fully_qualified_table_name_from_parts(fq.catalog, fq.schema, fq.table)
     return key
 
 
 def _table_key_from_action(action: Action) -> str:
     """Render the unquoted table key 'catalog.schema.table' from an Action."""
-    fq = action.fully_qualified_table_name
+    fq = action.full_table_name
     key = format_fully_qualified_table_name_from_parts(fq.catalog, fq.schema, fq.table)
     return key
 

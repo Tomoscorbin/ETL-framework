@@ -14,7 +14,7 @@ Conventions:
 from __future__ import annotations
 
 from src.delta_engine.identifiers import quote_qualified_name
-from src.delta_engine.utils import escape_sql_literal
+from src.delta_engine.sql.utils import escape_sql_literal
 
 
 def sql_select_primary_key_for_table(

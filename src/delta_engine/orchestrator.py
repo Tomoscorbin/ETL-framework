@@ -20,10 +20,11 @@ from dataclasses import dataclass
 from src.delta_engine.desired.models import DesiredCatalog
 from src.delta_engine.execute.align_executor import AlignExecutor
 from src.delta_engine.execute.create_executor import CreateExecutor
-from src.delta_engine.execute.runner import PlanRunner
+from src.delta_engine.execute.ports import ApplyReport, ExecutionPolicy
+from src.delta_engine.execute.runner import PlanRunner, TablePlan
 from src.delta_engine.identifiers import FullyQualifiedTableName
-from src.delta_engine.plan.actions import Action
-from src.delta_engine.plan.differ import Differ, DiffOptions
+from src.delta_engine.plan.actions import Action, AlignTable, CreateTable
+from src.delta_engine.plan.differ import DiffOptions, Differ
 from src.delta_engine.plan.plan_builder import Plan, PlanBuilder
 from src.delta_engine.state.adapters.catalog_reader import CatalogReader
 from src.delta_engine.state.ports import Aspect, SnapshotPolicy, SnapshotRequest, SnapshotResult
@@ -31,42 +32,48 @@ from src.delta_engine.state.states import CatalogState
 from src.delta_engine.validation.diagnostics import ValidationReport
 from src.delta_engine.validation.validator import Validator
 
-# ---------- orchestration inputs/outputs ----------
 
+# ---------- orchestration inputs/outputs ----------
 
 @dataclass(frozen=True)
 class OrchestratorOptions:
     """
     Orchestrator toggles for a single run.
-    - aspects: which slices of metadata to manage (schema, comments, properties, primary key)
-    - snapshot_policy: STRICT → raise on snapshot warnings; PERMISSIVE → proceed with warnings
-    - execute: if False, stop after planning+validation (no changes applied)
-    - fail_on_validation_errors: if True, block execution when validation has any ERROR
-    """
 
+    aspects:
+        Which slices of metadata to manage (schema, comments, properties, primary key).
+    snapshot_policy:
+        STRICT → raise on snapshot warnings; PERMISSIVE → proceed with warnings.
+    execute:
+        If False, stop after planning+validation (no changes applied).
+    fail_on_validation_errors:
+        If True, block execution when validation has any ERROR.
+    execution_policy:
+        How to apply actions (dry-run, stop-on-first-error).
+    """
     aspects: frozenset[Aspect]
     snapshot_policy: SnapshotPolicy = SnapshotPolicy.PERMISSIVE
     execute: bool = True
     fail_on_validation_errors: bool = True
+    execution_policy: ExecutionPolicy = ExecutionPolicy()
 
 
 @dataclass(frozen=True)
 class OrchestrationReport:
     """Everything a caller would want to inspect or log from a single run."""
-
     snapshot: SnapshotResult
     plan: Plan
     validation: ValidationReport
+    apply_report: ApplyReport | None = None
 
 
 # ---------- orchestrator ----------
-
 
 class Orchestrator:
     """
     Glue for snapshot → plan → validate → (optional) execute.
 
-    This class does not do any I/O other than calling the injected components.
+    This class does not do any SQL or Spark operations itself; it delegates to injected components.
     """
 
     def __init__(
@@ -92,7 +99,6 @@ class Orchestrator:
         snapshot = self._snapshot(desired, options.aspects, options.snapshot_policy)
 
         if options.snapshot_policy is SnapshotPolicy.STRICT and snapshot.warnings:
-            # Strict means: do not even plan if snapshot had warnings (e.g., permissions)
             raise RuntimeError(
                 f"Snapshot produced {len(snapshot.warnings)} warning(s) under STRICT policy"
             )
@@ -100,12 +106,13 @@ class Orchestrator:
         plan = self._plan(desired, snapshot.state, options.aspects)
         validation = self._validate(desired, snapshot.state, plan, snapshot.warnings)
 
-        if options.execute and (not options.fail_on_validation_errors or validation.ok):
-            self._execute(plan)
+        apply_report: ApplyReport | None = None
+        if options.execute and (validation.ok or not options.fail_on_validation_errors):
+            apply_report = self._execute(plan, options.execution_policy)
 
-        return OrchestrationReport(snapshot=snapshot, plan=plan, validation=validation)
+        return OrchestrationReport(snapshot=snapshot, plan=plan, validation=validation, apply_report=apply_report)
 
-    # ----- steps (tiny, single-purpose) -----
+    # ----- steps -----
 
     def _snapshot(
         self,
@@ -118,7 +125,8 @@ class Orchestrator:
             t.fully_qualified_table_name for t in desired.tables
         )
         request = SnapshotRequest(tables=tables, aspects=aspects, policy=policy)
-        return self._catalog_reader.snapshot(request)
+        result = self._catalog_reader.snapshot(request)
+        return result
 
     def _plan(
         self,
@@ -134,7 +142,8 @@ class Orchestrator:
             manage_primary_key=(Aspect.PRIMARY_KEY in aspects),
         )
         actions: list[Action] = self._differ.diff(desired=desired, live=live, options=options)
-        return self._plan_builder.build(actions)
+        plan = self._plan_builder.build(actions)
+        return plan
 
     def _validate(
         self,
@@ -144,14 +153,38 @@ class Orchestrator:
         snapshot_warnings,
     ) -> ValidationReport:
         """Run model/state/plan rules and transform snapshot warnings into diagnostics."""
-        return self._validator.validate(
+        warnings_tuple = tuple(snapshot_warnings)
+        report = self._validator.validate(
             desired=desired,
             live=live,
             plan=plan,
-            snapshot_warnings=tuple(snapshot_warnings),
+            snapshot_warnings=warnings_tuple,
         )
+        return report
 
-    def _execute(self, plan: Plan) -> None:
-        """Create first, then align (per-table)."""
+    def _execute(self, plan: Plan, policy: ExecutionPolicy) -> ApplyReport:
+        """
+        Create first, then align (per-table). Uses PlanRunner which delegates to executors.
+        """
+        table_plan = _to_table_plan(plan)
         runner = PlanRunner(self._create_executor, self._align_executor)
-        runner.apply(plan)
+        report = runner.apply(table_plan, policy=policy)
+        return report
+
+
+# ---------- tiny helpers ----------
+
+def _to_table_plan(plan: Plan) -> TablePlan:
+    """Split a flat Plan into a TablePlan with (create_tables, align_tables)."""
+    create_list: list[CreateTable] = []
+    align_list: list[AlignTable] = []
+    for action in plan.actions:
+        if isinstance(action, CreateTable):
+            create_list.append(action)
+        elif isinstance(action, AlignTable):
+            align_list.append(action)
+        else:
+            align_list.append(action)  # type: ignore[arg-type]
+    create_tables = tuple(create_list)
+    align_tables = tuple(align_list)  # type: ignore[assignment]
+    return TablePlan(create_tables=create_tables, align_tables=align_tables)

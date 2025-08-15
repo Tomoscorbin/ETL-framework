@@ -1,4 +1,21 @@
+"""
+Engine: high-level entry point for the Delta engine.
+
+Responsibilities
+----------------
+- Wire default components (catalog reader, differ, plan builder, validator, executors).
+- Expose a single entry point to run the full orchestration:
+    - run(desired_catalog, options)
+
+Notes
+-----
+- No SQL or Spark logic here; work is delegated to injected components.
+- Defaults are provided, but everything can be overridden for testing or custom behaviour.
+"""
+
 from __future__ import annotations
+
+from typing import Optional
 
 from pyspark.sql import SparkSession
 
@@ -18,12 +35,11 @@ class Engine:
     High-level entry point for the Delta engine.
 
     You can:
-      - pass your own components (for custom behavior), or
-      - rely on defaults (simple, batteries-included).
+      - pass your own components (for custom behaviour), or
+      - rely on defaults (simple, batteries included).
 
-    Methods:
+    Method:
       - run(desired_catalog, options)
-      - run_from_tables(tables, options, mapping)
     """
 
     def __init__(
@@ -57,7 +73,7 @@ class Engine:
         self.create_executor = create_executor or CreateExecutor(spark)
         self.align_executor = align_executor or AlignExecutor(spark)
 
-        # One orchestrator to rule them all
+        # Orchestrator (glue)
         self.orchestrator = Orchestrator(
             catalog_reader=self.catalog_reader,
             differ=self.differ,

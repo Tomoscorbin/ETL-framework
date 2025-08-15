@@ -111,7 +111,7 @@ def _table_key_from_desired(desired: DesiredTable) -> str:
 
 def _table_key_from_action(action: Action) -> str:
     """Render the unquoted table key 'catalog.schema.table' from an Action."""
-    fq = action.table
+    fq = action.fully_qualified_table_name
     key = format_fully_qualified_table_name_from_parts(fq.catalog, fq.schema, fq.table)
     return key
 

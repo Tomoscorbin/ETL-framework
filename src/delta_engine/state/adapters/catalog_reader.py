@@ -26,8 +26,6 @@ Flow
 
 from __future__ import annotations
 
-from typing import tuple as _tuple  # avoids shadowing tuple in annotations if needed
-
 from pyspark.sql import SparkSession
 
 from src.delta_engine.identifiers import FullyQualifiedTableName

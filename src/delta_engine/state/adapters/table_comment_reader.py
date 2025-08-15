@@ -120,5 +120,5 @@ def build_table_comment_from_rows(rows: Sequence[Mapping[str, Any]]) -> str:
     """
     if not rows:
         return ""
-    value = rows[0].get("comment")
+    value = rows[0]["comment"]
     return "" if value is None else str(value)

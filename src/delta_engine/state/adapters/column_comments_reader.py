@@ -111,10 +111,10 @@ def build_column_comments_from_rows(rows: Sequence[Mapping[str, Any]]) -> dict[s
     """
     out: dict[str, str] = {}
     for row in rows:
-        raw_name = row.get("column_name")
+        raw_name = row["column_name"]
         if raw_name is None:
             continue  # defensive
         lower_name = str(raw_name).lower()
-        comment_value = row.get("comment")
+        comment_value = row["comment"]
         out[lower_name] = "" if comment_value is None else str(comment_value)
     return out

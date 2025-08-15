@@ -45,6 +45,21 @@ from src.delta_engine.state.ports import (
 from src.delta_engine.state.states import CatalogState, ColumnState, PrimaryKeyState
 
 
+def _format_warning_line(w) -> str:
+    try:
+        t = getattr(w, "full_table_name", None) or getattr(w, "table", None)
+        table_key = f"{t.catalog}.{t.schema}.{t.table}" if t else "<unknown>"
+    except Exception:
+        table_key = "<unknown>"
+    return f"[{w.aspect.value}] {table_key}: {w.message}"
+
+def _strict_error_message(warnings: list) -> str:
+    lines = [_format_warning_line(w) for w in warnings]
+    # show all; or do lines[:5] + ["..."] if you prefer truncation
+    body = "\n".join(lines)
+    return f"Snapshot produced {len(warnings)} warning(s):\n{body}"
+
+
 class CatalogReader:
     """Public orchestrator that produces a CatalogState from requested aspects."""
 
@@ -123,7 +138,7 @@ class CatalogReader:
 
         # 7) STRICT policy handling
         if request.policy is SnapshotPolicy.STRICT and warnings:
-            raise RuntimeError(f"Snapshot produced {len(warnings)} warning(s)")
+            raise RuntimeError(_strict_error_message(warnings))
 
         return SnapshotResult(state=catalog_state, warnings=tuple(warnings))
 

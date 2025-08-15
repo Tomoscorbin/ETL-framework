@@ -42,7 +42,7 @@ from src.delta_engine.state.ports import (
     SnapshotResult,
     SnapshotWarning,
 )
-from src.delta_engine.state.states import CatalogState, ColumnState, PrimaryKeyState
+from src.delta_engine.state.states import ColumnState, PrimaryKeyState
 
 
 def _format_warning_line(w) -> str:

@@ -73,9 +73,9 @@ class PrimaryKeyReader:
             try:
                 rows = select_primary_key_rows_for_table(
                     self.spark,
-                    catalog=full_table_name.catalog,
-                    schema=full_table_name.schema,
-                    table=full_table_name.table,
+                    catalog_name=full_table_name.catalog,
+                    schema_name=full_table_name.schema,
+                    table_name=full_table_name.table,
                 )
                 state = build_primary_key_state_from_rows(rows)
                 primary_key_by_table[full_table_name] = state  # None means "no PK"

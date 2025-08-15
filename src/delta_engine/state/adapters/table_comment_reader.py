@@ -83,9 +83,9 @@ class TableCommentReader:
             try:
                 rows = select_table_comment_rows_for_table(
                     self.spark,
-                    catalog=full_table_name.catalog,
-                    schema=full_table_name.schema,
-                    table=full_table_name.table,
+                    catalog_name=full_table_name.catalog,
+                    schema_name=full_table_name.schema,
+                    table_name=full_table_name.table,
                 )
                 comment_by_table[full_table_name] = build_table_comment_from_rows(rows)
             except Exception as error:

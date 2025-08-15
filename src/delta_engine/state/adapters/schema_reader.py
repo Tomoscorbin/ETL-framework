@@ -88,9 +88,9 @@ class SchemaReader:
             try:
                 exists_flag = check_table_exists(
                     self.spark,
-                    catalog=full_table_name.catalog,
-                    schema=full_table_name.schema,
-                    table=full_table_name.table,
+                    catalog_name=full_table_name.catalog,
+                    schema_name=full_table_name.schema,
+                    table_name=full_table_name.table,
                 )
                 existence_by_table[full_table_name] = bool(exists_flag)
             except Exception as error:

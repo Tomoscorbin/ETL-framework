@@ -76,9 +76,9 @@ class TablePropertiesReader:
             try:
                 raw_properties = load_table_properties_map(
                     self.spark,
-                    catalog=full_table_name.catalog,
-                    schema=full_table_name.schema,
-                    table=full_table_name.table,
+                    catalog_name=full_table_name.catalog,
+                    schema_name=full_table_name.schema,
+                    table_name=full_table_name.table,
                 )
                 normalized = _normalize_properties(raw_properties)
                 allowed = _filter_allowed_properties(normalized)

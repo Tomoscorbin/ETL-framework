@@ -73,9 +73,9 @@ class ColumnCommentsReader:
             try:
                 rows = select_column_comment_rows_for_table(
                     self.spark,
-                    catalog=full_table_name.catalog,
-                    schema=full_table_name.schema,
-                    table=full_table_name.table,
+                    catalog_name=full_table_name.catalog,
+                    schema_name=full_table_name.schema,
+                    table_name=full_table_name.table,
                 )
                 column_comments = build_column_comments_from_rows(rows)
                 comments_by_table[full_table_name] = column_comments

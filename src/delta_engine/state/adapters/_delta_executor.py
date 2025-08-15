@@ -11,6 +11,7 @@ from src.delta_engine.identifiers import quote_fully_qualified_table_name_from_p
 
 def check_table_exists(
     spark: SparkSession,
+    *,
     catalog_name: str,
     schema_name: str,
     table_name: str,
@@ -24,6 +25,7 @@ def check_table_exists(
 
 def load_table_struct(
     spark: SparkSession,
+    *,
     catalog_name: str,
     schema_name: str,
     table_name: str,
@@ -39,6 +41,7 @@ def load_table_struct(
 
 def load_table_properties_map(
     spark: SparkSession,
+    *,
     catalog_name: str,
     schema_name: str,
     table_name: str,

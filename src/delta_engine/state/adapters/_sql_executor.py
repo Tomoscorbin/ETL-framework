@@ -17,6 +17,7 @@ from ._sql import (
 
 def select_primary_key_rows_for_table(
     spark: SparkSession,
+    *,
     catalog_name: str,
     schema_name: str,
     table_name: str,
@@ -36,6 +37,7 @@ def select_primary_key_rows_for_table(
 
 def select_column_comment_rows_for_table(
     spark: SparkSession,
+    *,
     catalog_name: str,
     schema_name: str,
     table_name: str,
@@ -55,6 +57,7 @@ def select_column_comment_rows_for_table(
 
 def select_table_comment_rows_for_table(
     spark: SparkSession,
+    *,
     catalog_name: str,
     schema_name: str,
     table_name: str,

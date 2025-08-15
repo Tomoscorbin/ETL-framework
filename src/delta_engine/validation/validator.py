@@ -99,7 +99,7 @@ class WarningsRule(Protocol):
     def check(self, warnings: tuple[SnapshotWarning, ...]) -> list[Diagnostic]: ...
 
 
-# ---------- tiny helpers (single-purpose) ----------
+# ---------- helpers ----------
 
 
 def _table_key_from_desired(desired: DesiredTable) -> str:

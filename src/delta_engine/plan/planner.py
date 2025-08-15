@@ -1,30 +1,49 @@
+"""
+Planner
+
+Orchestrates:
+  snapshot (if needed) → diff → order
+
+- Uses a CatalogStateReader to take a snapshot when live_state is not provided.
+- Delegates diffing to `Differ` with switches derived from requested aspects.
+- Orders actions via `PlanBuilder`.
+- Returns the plan plus any snapshot warnings (validation/policy handled upstream).
+"""
+
 from __future__ import annotations
 
 from collections.abc import Iterable
 from dataclasses import dataclass
+from typing import Tuple
 
 from src.delta_engine.desired.models import DesiredCatalog
 from src.delta_engine.plan.differ import Differ, DiffOptions
 from src.delta_engine.plan.plan_builder import Plan, PlanBuilder
-from src.delta_engine.state.ports import Aspect, CatalogStateReader, SnapshotPolicy, SnapshotRequest
+from src.delta_engine.state.ports import Aspect, CatalogStateReader, SnapshotPolicy, SnapshotRequest, SnapshotWarning
+from src.delta_engine.state.states import CatalogState
 
 
 @dataclass(frozen=True)
 class PlanOutcome:
     plan: Plan
-    warnings: tuple  # tuple[SnapshotWarning, ...]
+    warnings: tuple[SnapshotWarning, ...]
 
 
 class Planner:
     """
     Orchestrates: snapshot (if needed) -> diff -> order.
-    Returns the plan and any snapshot warnings (validator decides what to do with them).
+    Returns the plan and any snapshot warnings (caller decides what to do with them).
     """
 
     def __init__(
-        self, catalog_reader: CatalogStateReader, *, plan_builder: PlanBuilder | None = None
+        self,
+        catalog_reader: CatalogStateReader,
+        *,
+        differ: Differ | None = None,
+        plan_builder: PlanBuilder | None = None,
     ) -> None:
         self.catalog_reader = catalog_reader
+        self.differ = differ or Differ()
         self.plan_builder = plan_builder or PlanBuilder()
 
     def plan(
@@ -33,7 +52,7 @@ class Planner:
         *,
         aspects: Iterable[Aspect],
         policy: SnapshotPolicy = SnapshotPolicy.PERMISSIVE,
-        live_state=None,  # Optional[CatalogState]; when provided, no snapshot is performed
+        live_state: CatalogState | None = None,
     ) -> PlanOutcome:
         aspects_frozen = frozenset(aspects)
         options = _options_from_aspects(aspects_frozen)
@@ -50,15 +69,15 @@ class Planner:
             warnings = snapshot.warnings
         else:
             live = live_state
-            warnings = ()
+            warnings = tuple()
 
-        actions = Differ.diff_catalog(desired, live, options)
+        actions = self.differ.diff(desired, live, options)
         plan = self.plan_builder.build(actions)
         return PlanOutcome(plan=plan, warnings=warnings)
 
 
 def _options_from_aspects(aspects: frozenset[Aspect]) -> DiffOptions:
-    """Map snapshot slices to what the differ is allowed to manage."""
+    """Map requested snapshot slices to which aspects the differ should manage."""
     return DiffOptions(
         manage_schema=(Aspect.SCHEMA in aspects),
         manage_table_comment=(Aspect.COMMENTS in aspects),

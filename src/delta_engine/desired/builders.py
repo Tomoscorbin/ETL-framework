@@ -124,7 +124,7 @@ def build_desired_table(
     primary_key_name_override = None  # engine derives a stable name unless policy changes
 
     return DesiredTable(
-        fully_qualified_table_name=full_table_name,
+        full_table_name=full_table_name,
         columns=columns,
         primary_key_columns=primary_key_columns,
         primary_key_name_override=primary_key_name_override,

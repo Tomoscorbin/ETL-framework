@@ -36,7 +36,7 @@ from src.delta_engine.models import Column
 class DesiredTable:
     """Desired state for a single table."""
 
-    fully_qualified_table_name: FullyQualifiedTableName
+    full_table_name: FullyQualifiedTableName
     columns: tuple[Column, ...]
     primary_key_columns: tuple[str, ...] | None = None
     primary_key_name_override: str | None = None

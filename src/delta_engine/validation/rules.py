@@ -32,9 +32,9 @@ class RuleCode(StrEnum):
 
 def _table_key_from_desired(desired: DesiredTable) -> str:
     return format_fully_qualified_table_name_from_parts(
-        desired.fully_qualified_table_name.catalog,
-        desired.fully_qualified_table_name.schema,
-        desired.fully_qualified_table_name.table,
+        desired.full_table_name.catalog,
+        desired.full_table_name.schema,
+        desired.full_table_name.table,
     )
 
 

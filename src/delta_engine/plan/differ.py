@@ -72,7 +72,7 @@ class Differ:
     ) -> list[Action]:
         actions: list[Action] = []
         for desired_table in desired.tables:
-            full_table_name = desired_table.fully_qualified_table_name
+            full_table_name = desired_table.full_table_name
             live_table = live.tables.get(full_table_name)
             actions.extend(self._diff_table(desired_table, live_table, options))
         return actions
@@ -100,7 +100,7 @@ class Differ:
             sub_actions.extend(_diff_primary_key(desired, live))
 
         # 3) coalesce → AlignTable (or nothing)
-        align = _coalesce_to_align(desired.fully_qualified_table_name, sub_actions)
+        align = _coalesce_to_align(desired.full_table_name, sub_actions)
         return [align] if align is not None else []
 
 
@@ -146,15 +146,15 @@ def _create_from_scratch(desired: DesiredTable) -> CreateTable:
     if desired.primary_key_columns and len(desired.primary_key_columns) > 0:
         pk_columns = tuple(desired.primary_key_columns)
         pk_name = desired.primary_key_name_override or build_primary_key_name(
-            catalog_name=desired.fully_qualified_table_name.catalog,
-            schema_name=desired.fully_qualified_table_name.schema,
-            table_name=desired.fully_qualified_table_name.table,
+            catalog_name=desired.full_table_name.catalog,
+            schema_name=desired.full_table_name.schema,
+            table_name=desired.full_table_name.table,
             columns=pk_columns,
         )
         add_primary_key = AddPrimaryKey(name=pk_name, columns=pk_columns)
 
     return CreateTable(
-        full_table_name=desired.fully_qualified_table_name,
+        full_table_name=desired.full_table_name,
         add_columns=add_columns,
         set_table_comment=set_table_comment,
         set_table_properties=set_table_properties,
@@ -244,9 +244,9 @@ def _diff_primary_key(desired: DesiredTable, live: TableState) -> list[Action]:
 
     # enforce PK with derived/override name
     desired_name = desired.primary_key_name_override or build_primary_key_name(
-        catalog_name=desired.fully_qualified_table_name.catalog,
-        schema_name=desired.fully_qualified_table_name.schema,
-        table_name=desired.fully_qualified_table_name.table,
+        catalog_name=desired.full_table_name.catalog,
+        schema_name=desired.full_table_name.schema,
+        table_name=desired.full_table_name.table,
         columns=cols,
     )
 

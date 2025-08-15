@@ -1,29 +1,29 @@
 """
 Adapter: Column Comments Reader
 
-This module reads **column comments** for Delta tables from the catalog's
-`information_schema.columns`, querying one table at a time.
+Reads column comments for Delta tables from `information_schema.columns`,
+one table at a time.
 
-High-level flow
----------------
-1) Inputs are **FullyQualifiedTableName** values (catalog.schema.table).
+Flow
+----
+1) Inputs are FullyQualifiedTableName values (catalog.schema.table).
 2) For each table:
-   - Query `information_schema.columns` for that specific table.
-   - Build a mapping of **lowercased column name → comment string** ('' if missing).
-3) On any failure for a table, emit a **SnapshotWarning** with `Aspect.COMMENTS`
-   and still produce an **empty mapping** for that table so the output is complete.
+   - Query `information_schema.columns` for that table.
+   - Build a mapping of lowercased column name -> comment string ("" if missing).
+3) On any failure, emit a SnapshotWarning with Aspect.COMMENTS and still
+   produce an empty mapping for that table so the result is complete.
 
-Design notes
-------------
+Notes
+-----
 - Comments are returned separately from schema; the builder will merge them into
-  `ColumnState` later (e.g., match by name case-insensitively).
-- Keys are **lowercased** to avoid case drift between Spark catalog and StructField names.
+  ColumnState later (case-insensitive match by name).
+- Keys are lowercased to avoid drift between catalog and StructField names.
 """
 # TODO: optimise by reading from information schema once for all tables
 
 from __future__ import annotations
 
-from typing import NamedTuple
+from typing import Any, Mapping, NamedTuple, Sequence
 
 from pyspark.sql import SparkSession
 
@@ -36,84 +36,59 @@ class ColumnCommentsBatchReadResult(NamedTuple):
     """
     Aggregated result of reading column comments for a set of tables.
 
-    Attributes:
+    Attributes
     ----------
-    comments_by_table:
-        Mapping from FullyQualifiedTableName to a dict of
-        lowercased column name -> comment string (empty string if missing).
-    warnings:
+    comments_by_table :
+        Mapping from FullyQualifiedTableName to {lowercased column -> comment string ("")} .
+    warnings :
         Warnings raised while reading metadata (permissions, metastore issues, etc.).
     """
-
     comments_by_table: dict[FullyQualifiedTableName, dict[str, str]]
     warnings: list[SnapshotWarning]
 
 
 class ColumnCommentsReader:
-    """
-    Read column comments from `information_schema.columns`, one table at a time.
-
-    Inputs
-    ------
-    FullyQualifiedTableName values (catalog.schema.table).
-
-    Outputs
-    -------
-    ColumnCommentsBatchReadResult with a complete map of inputs to
-    {lowercased column name -> comment string}.
-    """
+    """Read column comments from `information_schema.columns`, one table at a time."""
 
     def __init__(self, spark: SparkSession) -> None:
-        """Initialise the Reader."""
+        """Initialise the reader."""
         self.spark = spark
 
     def read_column_comments(
         self,
-        table_names: tuple[FullyQualifiedTableName, ...],
+        full_table_names: tuple[FullyQualifiedTableName, ...],
     ) -> ColumnCommentsBatchReadResult:
         """
-        Read column comments for each table in `table_names`.
+        Read column comments for each table in `full_table_names`.
 
-        For each FullyQualifiedTableName:
-          - Query the catalog's information_schema.columns for that table.
-          - Translate rows into a {lower_name -> comment} mapping ('' if None).
-          - On query failure, emit a SnapshotWarning and default to {}.
-
-        Parameters
-        ----------
-        table_names:
-            A tuple of FullyQualifiedTableName values to inspect.
-
-        Returns:
-        -------
-        ColumnCommentsBatchReadResult
-            {FQTN -> {lower_col -> comment}} and a list of warnings.
+        - On success: translate rows into a {lower_name -> comment} mapping ("" if None).
+        - On failure: append a SnapshotWarning and default to {} for that table.
         """
         comments_by_table: dict[FullyQualifiedTableName, dict[str, str]] = {}
         warnings: list[SnapshotWarning] = []
 
-        for name in table_names:
+        for full_table_name in full_table_names:
             try:
                 rows = select_column_comment_rows_for_table(
                     self.spark,
-                    name.catalog,
-                    name.schema,
-                    name.table,
+                    catalog=full_table_name.catalog,
+                    schema=full_table_name.schema,
+                    table=full_table_name.table,
                 )
-                comments = build_column_comments_from_rows(rows)
-                comments_by_table[name] = comments
+                column_comments = build_column_comments_from_rows(rows)
+                comments_by_table[full_table_name] = column_comments
 
             except Exception as error:
-                warning = SnapshotWarning.from_exception(
-                    aspect=Aspect.COMMENTS,
-                    error=error,
-                    table=name,
-                    prefix="Failed to read column comments",
+                warnings.append(
+                    SnapshotWarning.from_exception(
+                        aspect=Aspect.COMMENTS,
+                        error=error,
+                        full_table_name=full_table_name,
+                        prefix="Failed to read column comments",
+                    )
                 )
-                warnings.append(warning)
-
-                # Still provide an entry so the result is complete
-                comments_by_table.setdefault(name, {})
+                # Ensure every input has an entry
+                comments_by_table.setdefault(full_table_name, {})
 
         return ColumnCommentsBatchReadResult(
             comments_by_table=comments_by_table,
@@ -123,23 +98,20 @@ class ColumnCommentsReader:
 
 # ---------- helpers ----------
 
-
-def build_column_comments_from_rows(rows) -> dict[str, str]:
+def build_column_comments_from_rows(rows: Sequence[Mapping[str, Any]]) -> dict[str, str]:
     """
-    Translate `information_schema.columns` rows into a mapping of
-    lowercased column name -> comment string ('' if missing).
+    Translate `information_schema.columns` rows into {lowercased column -> comment string}.
 
     Expected row fields:
-    - column_name
-    - comment  (may be None)
+      - column_name
+      - comment (may be None)
     """
     out: dict[str, str] = {}
     for row in rows:
-        name_raw = row["column_name"]
-        if name_raw is None:
-            # Defensive: skip impossible rows
-            continue
-        name_lower = str(name_raw).lower()
-        comment_value = row["comment"]
-        out[name_lower] = "" if comment_value is None else str(comment_value)
+        raw_name = row.get("column_name")
+        if raw_name is None:
+            continue  # defensive
+        lower_name = str(raw_name).lower()
+        comment_value = row.get("comment")
+        out[lower_name] = "" if comment_value is None else str(comment_value)
     return out

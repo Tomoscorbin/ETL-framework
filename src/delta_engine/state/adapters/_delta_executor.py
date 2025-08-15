@@ -2,45 +2,50 @@
 
 from __future__ import annotations
 
+import pyspark.sql.types as T
 from delta.tables import DeltaTable
 from pyspark.sql import SparkSession
 
-from src.delta_engine.identifiers import render_fully_qualified_name_from_parts
+from src.delta_engine.identifiers import quote_fully_qualified_table_name_from_parts
 
 
 def check_table_exists(
     spark: SparkSession,
-    catalog: str,
-    schema: str,
-    table: str,
+    catalog_name: str,
+    schema_name: str,
+    table_name: str,
 ) -> bool:
     """
     Return True if the three-part table exists in the Spark catalog.
     """
-    full_name = render_fully_qualified_name_from_parts(catalog, schema, table)
+    full_name = quote_fully_qualified_table_name_from_parts(
+        catalog_name, schema_name, table_name
+    )
     return spark.catalog.tableExists(full_name)
 
 
 def load_table_struct(
     spark: SparkSession,
-    catalog: str,
-    schema: str,
-    table: str,
+    catalog_name: str,
+    schema_name: str,
+    table_name: str,
 ) -> T.StructType:
     """
     Load a Delta table's StructType via DeltaTable.forName(...).toDF().schema.
     Raises if the table cannot be opened (missing, permissions, not Delta, etc.).
     """
-    full_name = render_fully_qualified_name_from_parts(catalog, schema, table)
+    full_name = quote_fully_qualified_table_name_from_parts(
+        catalog_name, schema_name, table_name
+    )
     delta = DeltaTable.forName(spark, full_name)
     return delta.toDF().schema
 
 
 def load_table_properties_map(
     spark: SparkSession,
-    catalog: str,
-    schema: str,
-    table: str,
+    catalog_name: str,
+    schema_name: str,
+    table_name: str,
 ) -> dict[str, str]:
     """
     Load the Delta table's properties map as {str: str}.
@@ -53,14 +58,16 @@ def load_table_properties_map(
       metastore reports. Filtering is done by the reader.
     - Errors (table not found, not a Delta table, permissions) bubble up to the caller.
     """
-    full_name = render_fully_qualified_name_from_parts(catalog, schema, table)
+    full_name = quote_fully_qualified_table_name_from_parts(
+        catalog_name, schema_name, table_name
+    )
 
     delta = DeltaTable.forName(spark, full_name)
     detail_df = delta.detail()
 
     # Find the properties/configuration column case-insensitively
-    lower_by_actual = {c.lower(): c for c in detail_df.columns}
-    col_name = lower_by_actual.get("properties") or lower_by_actual.get("configuration")
+    lower_to_actual = {c.lower(): c for c in detail_df.columns}
+    col_name = lower_to_actual.get("properties") or lower_to_actual.get("configuration")
     if not col_name:
         # No properties map column present; treat as empty map (not an error)
         return {}
@@ -70,12 +77,12 @@ def load_table_properties_map(
         return {}
 
     raw_map = row[col_name] or {}
+
     # Coerce defensively to plain {str: str}
     try:
         items = dict(raw_map).items()
     except Exception:
-        # In rare cases the value could be a JSON string; last-ditch parse
-        # Avoid importing json here; keep it simple and empty on weird shapes.
+        # In rare cases the value could be a JSON string or unexpected type; keep it simple.
         return {}
 
     return {str(k): str(v) for k, v in items}

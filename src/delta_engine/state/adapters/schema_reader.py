@@ -1,25 +1,23 @@
 """
 Adapter: Physical Schema Reader
 
-This module reads the **physical schema** (column name, data type, nullability)
-for Delta tables, one table at a time. It also reports table existence.
+Reads the physical schema (column name, data type, nullability) and existence
+for Delta tables, one table at a time.
 
-High-level flow
----------------
-1) Inputs are **FullyQualifiedTableName** values (catalog.schema.table).
+Flow
+----
+1) Inputs are FullyQualifiedTableName values (catalog.schema.table).
 2) For each table:
-   - Check existence via Spark catalog.
-   - If the table exists and schema is requested, load its StructType via Delta
-     and convert fields into `ColumnState` (comments left empty for later merge).
-3) On any failure for a table:
-   - Emit a **SnapshotWarning** with `Aspect.SCHEMA`.
+   - Check existence via the Spark catalog.
+   - If it exists and schema is requested, load StructType via Delta and convert
+     fields into ColumnState (comment left empty for later merge).
+3) On any failure:
+   - Emit a SnapshotWarning with Aspect.SCHEMA.
    - Treat the table as non-existent for this read and return no columns.
 
-Design notes
-------------
-- Existence and physical schema are read here; comments/properties/constraints
-  are handled by separate readers.
-- Column comments are **not** surfaced here; they are merged later by the builder.
+Notes
+-----
+- Only existence and physical columns are handled here; comments/properties/PK are separate.
 """
 
 from __future__ import annotations
@@ -42,18 +40,16 @@ class SchemaBatchReadResult(NamedTuple):
     """
     Aggregated result of reading existence + physical schema for a set of tables.
 
-    Attributes:
+    Attributes
     ----------
-    existence_by_table:
-        {FullyQualifiedTableName -> bool} whether the table exists (as far as the
-        Spark catalog reports in this session/context).
-    columns_by_table:
+    existence_by_table :
+        {FullyQualifiedTableName -> bool} existence per table.
+    columns_by_table :
         {FullyQualifiedTableName -> tuple[ColumnState, ...]} physical columns for
         existing tables when requested; empty tuple otherwise.
-    warnings:
-        A list of SnapshotWarning objects for failures encountered while reading.
+    warnings :
+        Non-fatal warnings encountered while reading.
     """
-
     existence_by_table: dict[FullyQualifiedTableName, bool]
     columns_by_table: dict[FullyQualifiedTableName, tuple[ColumnState, ...]]
     warnings: list[SnapshotWarning]
@@ -62,17 +58,6 @@ class SchemaBatchReadResult(NamedTuple):
 class SchemaReader:
     """
     Read table existence and physical schema, one table at a time.
-
-    Inputs
-    ------
-    FullyQualifiedTableName values (catalog.schema.table).
-
-    Outputs
-    -------
-    SchemaBatchReadResult with:
-      - existence flags
-      - physical columns (if requested and the table exists)
-      - warnings for read failures
     """
 
     def __init__(self, spark: SparkSession) -> None:
@@ -81,77 +66,70 @@ class SchemaReader:
 
     def read_schema(
         self,
-        table_names: tuple[FullyQualifiedTableName, ...],
+        full_table_names: tuple[FullyQualifiedTableName, ...],
         include_schema: bool,
     ) -> SchemaBatchReadResult:
         """
         Read existence (always) and optionally physical schema for each table.
 
-        Behavior
-        --------
         - Existence is checked via Spark catalog.
         - If a table exists and `include_schema` is True, load StructType via Delta
           and convert to ColumnState values (comments left empty).
-        - On any exception (existence check or schema load), emit a SnapshotWarning
-          and treat the table as non-existent with no columns in this result.
-
-        Returns:
-        -------
-        SchemaBatchReadResult
+        - On any exception, emit a SnapshotWarning and treat the table as non-existent
+          with no columns in this result.
         """
         existence_by_table: dict[FullyQualifiedTableName, bool] = {}
         columns_by_table: dict[FullyQualifiedTableName, tuple[ColumnState, ...]] = {}
         warnings: list[SnapshotWarning] = []
 
-        for name in table_names:
+        for full_table_name in full_table_names:
             # 1) Existence
             try:
-                exists = check_table_exists(
+                exists_flag = check_table_exists(
                     self.spark,
-                    catalog=name.catalog,
-                    schema=name.schema,
-                    table=name.table,
+                    catalog=full_table_name.catalog,
+                    schema=full_table_name.schema,
+                    table=full_table_name.table,
                 )
-                existence_by_table[name] = bool(exists)
+                existence_by_table[full_table_name] = bool(exists_flag)
             except Exception as error:
                 warnings.append(
                     SnapshotWarning.from_exception(
                         aspect=Aspect.SCHEMA,
                         error=error,
-                        table=name,
+                        full_table_name=full_table_name,
                         prefix="Failed to check table existence",
                     )
                 )
-                existence_by_table[name] = False
-                columns_by_table[name] = tuple()
+                existence_by_table[full_table_name] = False
+                columns_by_table[full_table_name] = tuple()
                 continue
 
             # 2) Short-circuit if absent or schema not requested
-            if not existence_by_table[name] or not include_schema:
-                columns_by_table[name] = tuple()
+            if not existence_by_table[full_table_name] or not include_schema:
+                columns_by_table[full_table_name] = tuple()
                 continue
 
             # 3) Load StructType and convert to ColumnState
             try:
                 struct = load_table_struct(
                     self.spark,
-                    catalog=name.catalog,
-                    schema=name.schema,
-                    table=name.table,
+                    catalog=full_table_name.catalog,
+                    schema=full_table_name.schema,
+                    table=full_table_name.table,
                 )
-                columns_by_table[name] = _column_states_from_struct(struct)
+                columns_by_table[full_table_name] = _column_states_from_struct(struct)
             except Exception as error:
                 warnings.append(
                     SnapshotWarning.from_exception(
                         aspect=Aspect.SCHEMA,
                         error=error,
-                        table=name,
+                        full_table_name=full_table_name,
                         prefix="Failed to load table schema",
                     )
                 )
-
-                # Treat as temporarily unreadable; existence stays True, columns empty.
-                columns_by_table[name] = tuple()
+                # Existence stays True; columns empty for this read.
+                columns_by_table[full_table_name] = tuple()
 
         return SchemaBatchReadResult(
             existence_by_table=existence_by_table,
@@ -160,8 +138,7 @@ class SchemaReader:
         )
 
 
-# ---------- helpers (tiny, explicit) ----------
-
+# ---------- helpers ----------
 
 def _column_states_from_struct(struct: T.StructType) -> tuple[ColumnState, ...]:
     """

@@ -1,21 +1,21 @@
 """
 Adapter: Table Comment Reader
 
-This module reads the **table-level comment** for Delta tables using the
-catalog's `information_schema.tables` view, querying one table at a time.
+Reads the table-level comment for Delta tables using
+`information_schema.tables`, one table at a time.
 
-High-level flow
----------------
-1) Inputs are **FullyQualifiedTableName** values (catalog.schema.table).
+Flow
+----
+1) Inputs are FullyQualifiedTableName values (catalog.schema.table).
 2) For each table:
-   - Call a dedicated executor that builds and runs a information_schema query.
-   - Extract the table-level `comment` (or return an empty string if absent).
-3) On any failure for a table:
-   - Emit a **SnapshotWarning** with `Aspect.COMMENTS` (table-level).
-   - Still produce an entry (empty string) so the result map is complete.
+   - Run the information_schema query via an executor.
+   - Extract the table-level `comment` (empty string if absent/NULL).
+3) On failure:
+   - Emit a SnapshotWarning with Aspect.COMMENTS.
+   - Still produce an empty-string entry so the result map is complete.
 
-Design notes
-------------
+Notes
+-----
 - Column comments are handled by a separate reader (ColumnCommentsReader).
 - This reader only returns the table-level comment as a string.
 """
@@ -23,7 +23,7 @@ Design notes
 
 from __future__ import annotations
 
-from typing import NamedTuple
+from typing import NamedTuple, Sequence, Any, Mapping
 
 from pyspark.sql import SparkSession
 
@@ -36,14 +36,13 @@ class TableCommentBatchReadResult(NamedTuple):
     """
     Aggregated result of reading table-level comments for a set of tables.
 
-    Attributes:
+    Attributes
     ----------
-    comment_by_table:
-        Mapping from FullyQualifiedTableName to the table comment (empty string if missing).
-    warnings:
+    comment_by_table :
+        Mapping from FullyQualifiedTableName to the table comment ("" if missing).
+    warnings :
         Warnings raised while reading metadata (permissions, metastore issues, etc.).
     """
-
     comment_by_table: dict[FullyQualifiedTableName, str]
     warnings: list[SnapshotWarning]
 
@@ -62,50 +61,42 @@ class TableCommentReader:
     """
 
     def __init__(self, spark: SparkSession) -> None:
-        """Initialise the Reader."""
+        """Initialise the reader."""
         self.spark = spark
 
     def read_table_comments(
         self,
-        table_names: tuple[FullyQualifiedTableName, ...],
+        full_table_names: tuple[FullyQualifiedTableName, ...],
     ) -> TableCommentBatchReadResult:
         """
-        Read the table-level comment for each table in `table_names`.
+        Read the table-level comment for each table in `full_table_names`.
 
-        Behavior
-        --------
         - On success: extract `comment` from the information_schema row; default to "" if NULL.
         - On failure: append a SnapshotWarning and default to "" for that table.
-
-        Returns:
-        -------
-        TableCommentBatchReadResult
-            {FQTN -> comment string}, plus warnings.
         """
         comment_by_table: dict[FullyQualifiedTableName, str] = {}
         warnings: list[SnapshotWarning] = []
 
-        for name in table_names:
+        for full_table_name in full_table_names:
             try:
                 rows = select_table_comment_rows_for_table(
                     self.spark,
-                    catalog=name.catalog,
-                    schema=name.schema,
-                    table=name.table,
+                    catalog=full_table_name.catalog,
+                    schema=full_table_name.schema,
+                    table=full_table_name.table,
                 )
-                comment_by_table[name] = build_table_comment_from_rows(rows)
-
+                comment_by_table[full_table_name] = build_table_comment_from_rows(rows)
             except Exception as error:
-                warning = SnapshotWarning.from_exception(
-                    aspect=Aspect.COMMENTS,
-                    error=error,
-                    table=name,
-                    prefix="Failed to read table comment",
+                warnings.append(
+                    SnapshotWarning.from_exception(
+                        aspect=Aspect.COMMENTS,
+                        error=error,
+                        full_table_name=full_table_name,
+                        prefix="Failed to read table comment",
+                    )
                 )
-                warnings.append(warning)
-
-                # On failure, still produce a value so callers always see a complete map
-                comment_by_table.setdefault(name, "")
+                # Ensure every input has an entry
+                comment_by_table.setdefault(full_table_name, "")
 
         return TableCommentBatchReadResult(
             comment_by_table=comment_by_table,
@@ -115,17 +106,16 @@ class TableCommentReader:
 
 # ---------- helpers ----------
 
-
-def build_table_comment_from_rows(rows) -> str:
+def build_table_comment_from_rows(rows: Sequence[Mapping[str, Any]]) -> str:
     """
     Translate `information_schema.tables` rows into a single table comment string.
 
-    Expected row shape: one row at most for a specific table, with a `comment` field.
+    Expected row shape: at most one row for the table, with a `comment` field.
     - No rows   -> "" (no comment / table not visible).
     - NULL      -> "" (comment not set).
-    - Otherwise -> the string value.
+    - Otherwise -> the string value of `comment`.
     """
     if not rows:
         return ""
-    value = rows[0]["comment"]
+    value = rows[0].get("comment")
     return "" if value is None else str(value)

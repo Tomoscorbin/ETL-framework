@@ -1,30 +1,20 @@
 """
 Adapter: Table Properties Reader
 
-This module reads **Delta table properties** (the `configuration` map) by calling
-Delta Lake metadata for one table at a time.
+Reads Delta table properties (the `configuration` map) via DeltaTable.detail().
 
-High-level flow
----------------
-1) Inputs are **FullyQualifiedTableName** values (catalog.schema.table).
+Flow
+----
+1) Inputs are FullyQualifiedTableName values (catalog.schema.table).
 2) For each table:
-   - Invoke an executor that uses DeltaTable.detail() to fetch the
-     `configuration` map (table properties).
-   - Coerce keys and values to strings and return a plain dict.
-3) On any failure (e.g., permissions, table missing, non-Delta), emit a
-   **SnapshotWarning** with `Aspect.PROPERTIES` and return an empty dict for that table.
-
-Design notes
-------------
-- We use the Delta API (DeltaTable.detail()) instead of SQL because the
-  configuration map is surfaced directly and reliably there.
-- The executor does not catch exceptions; the reader owns warning creation so
-  messaging is consistent across adapters.
+   - Use an executor to fetch the configuration map.
+   - Normalize keys/values to strings, then filter to allowed property keys.
+3) On any failure, emit a SnapshotWarning with Aspect.PROPERTIES and return {} for that table.
 """
 
 from __future__ import annotations
 
-from typing import NamedTuple
+from typing import Any, Mapping, NamedTuple
 
 from pyspark.sql import SparkSession
 
@@ -40,15 +30,13 @@ class TablePropertiesBatchReadResult(NamedTuple):
     """
     Aggregated result of reading table properties for a set of tables.
 
-    Attributes:
+    Attributes
     ----------
-    properties_by_table:
-        Mapping from FullyQualifiedTableName to a dict of {property_name -> value}.
-        (Empty dict if no properties or on failure.)
-    warnings:
+    properties_by_table : dict[FullyQualifiedTableName, dict[str, str]]
+        Mapping from table to {property_name -> value}. Empty dict on failure.
+    warnings : list[SnapshotWarning]
         Warnings raised while reading metadata (permissions, table missing, etc.).
     """
-
     properties_by_table: dict[FullyQualifiedTableName, dict[str, str]]
     warnings: list[SnapshotWarning]
 
@@ -63,49 +51,47 @@ class TablePropertiesReader:
 
     Outputs
     -------
-    TablePropertiesBatchReadResult with a complete map of inputs to property dicts.
+    TablePropertiesBatchReadResult mapping each input to a normalized property dict.
     """
 
     def __init__(self, spark: SparkSession) -> None:
-        """Store the Spark session used to access Delta metadata."""
         self.spark = spark
 
     def read_table_properties(
         self,
-        table_names: tuple[FullyQualifiedTableName, ...],
+        full_table_names: tuple[FullyQualifiedTableName, ...],
     ) -> TablePropertiesBatchReadResult:
         """
-        Read table properties for each table in `table_names`.
+        Read table properties for each table in `full_table_names`.
 
-        Behavior
-        --------
-        - On success: return a dict of stringified key/value pairs.
+        - On success: return a dict of normalized (string) key/value pairs filtered to allowed keys.
         - On failure: append a SnapshotWarning and default to {} for that table.
         """
         properties_by_table: dict[FullyQualifiedTableName, dict[str, str]] = {}
         warnings: list[SnapshotWarning] = []
 
-        for name in table_names:
+        for full_table_name in full_table_names:
             try:
-                properties = load_table_properties_map(
+                raw_properties = load_table_properties_map(
                     self.spark,
-                    catalog=name.catalog,
-                    schema=name.schema,
-                    table=name.table,
+                    catalog=full_table_name.catalog,
+                    schema=full_table_name.schema,
+                    table=full_table_name.table,
                 )
-                allowed_properties = _filter_allowed_properties(properties)
-                properties_by_table[name] = allowed_properties
+                normalized = _normalize_properties(raw_properties)
+                allowed = _filter_allowed_properties(normalized)
+                properties_by_table[full_table_name] = allowed
             except Exception as error:
-                warning = SnapshotWarning.from_exception(
-                    aspect=Aspect.PROPERTIES,
-                    error=error,
-                    table=name,
-                    prefix="Failed to read table properties",
+                warnings.append(
+                    SnapshotWarning.from_exception(
+                        aspect=Aspect.PROPERTIES,
+                        error=error,
+                        full_table_name=full_table_name,
+                        prefix="Failed to read table properties",
+                    )
                 )
-                warnings.append(warning)
-
-                # On failure, still produce a value so callers always see a complete map
-                properties_by_table.setdefault(name, {})
+                # ensure every input has an entry
+                properties_by_table.setdefault(full_table_name, {})
 
         return TablePropertiesBatchReadResult(
             properties_by_table=properties_by_table,
@@ -113,5 +99,21 @@ class TablePropertiesReader:
         )
 
 
-def _filter_allowed_properties(properties: dict[str, str]) -> dict[str, str]:
+# -----------------
+# Helpers
+# -----------------
+
+def _normalize_properties(props: Mapping[Any, Any]) -> dict[str, str]:
+    """
+    Coerce mapping keys/values to strings; supports TableProperty keys.
+    """
+    normalized: dict[str, str] = {}
+    for k, v in dict(props).items():
+        key = k.value if isinstance(k, TableProperty) else str(k)
+        normalized[key] = str(v)
+    return normalized
+
+
+def _filter_allowed_properties(properties: Mapping[str, str]) -> dict[str, str]:
+    """Keep only properties explicitly allowed by TableProperty."""
     return {key: value for key, value in properties.items() if key in ALLOWED_TABLE_PROPERTY_KEYS}

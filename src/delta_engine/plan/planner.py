@@ -4,7 +4,7 @@ from collections.abc import Iterable
 from dataclasses import dataclass
 
 from src.delta_engine.desired.models import DesiredCatalog
-from src.delta_engine.diff.differ import DiffOptions, diff_catalog
+from src.delta_engine.plan.differ import Differ, DiffOptions
 from src.delta_engine.plan.plan_builder import Plan, PlanBuilder
 from src.delta_engine.state.ports import Aspect, CatalogStateReader, SnapshotPolicy, SnapshotRequest
 
@@ -52,7 +52,7 @@ class Planner:
             live = live_state
             warnings = ()
 
-        actions = diff_catalog(desired, live, options)
+        actions = Differ.diff_catalog(desired, live, options)
         plan = self.plan_builder.build(actions)
         return PlanOutcome(plan=plan, warnings=warnings)
 

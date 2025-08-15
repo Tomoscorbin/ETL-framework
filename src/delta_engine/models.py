@@ -1,33 +1,29 @@
-"""Domain models for declaring Delta tables (logical schema + properties).
-
-Conventions:
-- Use `full_table_name` for variables/props of type `FullyQualifiedTableName`.
-- `full_name` returns unquoted 'catalog.schema.table'.
-- `quoted_full_name` returns '`catalog`.`schema`.`table`'.
-- Table properties are exposed as read-only mappings with string keys.
-"""
+"""Domain models for declaring Delta tables (logical schema + properties)."""
 
 from __future__ import annotations
 
-from collections.abc import Mapping
-from dataclasses import dataclass, field
 from enum import StrEnum
+from dataclasses import dataclass, field
 from types import MappingProxyType
-from typing import ClassVar
+from typing import Any, ClassVar, Mapping, Sequence
 
 import pyspark.sql.types as T
+
+from src.delta_engine.identifiers import (
+    format_fully_qualified_table_name_from_parts,
+    build_primary_key_name,
+)
 
 
 class TableProperty(StrEnum):
     ENABLE_DELETION_VECTORS = "delta.enableDeletionVectors"
-    ENABLE_TYPE_WIDENING = "delta.enableTypeWidening"
-    COLUMN_MAPPING_MODE = "delta.columnMapping.mode"
+    ENABLE_TYPE_WIDENING    = "delta.enableTypeWidening"
+    COLUMN_MAPPING_MODE     = "delta.columnMapping.mode"
 
 
 @dataclass(frozen=True)
 class Column:
     """Declarative Delta table column definition."""
-
     name: str
     data_type: T.DataType
     comment: str = ""
@@ -38,46 +34,70 @@ class Column:
 class Table:
     """Declarative Delta table definition."""
 
-    DEFAULT_PROPERTIES: ClassVar[dict[str, str]] = {
-        TableProperty.COLUMN_MAPPING_MODE: "name",
-    }
+    # Defaults use string keys (Enum.value); exposed read-only.
+    DEFAULT_PROPERTIES: ClassVar[Mapping[str, str]] = MappingProxyType({
+        TableProperty.COLUMN_MAPPING_MODE.value: "name",
+    })
 
     catalog_name: str
     schema_name: str
     table_name: str
-    columns: list[Column]
+    columns: Sequence[Column]
     comment: str = ""
-    properties: dict[str, str] = field(default_factory=dict)
-    primary_key: list[str] | None = None
+    properties: Mapping[str, str] = field(default_factory=dict)
+    primary_key: Sequence[str] | None = None
+
+    # --------- Convenience properties ---------
 
     @property
     def full_name(self) -> str:
-        """Full table name in catalgog.schema.table format"""
-        return render_fully_qualified_name_from_parts(
-            self.catalog_name, self.schema_name, self.table_name
+        """Unquoted full name: 'catalog.schema.table'."""
+        return format_fully_qualified_table_name_from_parts(
+            self.catalog_name, 
+            self.schema_name, 
+            self.table_name
         )
 
     @property
-    def column_names(self) -> list[str]:
-        """List of colomn names."""
-        return [column.name for column in self.columns]
+    def column_names(self) -> tuple[str, ...]:
+        """Column names in declared order."""
+        return tuple(column.name for column in self.columns)
+
+    @property
+    def primary_key_columns(self) -> tuple[str, ...]:
+        """Primary-key column names (empty tuple if none)."""
+        return tuple(self.primary_key) if self.primary_key else tuple()
 
     @property
     def primary_key_name(self) -> str | None:
-        """Compute the default PK name (None if no PK columns provided)."""
-        if not self.primary_key_columns:
+        """Deterministic PK constraint name, or None if no primary key is declared."""
+        pk_columns = self.primary_key_columns
+        if not pk_columns:
             return None
-        return generate_primary_key_name(self.identity, self.primary_key_columns)
+        
+        return build_primary_key_name(
+            catalog_name=self.catalog_name,
+            schema_name=self.schema_name,
+            table_name=self.table_name,
+            columns=pk_columns,
+        )
 
     @property
-    def effective_table_properties(self) -> Mapping[str, str]:
-        """
-        Default table properties merged with user overrides (read-only view).
-
-        Returns:
-        -------
-        Mapping[str, str]
-            Read-only mapping combining DEFAULT_TABLE_PROPERTIES and properties.
-        """
-        merged = {**self.DEFAULT_PROPERTIES, **self.properties}
+    def effective_properties(self) -> Mapping[str, str]:
+        """Default properties merged with user-provided properties (read-only)."""
+        user = _normalize_properties(self.properties)
+        merged = {**dict(self.DEFAULT_PROPERTIES), **user}
         return MappingProxyType(merged)
+
+
+# -----------------
+# Helpers
+# -----------------
+
+def _normalize_properties(props: Mapping[Any, Any]) -> dict[str, str]:
+    """Coerce mapping keys/values to strings; supports TableProperty keys."""
+    normalized: dict[str, str] = {}
+    for k, v in dict(props).items():
+        key = k.value if isinstance(k, TableProperty) else str(k)
+        normalized[key] = str(v)
+    return normalized

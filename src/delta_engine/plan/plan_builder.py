@@ -52,7 +52,7 @@ class PlanBuilder:
         # 1) Group by catalog → schema → table
         grouped: dict[str, dict[str, dict[str, list[Action]]]] = {}
         for action in actions:
-            full_table_name = action.full_table_name  # FullyQualifiedTableName
+            full_table_name = action.full_table_name
             catalog = full_table_name.catalog
             schema = full_table_name.schema
             table = full_table_name.table

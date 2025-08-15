@@ -234,7 +234,7 @@ class WarningsToDiagnostics:
                 if warning.aspect == Aspect.SCHEMA
                 else DiagnosticLevel.WARNING
             )
-            table_key = _table_key_from_warning_table(getattr(warning, "table", None))
+            table_key = _table_key_from_warning_table(getattr(warning, "full_table_name", None))
             out.append(
                 Diagnostic(
                     table_key=table_key,

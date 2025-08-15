@@ -169,13 +169,17 @@ def _create_from_scratch(desired: DesiredTable) -> CreateTable:
 
 def _diff_properties(desired: DesiredTable, live: TableState) -> list[Action]:
     """Compare desired vs live properties. None means 'unmanaged' (no action)."""
-    if desired.table_properties is None:
+    desired = desired.table_properties
+    live = live.table_properties
+    
+    if desired is None:
         return []
-    desired_props = {str(k): str(v) for k, v in dict(desired.table_properties).items()}
-    live_props = {str(k): str(v) for k, v in dict(live.table_properties).items()}
-    if desired_props != live_props:
-        return [SetTableProperties(properties=desired_props)]
-    return []
+    
+    mismatches = {k: v for k, v in desired.items() if live.get(k) != v}
+    if not mismatches:
+        return []
+    
+    return [SetTableProperties(properties=desired)]
 
 
 def _diff_table_comment(desired: DesiredTable, live: TableState) -> list[Action]:

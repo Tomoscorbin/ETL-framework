@@ -37,7 +37,6 @@ from src.delta_engine.state.adapters.primary_key_reader import PrimaryKeyReader
 from src.delta_engine.state.adapters.schema_reader import SchemaReader
 from src.delta_engine.state.adapters.table_comment_reader import TableCommentReader
 from src.delta_engine.state.adapters.table_properties_reader import TablePropertiesReader
-from src.delta_engine.state.states import CatalogState, ColumnState, PrimaryKeyState
 from src.delta_engine.state.ports import (
     Aspect,
     SnapshotPolicy,
@@ -45,6 +44,7 @@ from src.delta_engine.state.ports import (
     SnapshotResult,
     SnapshotWarning,
 )
+from src.delta_engine.state.states import CatalogState, ColumnState, PrimaryKeyState
 
 
 class CatalogReader:
@@ -129,7 +129,6 @@ class CatalogReader:
 
         return SnapshotResult(state=catalog_state, warnings=tuple(warnings))
 
-
     # ---------- slice methods ----------
 
     def _step_schema(
@@ -172,7 +171,7 @@ class CatalogReader:
     ) -> _tuple[dict[FullyQualifiedTableName, str], list[SnapshotWarning]]:
         """Read table-level comments as strings. If disabled, return empty strings."""
         if not enabled:
-            empty_comments = {t: "" for t in tables}
+            empty_comments = dict.fromkeys(tables, "")
             return empty_comments, []
         result = self.table_comment_reader.read_table_comments(tables)
         comment_by_table = result.comment_by_table
@@ -202,7 +201,7 @@ class CatalogReader:
     ) -> _tuple[dict[FullyQualifiedTableName, PrimaryKeyState | None], list[SnapshotWarning]]:
         """Read primary keys (name + ordered columns). If disabled, return None for all."""
         if not enabled:
-            none_map = {t: None for t in tables}
+            none_map = dict.fromkeys(tables)
             return none_map, []
         result = self.primary_key_reader.read_primary_keys(tables)
         primary_key_by_table = result.primary_key_by_table

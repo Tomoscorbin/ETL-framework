@@ -16,6 +16,7 @@ from __future__ import annotations
 from src.delta_engine.identifiers import quote_qualified_name
 from src.delta_engine.sql.utils import escape_sql_literal
 
+
 def sql_select_primary_key_for_table(
     catalog_name: str,
     schema_name: str,
@@ -105,6 +106,7 @@ def sql_select_table_comment_for_table(
 
 
 # ---------- helpers ----------
+
 
 def _info_schema_table(catalog_name: str, info_schema_table: str) -> str:
     """

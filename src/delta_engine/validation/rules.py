@@ -9,7 +9,6 @@ Concrete validation rules.
 from __future__ import annotations
 
 from enum import StrEnum
-from typing import Iterable
 
 from src.delta_engine.desired.models import DesiredTable
 from src.delta_engine.identifiers import format_fully_qualified_table_name_from_parts
@@ -18,8 +17,8 @@ from src.delta_engine.state.ports import Aspect, SnapshotWarning
 from src.delta_engine.state.states import ColumnState, TableState
 from src.delta_engine.validation.diagnostics import Diagnostic, DiagnosticLevel
 
-
 # ---------- Centralised rule codes (full words, no abbreviations) ----------
+
 
 class RuleCode(StrEnum):
     PRIMARY_KEY_COLUMNS_PRESENT = "PRIMARY_KEY_COLUMNS_PRESENT"
@@ -29,6 +28,7 @@ class RuleCode(StrEnum):
 
 
 # ---------- helpers (tiny, explicit) ----------
+
 
 def _table_key_from_desired(desired: DesiredTable) -> str:
     return format_fully_qualified_table_name_from_parts(
@@ -49,6 +49,7 @@ def _table_key_from_warning_table(obj: object | None) -> str:
 
 
 # ---------- MODEL RULES (desired only) ----------
+
 
 class PrimaryKeyColumnsMustBePresent:
     """Every desired primary key column must exist in the desired column list."""
@@ -88,9 +89,10 @@ _NUMERIC_WIDENING_RANK: dict[str, int] = {
     "long": 4,
     "float": 5,
     "double": 6,
-    "decimal": 7,   # precision/scale handled separately
+    "decimal": 7,  # precision/scale handled separately
     "string": 8,
 }
+
 
 def _numeric_widening_rank(simple: str) -> int:
     """Normalize e.g. 'decimal(10,2)' -> 'decimal' and return a widening rank (lower = narrower)."""
@@ -144,7 +146,9 @@ class TypeNarrowingForbidden:
                 is_narrowing = (desired_precision < live_precision) or (desired_scale < live_scale)
             else:
                 # Rank-based general numeric narrowing
-                is_narrowing = _numeric_widening_rank(desired_str) < _numeric_widening_rank(live_str)
+                is_narrowing = _numeric_widening_rank(desired_str) < _numeric_widening_rank(
+                    live_str
+                )
 
             if is_narrowing:
                 table_key = _table_key_from_desired(desired)
@@ -165,6 +169,7 @@ class TypeNarrowingForbidden:
 
 
 # ---------- PLAN RULES (desired + live + planned actions) ----------
+
 
 class DropPrimaryKeyRequiresExplicitNone:
     """
@@ -214,6 +219,7 @@ class DropPrimaryKeyRequiresExplicitNone:
 
 # ---------- WARNINGS RULES (global snapshot warnings) ----------
 
+
 class WarningsToDiagnostics:
     """Convert snapshot warnings to diagnostics (policy: SCHEMA → error, others → warning)."""
 
@@ -223,7 +229,11 @@ class WarningsToDiagnostics:
     def check(self, warnings: tuple[SnapshotWarning, ...]) -> list[Diagnostic]:
         out: list[Diagnostic] = []
         for warning in warnings:
-            level = DiagnosticLevel.ERROR if warning.aspect == Aspect.SCHEMA else DiagnosticLevel.WARNING
+            level = (
+                DiagnosticLevel.ERROR
+                if warning.aspect == Aspect.SCHEMA
+                else DiagnosticLevel.WARNING
+            )
             table_key = _table_key_from_warning_table(getattr(warning, "table", None))
             out.append(
                 Diagnostic(
@@ -238,6 +248,7 @@ class WarningsToDiagnostics:
 
 
 # ---------- convenience factory ----------
+
 
 def default_rule_set() -> tuple[
     tuple[object, ...],  # model rules

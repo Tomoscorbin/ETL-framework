@@ -15,9 +15,10 @@ Notes:
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from types import MappingProxyType
-from typing import Mapping, Self
+from typing import Self
 
 import pyspark.sql.types as T
 
@@ -26,14 +27,15 @@ from src.delta_engine.identifiers import (
     format_fully_qualified_table_name_from_parts,
 )
 
-
 # -----------------------------
 # Column / PK states
 # -----------------------------
 
+
 @dataclass(frozen=True, slots=True)
 class ColumnState:
     """Observed column state: name, Spark SQL data type, nullability, and optional comment."""
+
     name: str
     data_type: T.DataType
     is_nullable: bool
@@ -43,6 +45,7 @@ class ColumnState:
 @dataclass(frozen=True, slots=True)
 class PrimaryKeyState:
     """Observed PRIMARY KEY constraint: constraint name and ordered column list."""
+
     name: str
     columns: tuple[str, ...]
 
@@ -50,6 +53,7 @@ class PrimaryKeyState:
 # -----------------------------
 # Table and catalog snapshots
 # -----------------------------
+
 
 @dataclass(frozen=True, slots=True)
 class TableState:
@@ -109,6 +113,7 @@ class CatalogState:
     """
     Point-in-time snapshot of multiple tables, keyed by FullyQualifiedTableName.
     """
+
     tables: Mapping[FullyQualifiedTableName, TableState]
 
     def get(self, full_table_name: FullyQualifiedTableName) -> TableState | None:

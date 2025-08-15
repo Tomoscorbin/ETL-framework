@@ -21,8 +21,8 @@ Flat list of `Action` objects (see plan/actions.py). PlanBuilder orders them.
 
 from __future__ import annotations
 
+from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
-from typing import Iterable, Optional, Sequence
 
 from src.delta_engine.desired.models import DesiredCatalog, DesiredTable
 from src.delta_engine.identifiers import FullyQualifiedTableName, build_primary_key_name
@@ -42,13 +42,14 @@ from src.delta_engine.plan.actions import (
 )
 from src.delta_engine.state.states import CatalogState, ColumnState, TableState
 
-
 # ---------- options ----------
+
 
 @dataclass(frozen=True)
 class DiffOptions:
     """Feature switches for which aspects to manage."""
-    manage_schema: bool = True          # columns + nullability + column comments
+
+    manage_schema: bool = True  # columns + nullability + column comments
     manage_table_comment: bool = True
     manage_properties: bool = True
     manage_primary_key: bool = True
@@ -56,8 +57,11 @@ class DiffOptions:
 
 # ---------- public API ----------
 
+
 class Differ:
-    def diff(self, desired: DesiredCatalog, live: CatalogState, options: DiffOptions) -> list[Action]:
+    def diff(
+        self, desired: DesiredCatalog, live: CatalogState, options: DiffOptions
+    ) -> list[Action]:
         return self._diff_catalog(desired, live, options)
 
     def _diff_catalog(
@@ -102,6 +106,7 @@ class Differ:
 
 # ---------- aspect helpers ----------
 
+
 def _create_from_scratch(desired: DesiredTable) -> CreateTable:
     """
     Build a composed CreateTable action for a single desired table.
@@ -123,21 +128,21 @@ def _create_from_scratch(desired: DesiredTable) -> CreateTable:
     add_columns = AddColumns(columns=columns_tuple)
 
     # 2) optional table comment (tri-state)
-    set_table_comment: Optional[SetTableComment] = (
+    set_table_comment: SetTableComment | None = (
         SetTableComment(comment=(desired.table_comment or ""))
         if desired.table_comment is not None
         else None
     )
 
     # 3) optional table properties (tri-state: None => unmanaged)
-    set_table_properties: Optional[SetTableProperties] = (
+    set_table_properties: SetTableProperties | None = (
         SetTableProperties(properties=dict(desired.table_properties))
         if desired.table_properties is not None
         else None
     )
 
     # 4) optional primary key
-    add_primary_key: Optional[AddPrimaryKey] = None
+    add_primary_key: AddPrimaryKey | None = None
     if desired.primary_key_columns and len(desired.primary_key_columns) > 0:
         pk_columns = tuple(desired.primary_key_columns)
         pk_name = desired.primary_key_name_override or build_primary_key_name(
@@ -251,14 +256,17 @@ def _diff_primary_key(desired: DesiredTable, live: TableState) -> list[Action]:
 
     # live has PK -> compare name + ordered columns
     if desired_name != live_pk.name or tuple(cols) != tuple(live_pk.columns):
-        return [DropPrimaryKey(name=live_pk.name), AddPrimaryKey(name=desired_name, columns=tuple(cols))]
+        return [
+            DropPrimaryKey(name=live_pk.name),
+            AddPrimaryKey(name=desired_name, columns=tuple(cols)),
+        ]
     return []
 
 
 def _coalesce_to_align(
     full_table_name: FullyQualifiedTableName,
     actions: Iterable[object],  # sub-action payloads (not top-level Action)
-) -> Optional[AlignTable]:
+) -> AlignTable | None:
     """
     Fold a sequence of granular sub-actions into one AlignTable.
 
@@ -275,10 +283,10 @@ def _coalesce_to_align(
     nullability_buf: list[SetColumnNullability] = []
     comments_buf: dict[str, str] = {}
 
-    table_comment_payload: Optional[SetTableComment] = None
-    table_props_payload: Optional[SetTableProperties] = None
-    add_pk_payload: Optional[AddPrimaryKey] = None
-    drop_pk_payload: Optional[DropPrimaryKey] = None
+    table_comment_payload: SetTableComment | None = None
+    table_props_payload: SetTableProperties | None = None
+    add_pk_payload: AddPrimaryKey | None = None
+    drop_pk_payload: DropPrimaryKey | None = None
 
     for a in actions:
         if isinstance(a, AddColumns):
@@ -301,13 +309,13 @@ def _coalesce_to_align(
         else:
             continue  # ignore unknown items
 
-    add_columns_payload: Optional[AddColumns] = (
+    add_columns_payload: AddColumns | None = (
         AddColumns(columns=tuple(add_columns_buf)) if add_columns_buf else None
     )
-    drop_columns_payload: Optional[DropColumns] = (
+    drop_columns_payload: DropColumns | None = (
         DropColumns(columns=tuple(drop_columns_buf)) if drop_columns_buf else None
     )
-    set_col_comments_payload: Optional[SetColumnComments] = (
+    set_col_comments_payload: SetColumnComments | None = (
         SetColumnComments(comments=comments_buf) if comments_buf else None
     )
 
@@ -340,6 +348,7 @@ def _coalesce_to_align(
 
 
 # ---------- utilities ----------
+
 
 def _compute_missing_columns(
     desired_columns: Sequence[Column],

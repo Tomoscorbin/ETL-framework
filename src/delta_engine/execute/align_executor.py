@@ -19,8 +19,6 @@ Respects ExecutionPolicy:
 
 from __future__ import annotations
 
-from typing import List
-
 from pyspark.sql import SparkSession
 
 from src.delta_engine.execute.ddl_executor import DDLExecutor
@@ -49,7 +47,7 @@ class AlignExecutor:
         self._ddl = DDLExecutor(spark)
 
     def apply(self, action: AlignTable, *, policy: ExecutionPolicy) -> tuple[ActionResult, ...]:
-        results: List[ActionResult] = []
+        results: list[ActionResult] = []
         full_table_name: FullyQualifiedTableName = action.full_table_name
 
         # 0) Drop PRIMARY KEY
@@ -72,7 +70,9 @@ class AlignExecutor:
                 return tuple(results)
 
         # 3) Set column nullability
-        results.extend(self._set_nullability(full_table_name, action.set_nullability, policy, action))
+        results.extend(
+            self._set_nullability(full_table_name, action.set_nullability, policy, action)
+        )
         if any(r.status == ApplyStatus.FAILED for r in results) and policy.stop_on_first_error:
             return tuple(results)
 
@@ -84,7 +84,9 @@ class AlignExecutor:
                 return tuple(results)
 
         # 5) Set column comments
-        results.extend(self._set_column_comments(full_table_name, action.set_column_comments, policy, action))
+        results.extend(
+            self._set_column_comments(full_table_name, action.set_column_comments, policy, action)
+        )
         if any(r.status == ApplyStatus.FAILED for r in results) and policy.stop_on_first_error:
             return tuple(results)
 
@@ -96,7 +98,9 @@ class AlignExecutor:
                 return tuple(results)
 
         # 7) Set table properties
-        result = self._set_table_properties(full_table_name, action.set_table_properties, policy, action)
+        result = self._set_table_properties(
+            full_table_name, action.set_table_properties, policy, action
+        )
         if result is not None:
             results.append(result)
 
@@ -292,7 +296,9 @@ class AlignExecutor:
             return ActionResult(action=action, status=ApplyStatus.SKIPPED, message=msg)
 
         try:
-            self._ddl.set_table_comment(full_table_name=full_table_name, comment=set_comment.comment)
+            self._ddl.set_table_comment(
+                full_table_name=full_table_name, comment=set_comment.comment
+            )
             return ActionResult(
                 action=action,
                 status=ApplyStatus.OK,
@@ -322,7 +328,9 @@ class AlignExecutor:
             return ActionResult(action=action, status=ApplyStatus.SKIPPED, message=msg)
 
         try:
-            self._ddl.set_table_properties(full_table_name=full_table_name, properties=set_props.properties)
+            self._ddl.set_table_properties(
+                full_table_name=full_table_name, properties=set_props.properties
+            )
             return ActionResult(
                 action=action,
                 status=ApplyStatus.OK,
@@ -387,7 +395,9 @@ class AlignExecutor:
             return ActionResult(action=action, status=ApplyStatus.SKIPPED, message=msg)
 
         try:
-            self._ddl.drop_primary_key(full_table_name=full_table_name, constraint_name=drop_pk.name)
+            self._ddl.drop_primary_key(
+                full_table_name=full_table_name, constraint_name=drop_pk.name
+            )
             return ActionResult(
                 action=action,
                 status=ApplyStatus.OK,

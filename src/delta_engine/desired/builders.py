@@ -33,8 +33,8 @@ from src.delta_engine.desired.models import DesiredCatalog, DesiredTable
 from src.delta_engine.identifiers import FullyQualifiedTableName
 from src.delta_engine.models import Column, Table
 
-
 # ---------- mapping options (edge policy) ----------
+
 
 @dataclass(frozen=True)
 class TableMappingOptions:
@@ -49,11 +49,13 @@ class TableMappingOptions:
         True  → "" means "clear the comment"
         False → "" is treated as unmanaged (DesiredTable.table_comment = None)
     """
+
     enforce_properties: bool = True
     empty_comment_means_clear: bool = True
 
 
 # ---------- tiny helpers ----------
+
 
 def _build_full_table_name_from_table(table: Table) -> FullyQualifiedTableName:
     """Build a FullyQualifiedTableName from a user Table (catalog, schema, table)."""
@@ -105,6 +107,7 @@ def _map_table_properties(table: Table, options: TableMappingOptions) -> Mapping
 
 
 # ---------- public builders ----------
+
 
 def build_desired_table(
     table: Table,

@@ -24,7 +24,7 @@ from src.delta_engine.execute.ports import ApplyReport, ExecutionPolicy
 from src.delta_engine.execute.runner import PlanRunner, TablePlan
 from src.delta_engine.identifiers import FullyQualifiedTableName
 from src.delta_engine.plan.actions import Action, AlignTable, CreateTable
-from src.delta_engine.plan.differ import DiffOptions, Differ
+from src.delta_engine.plan.differ import Differ, DiffOptions
 from src.delta_engine.plan.plan_builder import Plan, PlanBuilder
 from src.delta_engine.state.adapters.catalog_reader import CatalogReader
 from src.delta_engine.state.ports import Aspect, SnapshotPolicy, SnapshotRequest, SnapshotResult
@@ -32,8 +32,8 @@ from src.delta_engine.state.states import CatalogState
 from src.delta_engine.validation.diagnostics import ValidationReport
 from src.delta_engine.validation.validator import Validator
 
-
 # ---------- orchestration inputs/outputs ----------
+
 
 @dataclass(frozen=True)
 class OrchestratorOptions:
@@ -51,6 +51,7 @@ class OrchestratorOptions:
     execution_policy:
         How to apply actions (dry-run, stop-on-first-error).
     """
+
     aspects: frozenset[Aspect]
     snapshot_policy: SnapshotPolicy = SnapshotPolicy.PERMISSIVE
     execute: bool = True
@@ -61,6 +62,7 @@ class OrchestratorOptions:
 @dataclass(frozen=True)
 class OrchestrationReport:
     """Everything a caller would want to inspect or log from a single run."""
+
     snapshot: SnapshotResult
     plan: Plan
     validation: ValidationReport
@@ -68,6 +70,7 @@ class OrchestrationReport:
 
 
 # ---------- orchestrator ----------
+
 
 class Orchestrator:
     """
@@ -110,7 +113,9 @@ class Orchestrator:
         if options.execute and (validation.ok or not options.fail_on_validation_errors):
             apply_report = self._execute(plan, options.execution_policy)
 
-        return OrchestrationReport(snapshot=snapshot, plan=plan, validation=validation, apply_report=apply_report)
+        return OrchestrationReport(
+            snapshot=snapshot, plan=plan, validation=validation, apply_report=apply_report
+        )
 
     # ----- steps -----
 
@@ -173,6 +178,7 @@ class Orchestrator:
 
 
 # ---------- tiny helpers ----------
+
 
 def _to_table_plan(plan: Plan) -> TablePlan:
     """Split a flat Plan into a TablePlan with (create_tables, align_tables)."""

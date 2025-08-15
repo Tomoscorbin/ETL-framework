@@ -7,15 +7,13 @@ Responsibilities
 - Expose a single entry point to run the full orchestration:
     - run(desired_catalog, options)
 
-Notes
+Notes:
 -----
 - No SQL or Spark logic here; work is delegated to injected components.
 - Defaults are provided, but everything can be overridden for testing or custom behaviour.
 """
 
 from __future__ import annotations
-
-from typing import Optional
 
 from pyspark.sql import SparkSession
 
@@ -45,12 +43,12 @@ class Engine:
     def __init__(
         self,
         spark: SparkSession,
-        catalog_reader: Optional[CatalogReader] = None,
-        differ: Optional[Differ] = None,
-        plan_builder: Optional[PlanBuilder] = None,
-        validator: Optional[Validator] = None,
-        create_executor: Optional[CreateExecutor] = None,
-        align_executor: Optional[AlignExecutor] = None,
+        catalog_reader: CatalogReader | None = None,
+        differ: Differ | None = None,
+        plan_builder: PlanBuilder | None = None,
+        validator: Validator | None = None,
+        create_executor: CreateExecutor | None = None,
+        align_executor: AlignExecutor | None = None,
     ) -> None:
         self.spark = spark
 

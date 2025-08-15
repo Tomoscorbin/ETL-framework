@@ -11,7 +11,7 @@ and, within each table:
   - ALIGN TABLE (coalesced sub-actions)
   - any unexpected action types (appended last for visibility)
 
-Notes
+Notes:
 -----
 - This module does not coalesce or transform actions; the differ already
   collapses granular changes into a single `AlignTable` per table.
@@ -34,6 +34,7 @@ from src.delta_engine.plan.actions import (
 @dataclass(frozen=True)
 class Plan:
     """An ordered, execution-ready sequence of actions."""
+
     actions: tuple[Action, ...]
 
 
@@ -55,7 +56,9 @@ class PlanBuilder:
             catalog = full_table_name.catalog
             schema = full_table_name.schema
             table = full_table_name.table
-            grouped.setdefault(catalog, {}).setdefault(schema, {}).setdefault(table, []).append(action)
+            grouped.setdefault(catalog, {}).setdefault(schema, {}).setdefault(table, []).append(
+                action
+            )
 
         # 2) Walk groups in deterministic order and bucket per table
         ordered: list[Action] = []

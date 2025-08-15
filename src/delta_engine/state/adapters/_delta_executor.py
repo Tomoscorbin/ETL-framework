@@ -18,9 +18,7 @@ def check_table_exists(
     """
     Return True if the three-part table exists in the Spark catalog.
     """
-    full_name = quote_fully_qualified_table_name_from_parts(
-        catalog_name, schema_name, table_name
-    )
+    full_name = quote_fully_qualified_table_name_from_parts(catalog_name, schema_name, table_name)
     return spark.catalog.tableExists(full_name)
 
 
@@ -34,9 +32,7 @@ def load_table_struct(
     Load a Delta table's StructType via DeltaTable.forName(...).toDF().schema.
     Raises if the table cannot be opened (missing, permissions, not Delta, etc.).
     """
-    full_name = quote_fully_qualified_table_name_from_parts(
-        catalog_name, schema_name, table_name
-    )
+    full_name = quote_fully_qualified_table_name_from_parts(catalog_name, schema_name, table_name)
     delta = DeltaTable.forName(spark, full_name)
     return delta.toDF().schema
 
@@ -58,9 +54,7 @@ def load_table_properties_map(
       metastore reports. Filtering is done by the reader.
     - Errors (table not found, not a Delta table, permissions) bubble up to the caller.
     """
-    full_name = quote_fully_qualified_table_name_from_parts(
-        catalog_name, schema_name, table_name
-    )
+    full_name = quote_fully_qualified_table_name_from_parts(catalog_name, schema_name, table_name)
 
     delta = DeltaTable.forName(spark, full_name)
     detail_df = delta.detail()

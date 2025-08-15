@@ -14,7 +14,7 @@ Flow
    - Emit a SnapshotWarning with Aspect.COMMENTS.
    - Still produce an empty-string entry so the result map is complete.
 
-Notes
+Notes:
 -----
 - Column comments are handled by a separate reader (ColumnCommentsReader).
 - This reader only returns the table-level comment as a string.
@@ -23,7 +23,8 @@ Notes
 
 from __future__ import annotations
 
-from typing import NamedTuple, Sequence, Any, Mapping
+from collections.abc import Mapping, Sequence
+from typing import Any, NamedTuple
 
 from pyspark.sql import SparkSession
 
@@ -36,13 +37,14 @@ class TableCommentBatchReadResult(NamedTuple):
     """
     Aggregated result of reading table-level comments for a set of tables.
 
-    Attributes
+    Attributes:
     ----------
     comment_by_table :
         Mapping from FullyQualifiedTableName to the table comment ("" if missing).
     warnings :
         Warnings raised while reading metadata (permissions, metastore issues, etc.).
     """
+
     comment_by_table: dict[FullyQualifiedTableName, str]
     warnings: list[SnapshotWarning]
 
@@ -105,6 +107,7 @@ class TableCommentReader:
 
 
 # ---------- helpers ----------
+
 
 def build_table_comment_from_rows(rows: Sequence[Mapping[str, Any]]) -> str:
     """

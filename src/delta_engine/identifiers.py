@@ -19,7 +19,6 @@ import re
 from collections.abc import Sequence
 from dataclasses import dataclass
 
-
 _MAX_IDENTIFIER_LEN = 128  # Unity Catalog identifier length limit
 _INVALID_CHARACTER = re.compile(r"[^A-Za-z0-9_]+")  # anything not in [A-Za-z0-9_]
 _MULTI_UNDERSCORES = re.compile(r"_+")
@@ -43,10 +42,12 @@ class FullyQualifiedTableName:
 # String helpers
 # -----------------------------
 
+
 def quote_identifier(identifier: str) -> str:
-    """ Quote a single SQL identifier using backticks, doubling any embedded backticks."""
+    """Quote a single SQL identifier using backticks, doubling any embedded backticks."""
     text = str(identifier)
     return f"`{text.replace('`', '``')}`"
+
 
 def quote_qualified_name(*parts: str) -> str:
     """

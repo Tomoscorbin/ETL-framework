@@ -20,7 +20,6 @@ Design
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import List
 
 from src.delta_engine.execute.align_executor import AlignExecutor
 from src.delta_engine.execute.create_executor import CreateExecutor
@@ -36,6 +35,7 @@ from src.delta_engine.plan.actions import AlignTable, CreateTable
 @dataclass(frozen=True)
 class TablePlan:
     """A plan split into creation vs. alignment phases."""
+
     create_tables: tuple[CreateTable, ...]
     align_tables: tuple[AlignTable, ...]
 
@@ -55,13 +55,15 @@ class PlanRunner:
 
     def apply(self, plan: TablePlan, *, policy: ExecutionPolicy) -> ApplyReport:
         """Apply the plan and return an aggregated ApplyReport."""
-        results: List[ActionResult] = []
+        results: list[ActionResult] = []
 
         # Phase 1: creates
         for action in plan.create_tables:
             action_results = self._create_executor.apply(action, policy=policy)
             results.extend(action_results)
-            if policy.stop_on_first_error and any(r.status == ApplyStatus.FAILED for r in action_results):
+            if policy.stop_on_first_error and any(
+                r.status == ApplyStatus.FAILED for r in action_results
+            ):
                 results.extend(self._skip_remaining(plan.align_tables))
                 return ApplyReport(results=tuple(results))
 
@@ -69,7 +71,9 @@ class PlanRunner:
         for action in plan.align_tables:
             action_results = self._align_executor.apply(action, policy=policy)
             results.extend(action_results)
-            if policy.stop_on_first_error and any(r.status == ApplyStatus.FAILED for r in action_results):
+            if policy.stop_on_first_error and any(
+                r.status == ApplyStatus.FAILED for r in action_results
+            ):
                 # Nothing left to run after an align failure, but keep symmetry.
                 return ApplyReport(results=tuple(results))
 

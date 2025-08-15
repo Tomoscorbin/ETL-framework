@@ -15,8 +15,6 @@ Respects ExecutionPolicy:
 
 from __future__ import annotations
 
-from typing import List
-
 from pyspark.sql import SparkSession
 
 from src.delta_engine.execute.ddl_executor import DDLExecutor
@@ -41,7 +39,7 @@ class CreateExecutor:
         self._ddl = DDLExecutor(spark)
 
     def apply(self, action: CreateTable, *, policy: ExecutionPolicy) -> tuple[ActionResult, ...]:
-        results: List[ActionResult] = []
+        results: list[ActionResult] = []
 
         full_table_name: FullyQualifiedTableName = action.full_table_name
         columns: tuple[Column, ...] = action.add_columns.columns

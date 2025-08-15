@@ -14,12 +14,17 @@ from __future__ import annotations
 
 from collections.abc import Iterable
 from dataclasses import dataclass
-from typing import Tuple
 
 from src.delta_engine.desired.models import DesiredCatalog
 from src.delta_engine.plan.differ import Differ, DiffOptions
 from src.delta_engine.plan.plan_builder import Plan, PlanBuilder
-from src.delta_engine.state.ports import Aspect, CatalogStateReader, SnapshotPolicy, SnapshotRequest, SnapshotWarning
+from src.delta_engine.state.ports import (
+    Aspect,
+    CatalogStateReader,
+    SnapshotPolicy,
+    SnapshotRequest,
+    SnapshotWarning,
+)
 from src.delta_engine.state.states import CatalogState
 
 

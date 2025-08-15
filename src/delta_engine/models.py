@@ -2,28 +2,30 @@
 
 from __future__ import annotations
 
-from enum import StrEnum
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
+from enum import StrEnum
 from types import MappingProxyType
-from typing import Any, ClassVar, Mapping, Sequence
+from typing import Any, ClassVar
 
 import pyspark.sql.types as T
 
 from src.delta_engine.identifiers import (
-    format_fully_qualified_table_name_from_parts,
     build_primary_key_name,
+    format_fully_qualified_table_name_from_parts,
 )
 
 
 class TableProperty(StrEnum):
     ENABLE_DELETION_VECTORS = "delta.enableDeletionVectors"
-    ENABLE_TYPE_WIDENING    = "delta.enableTypeWidening"
-    COLUMN_MAPPING_MODE     = "delta.columnMapping.mode"
+    ENABLE_TYPE_WIDENING = "delta.enableTypeWidening"
+    COLUMN_MAPPING_MODE = "delta.columnMapping.mode"
 
 
 @dataclass(frozen=True)
 class Column:
     """Declarative Delta table column definition."""
+
     name: str
     data_type: T.DataType
     comment: str = ""
@@ -35,9 +37,11 @@ class Table:
     """Declarative Delta table definition."""
 
     # Defaults use string keys (Enum.value); exposed read-only.
-    DEFAULT_PROPERTIES: ClassVar[Mapping[str, str]] = MappingProxyType({
-        TableProperty.COLUMN_MAPPING_MODE.value: "name",
-    })
+    DEFAULT_PROPERTIES: ClassVar[Mapping[str, str]] = MappingProxyType(
+        {
+            TableProperty.COLUMN_MAPPING_MODE.value: "name",
+        }
+    )
 
     catalog_name: str
     schema_name: str
@@ -53,9 +57,7 @@ class Table:
     def full_name(self) -> str:
         """Unquoted full name: 'catalog.schema.table'."""
         return format_fully_qualified_table_name_from_parts(
-            self.catalog_name, 
-            self.schema_name, 
-            self.table_name
+            self.catalog_name, self.schema_name, self.table_name
         )
 
     @property
@@ -74,7 +76,7 @@ class Table:
         pk_columns = self.primary_key_columns
         if not pk_columns:
             return None
-        
+
         return build_primary_key_name(
             catalog_name=self.catalog_name,
             schema_name=self.schema_name,
@@ -93,6 +95,7 @@ class Table:
 # -----------------
 # Helpers
 # -----------------
+
 
 def _normalize_properties(props: Mapping[Any, Any]) -> dict[str, str]:
     """Coerce mapping keys/values to strings; supports TableProperty keys."""

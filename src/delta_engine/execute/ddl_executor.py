@@ -15,7 +15,11 @@ from collections.abc import Iterable, Mapping
 import pyspark.sql.types as T
 from pyspark.sql import SparkSession
 
-from src.delta_engine.identifiers import FullyQualifiedTableName, quote_fully_qualified_table_name, quote_identifier
+from src.delta_engine.identifiers import (
+    FullyQualifiedTableName,
+    quote_fully_qualified_table_name,
+    quote_identifier,
+)
 from src.delta_engine.models import Column
 from src.delta_engine.sql.utils import escape_sql_literal, format_tblproperties
 

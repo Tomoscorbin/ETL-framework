@@ -18,8 +18,8 @@ from src.delta_engine.state.ports import SnapshotWarning
 from src.delta_engine.state.states import CatalogState, TableState
 from src.delta_engine.validation.diagnostics import Diagnostic, ValidationReport
 
-
 # ---------- rule protocols ----------
+
 
 class ModelRule(Protocol):
     code: str
@@ -56,6 +56,7 @@ class WarningsRule(Protocol):
 
 # ---------- tiny helpers ----------
 
+
 def _table_key_from_desired(desired: DesiredTable) -> str:
     fq = desired.fully_qualified_table_name
     return format_fully_qualified_table_name_from_parts(fq.catalog, fq.schema, fq.table)
@@ -83,6 +84,7 @@ def _index_actions_by_table(plan: Plan) -> dict[str, tuple[Action, ...]]:
 
 
 # ---------- validator orchestrator ----------
+
 
 class Validator:
     """

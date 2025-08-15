@@ -25,6 +25,7 @@ class ApplyStatus(StrEnum):
 @dataclass(frozen=True)
 class ExecutionPolicy:
     """Controls how the executor behaves."""
+
     dry_run: bool = False
     stop_on_first_error: bool = True
 
@@ -32,6 +33,7 @@ class ExecutionPolicy:
 @dataclass(frozen=True)
 class ActionResult:
     """Outcome for a single action."""
+
     action: Action
     status: ApplyStatus
     message: str  # one line; include rendered SQL in dry-run
@@ -40,6 +42,7 @@ class ActionResult:
 @dataclass(frozen=True)
 class ApplyReport:
     """Outcome for applying a whole plan."""
+
     results: tuple[ActionResult, ...]
 
     @property
@@ -49,14 +52,19 @@ class ApplyReport:
 
 class CreateExecutor(Protocol):
     """Executor capable of applying a CreateTable action."""
-    def apply(self, action: CreateTable, *, policy: ExecutionPolicy) -> tuple[ActionResult, ...]: ...
+
+    def apply(
+        self, action: CreateTable, *, policy: ExecutionPolicy
+    ) -> tuple[ActionResult, ...]: ...
 
 
 class AlignExecutor(Protocol):
     """Executor capable of applying an AlignTable action (coalesced sub-actions)."""
+
     def apply(self, action: AlignTable, *, policy: ExecutionPolicy) -> tuple[ActionResult, ...]: ...
 
 
 class PlanExecutor(Protocol):
     """High-level executor that applies an entire Plan."""
+
     def apply(self, plan: Plan, *, policy: ExecutionPolicy) -> ApplyReport: ...

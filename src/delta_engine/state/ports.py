@@ -34,6 +34,7 @@ class SnapshotPolicy(StrEnum):
 @dataclass(frozen=True, slots=True)
 class SnapshotRequest:
     """Describe what to snapshot from the catalog."""
+
     tables: tuple[FullyQualifiedTableName, ...]
     aspects: frozenset[Aspect]
     policy: SnapshotPolicy = SnapshotPolicy.PERMISSIVE
@@ -42,6 +43,7 @@ class SnapshotRequest:
 @dataclass(frozen=True, slots=True)
 class SnapshotResult:
     """Point-in-time snapshot result plus any non-fatal warnings."""
+
     state: CatalogState
     warnings: tuple[SnapshotWarning, ...]
 
@@ -51,7 +53,7 @@ class SnapshotWarning:
     """
     A warning produced while snapshotting live catalog state.
 
-    Attributes
+    Attributes:
     ----------
     full_table_name : FullyQualifiedTableName | None
         Which table the warning relates to (None if not table-specific).
@@ -80,7 +82,7 @@ class SnapshotWarning:
         error: object,
         full_table_name: FullyQualifiedTableName | None = None,
         prefix: str | None = None,
-    ) -> "SnapshotWarning":
+    ) -> SnapshotWarning:
         """
         Build a warning from an exception (or message-like object).
         If `prefix` is not provided, a sensible default is chosen based on `aspect`.
@@ -89,7 +91,7 @@ class SnapshotWarning:
         brief = cls._format_exception_brief(error)
         message = f"{base}: {brief}" if brief else base
         return cls(full_table_name=full_table_name, aspect=aspect, message=message)
-    
+
     @staticmethod
     def _format_exception_brief(error: object) -> str:
         """Return a trimmed, single-line summary for an exception or message-like object."""
@@ -106,5 +108,5 @@ class SnapshotWarning:
 
 class CatalogStateReader(Protocol):
     """Port for implementations that can read catalog state."""
+
     def snapshot(self, request: SnapshotRequest) -> SnapshotResult: ...
-    

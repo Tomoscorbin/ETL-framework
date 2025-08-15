@@ -19,7 +19,7 @@ Responsibilities
 
 from __future__ import annotations
 
-from typing import Mapping
+from collections.abc import Mapping
 
 from src.delta_engine.identifiers import FullyQualifiedTableName
 from src.delta_engine.state.states import CatalogState, ColumnState, PrimaryKeyState, TableState

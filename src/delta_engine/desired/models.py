@@ -35,6 +35,7 @@ from src.delta_engine.models import Column
 @dataclass(frozen=True)
 class DesiredTable:
     """Desired state for a single table."""
+
     fully_qualified_table_name: FullyQualifiedTableName
     columns: tuple[Column, ...]
     primary_key_columns: tuple[str, ...] | None = None
@@ -46,4 +47,5 @@ class DesiredTable:
 @dataclass(frozen=True)
 class DesiredCatalog:
     """A set of desired tables to manage."""
+
     tables: tuple[DesiredTable, ...]

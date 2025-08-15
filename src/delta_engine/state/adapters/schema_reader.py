@@ -15,7 +15,7 @@ Flow
    - Emit a SnapshotWarning with Aspect.SCHEMA.
    - Treat the table as non-existent for this read and return no columns.
 
-Notes
+Notes:
 -----
 - Only existence and physical columns are handled here; comments/properties/PK are separate.
 """
@@ -40,7 +40,7 @@ class SchemaBatchReadResult(NamedTuple):
     """
     Aggregated result of reading existence + physical schema for a set of tables.
 
-    Attributes
+    Attributes:
     ----------
     existence_by_table :
         {FullyQualifiedTableName -> bool} existence per table.
@@ -50,6 +50,7 @@ class SchemaBatchReadResult(NamedTuple):
     warnings :
         Non-fatal warnings encountered while reading.
     """
+
     existence_by_table: dict[FullyQualifiedTableName, bool]
     columns_by_table: dict[FullyQualifiedTableName, tuple[ColumnState, ...]]
     warnings: list[SnapshotWarning]
@@ -139,6 +140,7 @@ class SchemaReader:
 
 
 # ---------- helpers ----------
+
 
 def _column_states_from_struct(struct: T.StructType) -> tuple[ColumnState, ...]:
     """

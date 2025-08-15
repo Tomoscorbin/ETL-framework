@@ -19,7 +19,8 @@ Flow
 
 from __future__ import annotations
 
-from typing import Any, Iterable, NamedTuple
+from collections.abc import Iterable
+from typing import Any, NamedTuple
 
 from pyspark.sql import SparkSession
 
@@ -33,13 +34,14 @@ class PrimaryKeyBatchReadResult(NamedTuple):
     """
     Aggregated result of reading primary keys for a set of tables.
 
-    Attributes
+    Attributes:
     ----------
     primary_key_by_table :
         {FullyQualifiedTableName -> PrimaryKeyState | None}
     warnings :
         Non-fatal warnings encountered while reading. Absence of a PK is not a warning.
     """
+
     primary_key_by_table: dict[FullyQualifiedTableName, PrimaryKeyState | None]
     warnings: list[SnapshotWarning]
 
@@ -94,9 +96,10 @@ class PrimaryKeyReader:
             primary_key_by_table=primary_key_by_table,
             warnings=warnings,
         )
-    
+
 
 # ---------- helpers ----------
+
 
 def build_primary_key_state_from_rows(rows: Iterable[Any]) -> PrimaryKeyState | None:
     """

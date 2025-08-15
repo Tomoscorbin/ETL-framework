@@ -5,7 +5,7 @@ Diagnostics primitives shared by the validator and rules.
 - Diagnostic: a single validation finding
 - ValidationReport: an immutable bag of diagnostics with a convenience .ok flag
 
-Notes
+Notes:
 -----
 - `table_key` is the unescaped "catalog.schema.table". Use "" for global/no-table diagnostics.
 - Prefer full words in codes (UPPER_SNAKE_CASE), e.g., "PRIMARY_KEY_COLUMNS_PRESENT".
@@ -16,7 +16,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 from enum import StrEnum
 from typing import TypeAlias
-
 
 # Explicit alias for readability across the codebase.
 TableKey: TypeAlias = str
@@ -40,9 +39,11 @@ class Diagnostic:
         e.g., "PRIMARY_KEY_COLUMNS_PRESENT".
     message:
         One-line human-readable message.
-    hint:
+
+    Hint:
         Optional guidance; empty string means "no hint".
     """
+
     table_key: TableKey
     level: DiagnosticLevel
     code: str

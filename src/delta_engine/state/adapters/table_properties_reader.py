@@ -14,7 +14,8 @@ Flow
 
 from __future__ import annotations
 
-from typing import Any, Mapping, NamedTuple
+from collections.abc import Mapping
+from typing import Any, NamedTuple
 
 from pyspark.sql import SparkSession
 
@@ -30,13 +31,14 @@ class TablePropertiesBatchReadResult(NamedTuple):
     """
     Aggregated result of reading table properties for a set of tables.
 
-    Attributes
+    Attributes:
     ----------
     properties_by_table : dict[FullyQualifiedTableName, dict[str, str]]
         Mapping from table to {property_name -> value}. Empty dict on failure.
     warnings : list[SnapshotWarning]
         Warnings raised while reading metadata (permissions, table missing, etc.).
     """
+
     properties_by_table: dict[FullyQualifiedTableName, dict[str, str]]
     warnings: list[SnapshotWarning]
 
@@ -102,6 +104,7 @@ class TablePropertiesReader:
 # -----------------
 # Helpers
 # -----------------
+
 
 def _normalize_properties(props: Mapping[Any, Any]) -> dict[str, str]:
     """

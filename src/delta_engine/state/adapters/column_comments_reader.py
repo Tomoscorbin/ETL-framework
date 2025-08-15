@@ -13,7 +13,7 @@ Flow
 3) On any failure, emit a SnapshotWarning with Aspect.COMMENTS and still
    produce an empty mapping for that table so the result is complete.
 
-Notes
+Notes:
 -----
 - Comments are returned separately from schema; the builder will merge them into
   ColumnState later (case-insensitive match by name).
@@ -23,7 +23,8 @@ Notes
 
 from __future__ import annotations
 
-from typing import Any, Mapping, NamedTuple, Sequence
+from collections.abc import Mapping, Sequence
+from typing import Any, NamedTuple
 
 from pyspark.sql import SparkSession
 
@@ -36,13 +37,14 @@ class ColumnCommentsBatchReadResult(NamedTuple):
     """
     Aggregated result of reading column comments for a set of tables.
 
-    Attributes
+    Attributes:
     ----------
     comments_by_table :
         Mapping from FullyQualifiedTableName to {lowercased column -> comment string ("")} .
     warnings :
         Warnings raised while reading metadata (permissions, metastore issues, etc.).
     """
+
     comments_by_table: dict[FullyQualifiedTableName, dict[str, str]]
     warnings: list[SnapshotWarning]
 
@@ -97,6 +99,7 @@ class ColumnCommentsReader:
 
 
 # ---------- helpers ----------
+
 
 def build_column_comments_from_rows(rows: Sequence[Mapping[str, Any]]) -> dict[str, str]:
     """

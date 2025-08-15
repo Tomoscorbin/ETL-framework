@@ -22,33 +22,31 @@ Flat list of `Action` objects (see plan/actions.py). PlanBuilder orders them.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Dict, List, Tuple
 
+from src.delta_engine.desired.models import DesiredCatalog, DesiredTable
 from src.delta_engine.identifiers import (
-    fully_qualified_name_to_string,
     FullyQualifiedTableName,
     build_primary_key_name,
+    fully_qualified_name_to_string,
 )
-from src.delta_engine.desired.models import DesiredCatalog, DesiredTable
 from src.delta_engine.models import Column
-from src.delta_engine.state.states import CatalogState, TableState, ColumnState
 from src.delta_engine.plan.actions import (
     Action,
     AddColumns,
+    AddPrimaryKey,
+    AlignTable,
     AlterColumnNullability,
     CreateTable,
     DropColumns,
+    DropPrimaryKey,
     SetColumnComments,
     SetTableComment,
     SetTableProperties,
-    AddPrimaryKey,
-    DropPrimaryKey,
-    AlignTable,
-    AlterColumnNullability,
 )
-
+from src.delta_engine.state.states import CatalogState, ColumnState, TableState
 
 # ---------- options ----------
+
 
 @dataclass(frozen=True)
 class DiffOptions:
@@ -56,7 +54,8 @@ class DiffOptions:
     Feature switches for which aspects to manage.
     Set a flag to False to skip producing actions for that aspect.
     """
-    manage_schema: bool = True            # columns + nullability + column comments
+
+    manage_schema: bool = True  # columns + nullability + column comments
     manage_table_comment: bool = True
     manage_properties: bool = True
     manage_primary_key: bool = True
@@ -64,8 +63,11 @@ class DiffOptions:
 
 # ---------- public API ----------
 
+
 class Differ:
-    def diff(self, desired: DesiredCatalog, live: CatalogState, options: DiffOptions) -> list[Action]:
+    def diff(
+        self, desired: DesiredCatalog, live: CatalogState, options: DiffOptions
+    ) -> list[Action]:
         return self._diff_catalog(desired, live, options)
 
     def _diff_catalog(
@@ -110,6 +112,7 @@ class Differ:
 
 # ---------- aspect helpers ----------
 
+
 def _create_from_scratch(desired: DesiredTable) -> CreateTable:
     """
     Build a composed CreateTable action for a single desired table.
@@ -127,7 +130,7 @@ def _create_from_scratch(desired: DesiredTable) -> CreateTable:
           non-empty    -> add with deterministic/override name
     """
     # 1) required schema (always present on create)
-    columns_tuple: Tuple[Column, ...] = tuple(desired.columns)
+    columns_tuple: tuple[Column, ...] = tuple(desired.columns)
     add_columns = AddColumns(columns=columns_tuple)
 
     # 2) optional table comment (tri-state)
@@ -165,20 +168,18 @@ def _create_from_scratch(desired: DesiredTable) -> CreateTable:
     )
 
 
-
-
 def _diff_properties(desired: DesiredTable, live: TableState) -> list[Action]:
     """Compare desired vs live properties. None means 'unmanaged' (no action)."""
     desired = desired.table_properties
     live = live.table_properties
-    
+
     if desired is None:
         return []
-    
+
     mismatches = {k: v for k, v in desired.items() if live.get(k) != v}
     if not mismatches:
         return []
-    
+
     return [SetTableProperties(properties=desired)]
 
 
@@ -199,7 +200,7 @@ def _diff_table_comment(desired: DesiredTable, live: TableState) -> list[Action]
 def _diff_columns(desired: DesiredTable, live: TableState) -> list[object]:
     """Return granular sub-actions (AddColumns, DropColumns, AlterColumnNullability, SetColumnComments)."""
     actions: list[object] = []
-    live_by_lower: Dict[str, ColumnState] = {c.name.lower(): c for c in live.columns}
+    live_by_lower: dict[str, ColumnState] = {c.name.lower(): c for c in live.columns}
 
     # 1) Adds
     desired_missing = [c for c in desired.columns if c.name.lower() not in live_by_lower]
@@ -247,11 +248,7 @@ def _diff_primary_key(desired: DesiredTable, live: TableState) -> list[Action]:
 
     # enforce no PK
     if len(cols) == 0:
-        return (
-            [DropPrimaryKey(name=live_pk.name)]
-            if live_pk is not None
-            else []
-        )
+        return [DropPrimaryKey(name=live_pk.name)] if live_pk is not None else []
 
     # enforce PK with derived/override name
     desired_name = desired.primary_key_name_override or build_primary_key_name(
@@ -319,9 +316,9 @@ def _coalesce_to_align(
         elif isinstance(a, SetTableProperties):
             table_props_payload = a  # last writer wins
         elif isinstance(a, DropPrimaryKey):
-            drop_pk_payload = a      # last writer wins
+            drop_pk_payload = a  # last writer wins
         elif isinstance(a, AddPrimaryKey):
-            add_pk_payload = a       # last writer wins
+            add_pk_payload = a  # last writer wins
         else:
             # Ignore unknown items by design.
             continue
@@ -336,16 +333,18 @@ def _coalesce_to_align(
         SetColumnComments(comments=comments_buf) if comments_buf else None
     )
 
-    has_any = any([
-        add_columns_payload is not None,
-        drop_columns_payload is not None,
-        bool(nullability_buf),
-        set_col_comments_payload is not None,
-        table_comment_payload is not None,
-        table_props_payload is not None,
-        drop_pk_payload is not None,
-        add_pk_payload is not None,
-    ])
+    has_any = any(
+        [
+            add_columns_payload is not None,
+            drop_columns_payload is not None,
+            bool(nullability_buf),
+            set_col_comments_payload is not None,
+            table_comment_payload is not None,
+            table_props_payload is not None,
+            drop_pk_payload is not None,
+            add_pk_payload is not None,
+        ]
+    )
     if not has_any:
         return None
 
@@ -364,9 +363,10 @@ def _coalesce_to_align(
 
 # ---------- utilities ----------
 
+
 def _compute_missing_columns(
-    desired_columns: Tuple[Column, ...],
-    live_by_lower: Dict[str, ColumnState],
+    desired_columns: tuple[Column, ...],
+    live_by_lower: dict[str, ColumnState],
 ) -> list[Column]:
     """Return desired Column objects that are not present in live."""
     missing: list[Column] = []
@@ -377,8 +377,8 @@ def _compute_missing_columns(
 
 
 def _compute_nullability_actions(
-    desired_columns: Tuple[Column, ...],
-    live_by_lower: Dict[str, ColumnState],
+    desired_columns: tuple[Column, ...],
+    live_by_lower: dict[str, ColumnState],
 ) -> list[AlterColumnNullability]:
     """
     Generate one AlterColumnNullability action per column where desired nullability
@@ -402,8 +402,8 @@ def _compute_nullability_actions(
 
 
 def _compute_column_comment_updates(
-    desired_columns: Tuple[Column, ...],
-    live_by_lower: Dict[str, ColumnState],
+    desired_columns: tuple[Column, ...],
+    live_by_lower: dict[str, ColumnState],
 ) -> dict[str, str]:
     """
     Return {column_name -> desired_comment} for columns where desired

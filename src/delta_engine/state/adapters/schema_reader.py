@@ -25,23 +25,24 @@ Design notes
 from __future__ import annotations
 
 from typing import NamedTuple
+
 import pyspark.sql.types as T
 from pyspark.sql import SparkSession
 
-from src.delta_engine.state.ports import SnapshotWarning, Aspect
 from src.delta_engine.identifiers import FullyQualifiedTableName
-from src.delta_engine.state.states import ColumnState
 from src.delta_engine.state.adapters._delta_executor import (
     check_table_exists,
     load_table_struct,
 )
+from src.delta_engine.state.ports import Aspect, SnapshotWarning
+from src.delta_engine.state.states import ColumnState
 
 
 class SchemaBatchReadResult(NamedTuple):
     """
     Aggregated result of reading existence + physical schema for a set of tables.
 
-    Attributes
+    Attributes:
     ----------
     existence_by_table:
         {FullyQualifiedTableName -> bool} whether the table exists (as far as the
@@ -52,6 +53,7 @@ class SchemaBatchReadResult(NamedTuple):
     warnings:
         A list of SnapshotWarning objects for failures encountered while reading.
     """
+
     existence_by_table: dict[FullyQualifiedTableName, bool]
     columns_by_table: dict[FullyQualifiedTableName, tuple[ColumnState, ...]]
     warnings: list[SnapshotWarning]
@@ -93,7 +95,7 @@ class SchemaReader:
         - On any exception (existence check or schema load), emit a SnapshotWarning
           and treat the table as non-existent with no columns in this result.
 
-        Returns
+        Returns:
         -------
         SchemaBatchReadResult
         """
@@ -147,7 +149,7 @@ class SchemaReader:
                         prefix="Failed to load table schema",
                     )
                 )
-                
+
                 # Treat as temporarily unreadable; existence stays True, columns empty.
                 columns_by_table[name] = tuple()
 
@@ -159,6 +161,7 @@ class SchemaReader:
 
 
 # ---------- helpers (tiny, explicit) ----------
+
 
 def _column_states_from_struct(struct: T.StructType) -> tuple[ColumnState, ...]:
     """

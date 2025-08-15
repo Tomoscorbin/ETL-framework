@@ -1,10 +1,17 @@
-"""Domain models for declaring Delta tables (logical schema + properties)."""
+"""Domain models for declaring Delta tables (logical schema + properties).
+
+Conventions:
+- Use `full_table_name` for variables/props of type `FullyQualifiedTableName`.
+- `full_name` returns unquoted 'catalog.schema.table'.
+- `quoted_full_name` returns '`catalog`.`schema`.`table`'.
+- Table properties are exposed as read-only mappings with string keys.
+"""
 
 from __future__ import annotations
 
-from enum import StrEnum
 from collections.abc import Mapping
 from dataclasses import dataclass, field
+from enum import StrEnum
 from types import MappingProxyType
 from typing import ClassVar
 
@@ -13,8 +20,8 @@ import pyspark.sql.types as T
 
 class TableProperty(StrEnum):
     ENABLE_DELETION_VECTORS = "delta.enableDeletionVectors"
-    ENABLE_TYPE_WIDENING    = "delta.enableTypeWidening"
-    COLUMN_MAPPING_MODE     = "delta.columnMapping.mode"
+    ENABLE_TYPE_WIDENING = "delta.enableTypeWidening"
+    COLUMN_MAPPING_MODE = "delta.columnMapping.mode"
 
 
 @dataclass(frozen=True)
@@ -43,7 +50,6 @@ class Table:
     properties: dict[str, str] = field(default_factory=dict)
     primary_key: list[str] | None = None
 
-
     @property
     def full_name(self) -> str:
         """Full table name in catalgog.schema.table format"""
@@ -55,14 +61,14 @@ class Table:
     def column_names(self) -> list[str]:
         """List of colomn names."""
         return [column.name for column in self.columns]
-    
+
     @property
     def primary_key_name(self) -> str | None:
         """Compute the default PK name (None if no PK columns provided)."""
         if not self.primary_key_columns:
             return None
         return generate_primary_key_name(self.identity, self.primary_key_columns)
-    
+
     @property
     def effective_table_properties(self) -> Mapping[str, str]:
         """

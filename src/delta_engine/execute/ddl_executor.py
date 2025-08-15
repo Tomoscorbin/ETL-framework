@@ -1,12 +1,13 @@
 from __future__ import annotations
 
-from typing import Iterable, Mapping, Tuple
+from collections.abc import Iterable, Mapping
+
 import pyspark.sql.types as T
 from pyspark.sql import SparkSession
 
 from src.delta_engine.identifiers import FullyQualifiedTableName, fully_qualified_name_to_string
 from src.delta_engine.models import Column
-from src.delta_engine.utils import quote_identifier, escape_sql_literal, format_tblproperties
+from src.delta_engine.utils import escape_sql_literal, format_tblproperties, quote_identifier
 
 
 class DDLExecutor:
@@ -53,7 +54,7 @@ class DDLExecutor:
     def create_table_if_not_exists(
         self,
         full_table_name: FullyQualifiedTableName,
-        columns: Tuple[Column, ...],
+        columns: tuple[Column, ...],
         table_comment: str | None,
     ) -> None:
         """
@@ -79,20 +80,26 @@ class DDLExecutor:
 
     # ---------- properties & comments ----------
 
-    def set_table_properties(self, full_table_name: FullyQualifiedTableName, properties: Mapping[str, str]) -> None:
+    def set_table_properties(
+        self, full_table_name: FullyQualifiedTableName, properties: Mapping[str, str]
+    ) -> None:
         if not properties:
             return
         full = fully_qualified_name_to_string(full_table_name)
         sql = f"ALTER TABLE {full} SET TBLPROPERTIES ({format_tblproperties(properties)})"
         self._run(sql)
 
-    def set_table_comment(self, full_table_name: FullyQualifiedTableName, comment: str | None) -> None:
+    def set_table_comment(
+        self, full_table_name: FullyQualifiedTableName, comment: str | None
+    ) -> None:
         full = fully_qualified_name_to_string(full_table_name)
         text = "" if comment is None else escape_sql_literal(comment)
         sql = f"COMMENT ON TABLE {full} IS '{text}'"
         self._run(sql)
 
-    def set_column_comment(self, full_table_name: FullyQualifiedTableName, column_name: str, comment: str | None) -> None:
+    def set_column_comment(
+        self, full_table_name: FullyQualifiedTableName, column_name: str, comment: str | None
+    ) -> None:
         full = fully_qualified_name_to_string(full_table_name)
         text = "" if comment is None else escape_sql_literal(comment)
         sql = f"COMMENT ON COLUMN {full}.{quote_identifier(column_name)} IS '{text}'"
@@ -109,11 +116,15 @@ class DDLExecutor:
         comment: str | None,
     ) -> None:
         full = fully_qualified_name_to_string(full_table_name)
-        col_sql = self._render_column_definition_from_parts(column_name, data_type, is_nullable, comment)
+        col_sql = self._render_column_definition_from_parts(
+            column_name, data_type, is_nullable, comment
+        )
         sql = f"ALTER TABLE {full} ADD COLUMNS ({col_sql})"
         self._run(sql)
 
-    def drop_columns(self, full_table_name: FullyQualifiedTableName, column_names: Iterable[str]) -> None:
+    def drop_columns(
+        self, full_table_name: FullyQualifiedTableName, column_names: Iterable[str]
+    ) -> None:
         column_list = list(column_names)
         if not column_list:
             return
@@ -122,7 +133,9 @@ class DDLExecutor:
         sql = f"ALTER TABLE {full} DROP COLUMNS ({columns_sql})"
         self._run(sql)
 
-    def set_column_nullability(self, full_table_name: FullyQualifiedTableName, column_name: str, make_nullable: bool) -> None:
+    def set_column_nullability(
+        self, full_table_name: FullyQualifiedTableName, column_name: str, make_nullable: bool
+    ) -> None:
         full = fully_qualified_name_to_string(full_table_name)
         if make_nullable:
             sql = f"ALTER TABLE {full} ALTER COLUMN {quote_identifier(column_name)} DROP NOT NULL"
@@ -132,13 +145,20 @@ class DDLExecutor:
 
     # ---------- constraints ----------
 
-    def add_primary_key(self, full_table_name: FullyQualifiedTableName, constraint_name: str, column_names: Tuple[str, ...]) -> None:
+    def add_primary_key(
+        self,
+        full_table_name: FullyQualifiedTableName,
+        constraint_name: str,
+        column_names: tuple[str, ...],
+    ) -> None:
         full = fully_qualified_name_to_string(full_table_name)
         cols_sql = ", ".join(quote_identifier(c) for c in column_names)
         sql = f"ALTER TABLE {full} ADD CONSTRAINT {quote_identifier(constraint_name)} PRIMARY KEY ({cols_sql})"
         self._run(sql)
 
-    def drop_primary_key(self, full_table_name: FullyQualifiedTableName, constraint_name: str) -> None:
+    def drop_primary_key(
+        self, full_table_name: FullyQualifiedTableName, constraint_name: str
+    ) -> None:
         full = fully_qualified_name_to_string(full_table_name)
         sql = f"ALTER TABLE {full} DROP CONSTRAINT {quote_identifier(constraint_name)}"
         self._run(sql)

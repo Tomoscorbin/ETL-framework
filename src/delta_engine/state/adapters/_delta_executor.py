@@ -1,9 +1,10 @@
 """Delta Executor: Delta/Spark catalog I/O helpers for single-table reads."""
 
 from __future__ import annotations
-from typing import Dict
+
 from delta.tables import DeltaTable
 from pyspark.sql import SparkSession
+
 from src.delta_engine.identifiers import render_fully_qualified_name_from_parts
 
 
@@ -40,7 +41,7 @@ def load_table_properties_map(
     catalog: str,
     schema: str,
     table: str,
-) -> Dict[str, str]:
+) -> dict[str, str]:
     """
     Load the Delta table's properties map as {str: str}.
 

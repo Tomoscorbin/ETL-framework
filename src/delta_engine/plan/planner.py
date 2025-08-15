@@ -1,16 +1,19 @@
 from __future__ import annotations
+
+from collections.abc import Iterable
 from dataclasses import dataclass
-from typing import Iterable, Tuple, Optional
 
 from src.delta_engine.desired.models import DesiredCatalog
-from src.delta_engine.state.ports import SnapshotRequest, SnapshotPolicy, Aspect, CatalogStateReader
-from src.delta_engine.diff.differ import diff_catalog, DiffOptions
+from src.delta_engine.diff.differ import DiffOptions, diff_catalog
 from src.delta_engine.plan.plan_builder import Plan, PlanBuilder
+from src.delta_engine.state.ports import Aspect, CatalogStateReader, SnapshotPolicy, SnapshotRequest
+
 
 @dataclass(frozen=True)
 class PlanOutcome:
     plan: Plan
     warnings: tuple  # tuple[SnapshotWarning, ...]
+
 
 class Planner:
     """
@@ -18,7 +21,9 @@ class Planner:
     Returns the plan and any snapshot warnings (validator decides what to do with them).
     """
 
-    def __init__(self, catalog_reader: CatalogStateReader, *, plan_builder: PlanBuilder | None = None) -> None:
+    def __init__(
+        self, catalog_reader: CatalogStateReader, *, plan_builder: PlanBuilder | None = None
+    ) -> None:
         self.catalog_reader = catalog_reader
         self.plan_builder = plan_builder or PlanBuilder()
 

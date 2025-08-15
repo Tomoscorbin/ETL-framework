@@ -1,19 +1,18 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Tuple
 
-from src.delta_engine.execute.create_executor import CreateExecutor
 from src.delta_engine.execute.align_executor import AlignExecutor
-from src.delta_engine.plan.plan_builder import Plan
-from src.delta_engine.plan.actions import CreateTable, AlignTable, Action
+from src.delta_engine.execute.create_executor import CreateExecutor
+from src.delta_engine.plan.actions import AlignTable, CreateTable
 
 
 @dataclass(frozen=True)
 class TablePlan:
     """A plan split into creation vs alignment phases."""
-    create_tables: Tuple[CreateTable, ...]
-    align_tables: Tuple[AlignTable, ...]
+
+    create_tables: tuple[CreateTable, ...]
+    align_tables: tuple[AlignTable, ...]
 
 
 class PlanRunner:

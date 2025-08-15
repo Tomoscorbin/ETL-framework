@@ -7,9 +7,9 @@ Diagnostics primitives shared by the validator and rules.
 """
 
 from __future__ import annotations
+
 from dataclasses import dataclass
 from enum import StrEnum
-from typing import Tuple
 
 
 class DiagnosticLevel(StrEnum):
@@ -26,17 +26,19 @@ class Diagnostic:
     table_key:
         Unescaped 'catalog.schema.table'. Use "" for global/no-table diagnostics.
     """
+
     table_key: str
     level: DiagnosticLevel
-    code: str           # stable ID, e.g., "PK_COLUMNS_PRESENT"
-    message: str        # one-line human-readable message
-    hint: str = ""      # optional guidance
+    code: str  # stable ID, e.g., "PK_COLUMNS_PRESENT"
+    message: str  # one-line human-readable message
+    hint: str = ""  # optional guidance
 
 
 @dataclass(frozen=True)
 class ValidationReport:
     """Immutable bag of diagnostics with a convenience 'ok' property."""
-    diagnostics: Tuple[Diagnostic, ...]
+
+    diagnostics: tuple[Diagnostic, ...]
 
     @property
     def ok(self) -> bool:

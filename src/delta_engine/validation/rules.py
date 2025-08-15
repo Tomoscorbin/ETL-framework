@@ -7,33 +7,35 @@ Concrete validation rules.
 """
 
 from __future__ import annotations
+
 from enum import StrEnum
-from typing import Dict, List, Tuple
 
 from src.delta_engine.desired.models import DesiredTable
-from src.delta_engine.state.states import TableState, ColumnState
-from src.delta_engine.state.ports import SnapshotWarning, Aspect
-from src.delta_engine.plan.actions import Action, DropPrimaryKey, AddPrimaryKey
+from src.delta_engine.plan.actions import Action, AddPrimaryKey, DropPrimaryKey
+from src.delta_engine.state.ports import Aspect, SnapshotWarning
+from src.delta_engine.state.states import ColumnState, TableState
 from src.delta_engine.validation.diagnostics import Diagnostic, DiagnosticLevel
 
-
 # ---------- Centralised rule codes ----------
+
 
 class RuleCode(StrEnum):
     PK_COLUMNS_PRESENT = "PK_COLUMNS_PRESENT"
     TYPE_NARROWING_FORBIDDEN = "TYPE_NARROWING_FORBIDDEN"
     DROP_PK_REQUIRES_EXPLICIT_NONE = "DROP_PK_REQUIRES_EXPLICIT_NONE"
-    SNAPSHOT_WARNINGS = "SNAPSHOT_WARNINGS"   # we suffix by aspect at emission time
+    SNAPSHOT_WARNINGS = "SNAPSHOT_WARNINGS"  # we suffix by aspect at emission time
 
 
 # ---------- MODEL RULES (desired only) ----------
 
+
 class PrimaryKeyColumnsMustBePresent:
     """Every desired PK column must exist in the desired column list."""
+
     code = RuleCode.PK_COLUMNS_PRESENT.value
     description = "Primary key columns must exist in the desired column list."
 
-    def check(self, desired: DesiredTable) -> List[Diagnostic]:
+    def check(self, desired: DesiredTable) -> list[Diagnostic]:
         if not desired.primary_key_columns:
             return []
 
@@ -61,26 +63,35 @@ class PrimaryKeyColumnsMustBePresent:
 # ---------- STATE RULES (desired + live) ----------
 
 _NUMERIC_ORDER = {
-    "byte": 1, "short": 2, "int": 3, "long": 4,
-    "float": 5, "double": 6, "decimal": 7, "string": 8,
+    "byte": 1,
+    "short": 2,
+    "int": 3,
+    "long": 4,
+    "float": 5,
+    "double": 6,
+    "decimal": 7,
+    "string": 8,
 }
+
 
 def _rank(simple: str) -> int:
     """Normalize e.g. 'decimal(10,2)' -> 'decimal' and return a widening rank (lower = narrower)."""
     base = simple.split("(")[0].lower()
     return _NUMERIC_ORDER.get(base, 100)  # unknown types rank wide
 
+
 class TypeNarrowingForbidden:
     """Changing an existing column to a narrower type is forbidden."""
+
     code = RuleCode.TYPE_NARROWING_FORBIDDEN.value
     description = "Changing a column to a narrower type is forbidden."
 
-    def check(self, desired: DesiredTable, live: TableState | None) -> List[Diagnostic]:
+    def check(self, desired: DesiredTable, live: TableState | None) -> list[Diagnostic]:
         if live is None or not live.exists:
             return []
 
-        live_by_lower: Dict[str, ColumnState] = {c.name.lower(): c for c in live.columns}
-        out: List[Diagnostic] = []
+        live_by_lower: dict[str, ColumnState] = {c.name.lower(): c for c in live.columns}
+        out: list[Diagnostic] = []
 
         for col in desired.columns:
             live_col = live_by_lower.get(col.name.lower())
@@ -109,6 +120,7 @@ class TypeNarrowingForbidden:
 
 # ---------- PLAN RULES (desired + live + planned actions) ----------
 
+
 class DropPrimaryKeyRequiresExplicitNone:
     """
     Guardrail: a *pure drop* of the primary key (drop with no matching create)
@@ -116,6 +128,7 @@ class DropPrimaryKeyRequiresExplicitNone:
 
     Changing PK (drop+create) is allowed.
     """
+
     code = RuleCode.DROP_PK_REQUIRES_EXPLICIT_NONE.value
     description = "Dropping a primary key must be explicitly requested."
 
@@ -123,8 +136,8 @@ class DropPrimaryKeyRequiresExplicitNone:
         self,
         desired: DesiredTable,
         live: TableState | None,
-        planned_actions: Tuple[Action, ...],
-    ) -> List[Diagnostic]:
+        planned_actions: tuple[Action, ...],
+    ) -> list[Diagnostic]:
         will_drop = any(isinstance(a, DropPrimaryKey) for a in planned_actions)
         if not will_drop:
             return []
@@ -135,7 +148,9 @@ class DropPrimaryKeyRequiresExplicitNone:
             return []
 
         # Pure drop: require explicit empty tuple in desired
-        explicitly_none = (desired.primary_key_columns is not None) and (len(desired.primary_key_columns) == 0)
+        explicitly_none = (desired.primary_key_columns is not None) and (
+            len(desired.primary_key_columns) == 0
+        )
         if explicitly_none:
             return []
 
@@ -159,13 +174,15 @@ class DropPrimaryKeyRequiresExplicitNone:
 
 # ---------- WARNINGS RULES (global snapshot warnings) ----------
 
+
 class WarningsToDiagnostics:
     """Convert snapshot warnings to diagnostics (policy: SCHEMA → error, others → warning)."""
+
     code = RuleCode.SNAPSHOT_WARNINGS.value
     description = "Convert snapshot warnings into diagnostics."
 
-    def check(self, warnings: Tuple[SnapshotWarning, ...]) -> List[Diagnostic]:
-        out: List[Diagnostic] = []
+    def check(self, warnings: tuple[SnapshotWarning, ...]) -> list[Diagnostic]:
+        out: list[Diagnostic] = []
         for w in warnings:
             level = DiagnosticLevel.ERROR if w.aspect == Aspect.SCHEMA else DiagnosticLevel.WARNING
             table_key = ""
@@ -187,6 +204,7 @@ class WarningsToDiagnostics:
 
 
 # ---------- convenience factory ----------
+
 
 def default_rule_set() -> tuple[
     tuple[object, ...],  # model rules

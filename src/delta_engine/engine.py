@@ -1,19 +1,16 @@
 from __future__ import annotations
-from typing import Iterable
 
 from pyspark.sql import SparkSession
 
 from src.delta_engine.desired.models import DesiredCatalog
-from src.delta_engine.state.adapters.catalog_reader import CatalogReader
-from src.delta_engine.state.ports import Aspect, SnapshotPolicy
-from src.delta_engine.plan.differ import Differ, DiffOptions
-from src.delta_engine.plan.plan_builder import PlanBuilder
-from src.delta_engine.validation.validator import Validator
-from src.delta_engine.validation.rules import default_rule_set
-from src.delta_engine.execute.create_executor import CreateExecutor
 from src.delta_engine.execute.align_executor import AlignExecutor
-from src.delta_engine.orchestrator import Orchestrator, OrchestratorOptions, OrchestrationReport
-from src.delta_engine.models import Table
+from src.delta_engine.execute.create_executor import CreateExecutor
+from src.delta_engine.orchestrator import OrchestrationReport, Orchestrator, OrchestratorOptions
+from src.delta_engine.plan.differ import Differ
+from src.delta_engine.plan.plan_builder import PlanBuilder
+from src.delta_engine.state.adapters.catalog_reader import CatalogReader
+from src.delta_engine.validation.rules import default_rule_set
+from src.delta_engine.validation.validator import Validator
 
 
 class Engine:

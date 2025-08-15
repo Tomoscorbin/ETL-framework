@@ -26,15 +26,15 @@ This module centralises the mapping so the rest of the engine never has to guess
 
 from __future__ import annotations
 
+from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
-from typing import Iterable, Mapping, Tuple
 
-from src.delta_engine.identifiers import FullyQualifiedTableName
-from src.delta_engine.models import Table, Column
 from src.delta_engine.desired.models import DesiredCatalog, DesiredTable
-
+from src.delta_engine.identifiers import FullyQualifiedTableName
+from src.delta_engine.models import Column, Table
 
 # ---------- mapping options (edge policy) ----------
+
 
 @dataclass(frozen=True)
 class TableMappingOptions:
@@ -49,11 +49,13 @@ class TableMappingOptions:
         True  -> "" means "clear the comment"
         False -> "" is treated as unmanaged (DesiredTable.table_comment = None)
     """
+
     enforce_properties: bool = True
     empty_comment_means_clear: bool = True
 
 
 # ---------- tiny helpers (single-purpose, explicit) ----------
+
 
 def _to_fully_qualified_name(table: Table) -> FullyQualifiedTableName:
     """Map a user Table into a FullyQualifiedTableName (catalog, schema, table)."""
@@ -64,7 +66,7 @@ def _to_fully_qualified_name(table: Table) -> FullyQualifiedTableName:
     )
 
 
-def _map_columns(table: Table) -> Tuple[Column, ...]:
+def _map_columns(table: Table) -> tuple[Column, ...]:
     """
     Columns flow straight through; convert to an immutable tuple
     for planner determinism.
@@ -72,7 +74,7 @@ def _map_columns(table: Table) -> Tuple[Column, ...]:
     return tuple(table.columns)
 
 
-def _map_primary_key_columns(table: Table) -> Tuple[str, ...] | None:
+def _map_primary_key_columns(table: Table) -> tuple[str, ...] | None:
     """
     Tri-state mapping:
       - None  => unmanaged
@@ -109,6 +111,7 @@ def _map_table_properties(table: Table, options: TableMappingOptions) -> Mapping
 
 
 # ---------- public builders ----------
+
 
 def build_desired_table(
     table: Table,

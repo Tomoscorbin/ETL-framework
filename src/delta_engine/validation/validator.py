@@ -7,49 +7,55 @@ Validator core: run model/state/plan rules per table, then warnings rules once.
 
 from __future__ import annotations
 
-from typing import Dict, Iterable, List, Protocol, Tuple
+from collections.abc import Iterable
+from typing import Protocol
 
-from src.delta_engine.identifiers import fully_qualified_name_to_string
 from src.delta_engine.desired.models import DesiredCatalog, DesiredTable
-from src.delta_engine.state.states import CatalogState, TableState
-from src.delta_engine.state.ports import SnapshotWarning
-from src.delta_engine.plan.plan_builder import Plan
+from src.delta_engine.identifiers import fully_qualified_name_to_string
 from src.delta_engine.plan.actions import Action
-from src.delta_engine.validation.diagnostics import Diagnostic, DiagnosticLevel, ValidationReport
-
+from src.delta_engine.plan.plan_builder import Plan
+from src.delta_engine.state.ports import SnapshotWarning
+from src.delta_engine.state.states import CatalogState, TableState
+from src.delta_engine.validation.diagnostics import Diagnostic, ValidationReport
 
 # ---------- rule protocols ----------
+
 
 class ModelRule(Protocol):
     code: str
     description: str
-    def check(self, desired: DesiredTable) -> List[Diagnostic]: ...
+
+    def check(self, desired: DesiredTable) -> list[Diagnostic]: ...
 
 
 class StateRule(Protocol):
     code: str
     description: str
-    def check(self, desired: DesiredTable, live: TableState | None) -> List[Diagnostic]: ...
+
+    def check(self, desired: DesiredTable, live: TableState | None) -> list[Diagnostic]: ...
 
 
 class PlanRule(Protocol):
     code: str
     description: str
+
     def check(
         self,
         desired: DesiredTable,
         live: TableState | None,
-        planned_actions: Tuple[Action, ...],
-    ) -> List[Diagnostic]: ...
+        planned_actions: tuple[Action, ...],
+    ) -> list[Diagnostic]: ...
 
 
 class WarningsRule(Protocol):
     code: str
     description: str
-    def check(self, warnings: Tuple[SnapshotWarning, ...]) -> List[Diagnostic]: ...
+
+    def check(self, warnings: tuple[SnapshotWarning, ...]) -> list[Diagnostic]: ...
 
 
 # ---------- validator orchestrator ----------
+
 
 class Validator:
     """
@@ -77,9 +83,9 @@ class Validator:
         desired: DesiredCatalog,
         live: CatalogState,
         plan: Plan,
-        snapshot_warnings: Tuple[SnapshotWarning, ...] = (),
+        snapshot_warnings: tuple[SnapshotWarning, ...] = (),
     ) -> ValidationReport:
-        diagnostics: List[Diagnostic] = []
+        diagnostics: list[Diagnostic] = []
         actions_by_table_key = _index_actions_by_table(plan)
 
         for desired_table in desired.tables:
@@ -109,12 +115,13 @@ class Validator:
 
 # ---------- tiny helper ----------
 
-def _index_actions_by_table(plan: Plan) -> Dict[str, Tuple[Action, ...]]:
+
+def _index_actions_by_table(plan: Plan) -> dict[str, tuple[Action, ...]]:
     """
     Build a lookup: 'catalog.schema.table' (unescaped) -> tuple of actions
     targeting that table.
     """
-    grouped: Dict[str, List[Action]] = {}
+    grouped: dict[str, list[Action]] = {}
     for action in plan.actions:
         key = fully_qualified_name_to_string(action.table)
         grouped.setdefault(key, []).append(action)

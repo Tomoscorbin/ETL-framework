@@ -18,10 +18,11 @@ Responsibilities
 """
 
 from __future__ import annotations
-from typing import Mapping
-from src.delta_engine.identifiers import FullyQualifiedTableName
-from src.delta_engine.state.states import CatalogState, TableState, ColumnState, PrimaryKeyState
-from src.delta_engine.identifiers import fully_qualified_name_to_string
+
+from collections.abc import Mapping
+
+from src.delta_engine.identifiers import FullyQualifiedTableName, fully_qualified_name_to_string
+from src.delta_engine.state.states import CatalogState, ColumnState, PrimaryKeyState, TableState
 
 
 class TableStateBuilder:

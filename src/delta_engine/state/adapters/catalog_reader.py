@@ -32,22 +32,22 @@ Design rules
 
 from __future__ import annotations
 
-from typing import List
 from pyspark.sql import SparkSession
 
+from src.delta_engine.state.adapters._builder import TableStateBuilder
+from src.delta_engine.state.adapters.column_comments_reader import ColumnCommentsReader
+from src.delta_engine.state.adapters.constraints_reader import ConstraintsReader
+from src.delta_engine.state.adapters.schema_reader import SchemaReader
+from src.delta_engine.state.adapters.table_comment_reader import TableCommentReader
+from src.delta_engine.state.adapters.table_properties_reader import TablePropertiesReader
+
 from ..ports import (
+    Aspect,
+    SnapshotPolicy,
     SnapshotRequest,
     SnapshotResult,
     SnapshotWarning,
-    SnapshotPolicy,
-    Aspect,
 )
-from src.delta_engine.state.adapters.schema_reader import SchemaReader
-from src.delta_engine.state.adapters.constraints_reader import ConstraintsReader
-from src.delta_engine.state.adapters.column_comments_reader import ColumnCommentsReader
-from src.delta_engine.state.adapters.table_comment_reader import TableCommentReader
-from src.delta_engine.state.adapters.table_properties_reader import TablePropertiesReader
-from src.delta_engine.state.adapters._builder import TableStateBuilder
 
 
 class CatalogReader:
@@ -80,7 +80,7 @@ class CatalogReader:
         """
         tables = request.tables
         aspects = request.aspects
-        warnings: List[SnapshotWarning] = []
+        warnings: list[SnapshotWarning] = []
 
         # 1) existence (+ optional physical schema)
         existence_by_table, columns_by_table, w1 = self._step_schema(
@@ -144,7 +144,7 @@ class CatalogReader:
     ) -> tuple[
         Dict[FullyQualifiedTableName, bool],
         Dict[FullyQualifiedTableName, tuple[ColumnState, ...]],
-        List[SnapshotWarning],
+        list[SnapshotWarning],
     ]:
         """
         Read existence for all tables, and optionally their physical schema.
@@ -162,7 +162,7 @@ class CatalogReader:
         *,
         tables: tuple[FullyQualifiedTableName, ...],
         enabled: bool,
-    ) -> tuple[Dict[FullyQualifiedTableName, Dict[str, str]], List[SnapshotWarning]]:
+    ) -> tuple[Dict[FullyQualifiedTableName, Dict[str, str]], list[SnapshotWarning]]:
         """
         Read per-column comments as {lower_name -> comment}. If disabled, return empty dicts.
         """
@@ -176,12 +176,12 @@ class CatalogReader:
         *,
         tables: tuple[FullyQualifiedTableName, ...],
         enabled: bool,
-    ) -> tuple[Dict[FullyQualifiedTableName, str], List[SnapshotWarning]]:
+    ) -> tuple[Dict[FullyQualifiedTableName, str], list[SnapshotWarning]]:
         """
         Read table-level comments as strings. If disabled, return empty strings.
         """
         if not enabled:
-            return ({t: "" for t in tables}, [])
+            return (dict.fromkeys(tables, ""), [])
         result = self.table_comment_reader.read_table_comments(tables)
         return (result.comment_by_table, list(result.warnings))
 
@@ -190,7 +190,7 @@ class CatalogReader:
         *,
         tables: tuple[FullyQualifiedTableName, ...],
         enabled: bool,
-    ) -> tuple[Dict[FullyQualifiedTableName, Dict[str, str]], List[SnapshotWarning]]:
+    ) -> tuple[Dict[FullyQualifiedTableName, Dict[str, str]], list[SnapshotWarning]]:
         """
         Read table properties (Delta configuration) as {key -> value}. If disabled, return empty dicts.
         """
@@ -204,11 +204,11 @@ class CatalogReader:
         *,
         tables: tuple[FullyQualifiedTableName, ...],
         enabled: bool,
-    ) -> tuple[Dict[FullyQualifiedTableName, PrimaryKeyState | None], List[SnapshotWarning]]:
+    ) -> tuple[Dict[FullyQualifiedTableName, PrimaryKeyState | None], list[SnapshotWarning]]:
         """
         Read primary keys (name + ordered columns). If disabled, return None for all.
         """
         if not enabled:
-            return ({t: None for t in tables}, [])
+            return (dict.fromkeys(tables), [])
         result = self.constraints_reader.read_primary_keys(tables)
         return (result.primary_key_by_table, list(result.warnings))

@@ -24,22 +24,23 @@ Design notes
 
 from __future__ import annotations
 
-from typing import Dict, NamedTuple
+from typing import NamedTuple
+
 from pyspark.sql import SparkSession
 
-from src.delta_engine.state.ports import SnapshotWarning, Aspect
 from src.delta_engine.identifiers import FullyQualifiedTableName
-from src.delta_engine.state.adapters._delta_executor import load_table_properties_map
 from src.delta_engine.models import TableProperty
-
+from src.delta_engine.state.adapters._delta_executor import load_table_properties_map
+from src.delta_engine.state.ports import Aspect, SnapshotWarning
 
 ALLOWED_TABLE_PROPERTY_KEYS: frozenset[str] = frozenset(k.value for k in TableProperty)
+
 
 class TablePropertiesBatchReadResult(NamedTuple):
     """
     Aggregated result of reading table properties for a set of tables.
 
-    Attributes
+    Attributes:
     ----------
     properties_by_table:
         Mapping from FullyQualifiedTableName to a dict of {property_name -> value}.
@@ -47,6 +48,7 @@ class TablePropertiesBatchReadResult(NamedTuple):
     warnings:
         Warnings raised while reading metadata (permissions, table missing, etc.).
     """
+
     properties_by_table: dict[FullyQualifiedTableName, dict[str, str]]
     warnings: list[SnapshotWarning]
 
@@ -110,9 +112,6 @@ class TablePropertiesReader:
             warnings=warnings,
         )
 
-def _filter_allowed_properties(properties: Dict[str, str]) -> Dict[str, str]:
-    return {
-        key: value
-        for key, value in properties.items()
-        if key in ALLOWED_TABLE_PROPERTY_KEYS
-    }
+
+def _filter_allowed_properties(properties: dict[str, str]) -> dict[str, str]:
+    return {key: value for key, value in properties.items() if key in ALLOWED_TABLE_PROPERTY_KEYS}

@@ -1,7 +1,8 @@
 from __future__ import annotations
+
 from dataclasses import dataclass
 from enum import StrEnum
-from typing import Protocol, ClassVar
+from typing import ClassVar, Protocol
 
 from src.delta_engine.identifiers import FullyQualifiedTableName
 from src.delta_engine.state.states import CatalogState
@@ -15,9 +16,11 @@ class Aspect(StrEnum):
     COMMENTS = "COMMENTS"
     PROPERTIES = "PROPERTIES"
 
+
 class SnapshotPolicy(StrEnum):
     PERMISSIVE = "permissive"
     STRICT = "strict"
+
 
 @dataclass(frozen=True)
 class SnapshotRequest:
@@ -25,10 +28,12 @@ class SnapshotRequest:
     aspects: frozenset[Aspect]
     policy: SnapshotPolicy = SnapshotPolicy.PERMISSIVE
 
+
 @dataclass(frozen=True)
 class SnapshotResult:
     state: CatalogState
     warnings: tuple[SnapshotWarning, ...]
+
 
 @dataclass(frozen=True)
 class SnapshotWarning:
@@ -38,6 +43,7 @@ class SnapshotWarning:
     - aspect: which slice of metadata we were reading
     - message: short, readable text (single line, truncated)
     """
+
     table: object | None
     aspect: Aspect
     message: str
@@ -69,7 +75,7 @@ class SnapshotWarning:
         error: object,
         table: object | None = None,
         prefix: str | None = None,
-    ) -> "SnapshotWarning":
+    ) -> SnapshotWarning:
         """
         Build a warning from an exception (or message-like object).
         If prefix is not provided, a sensible default is chosen based on aspect.
@@ -79,6 +85,6 @@ class SnapshotWarning:
         message = f"{base}: {brief}" if brief else base
         return cls(table=table, aspect=aspect, message=message)
 
+
 class CatalogStateReader(Protocol):
     def snapshot(self, request: SnapshotRequest) -> SnapshotResult: ...
-

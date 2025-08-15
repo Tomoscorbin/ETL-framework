@@ -18,30 +18,32 @@ Design notes
 ------------
 - Column comments are handled by a separate reader (ColumnCommentsReader).
 - This reader only returns the table-level comment as a string.
-""" 
-# TODO: optimise by reading from information schema once for all tables 
+"""
+# TODO: optimise by reading from information schema once for all tables
 
 from __future__ import annotations
 
 from typing import NamedTuple
+
 from pyspark.sql import SparkSession
 
-from src.delta_engine.state.ports import SnapshotWarning, Aspect
 from src.delta_engine.identifiers import FullyQualifiedTableName
 from src.delta_engine.state.adapters._sql_executor import select_table_comment_rows_for_table
+from src.delta_engine.state.ports import Aspect, SnapshotWarning
 
 
 class TableCommentBatchReadResult(NamedTuple):
     """
     Aggregated result of reading table-level comments for a set of tables.
 
-    Attributes
+    Attributes:
     ----------
     comment_by_table:
         Mapping from FullyQualifiedTableName to the table comment (empty string if missing).
     warnings:
         Warnings raised while reading metadata (permissions, metastore issues, etc.).
     """
+
     comment_by_table: dict[FullyQualifiedTableName, str]
     warnings: list[SnapshotWarning]
 
@@ -75,7 +77,7 @@ class TableCommentReader:
         - On success: extract `comment` from the information_schema row; default to "" if NULL.
         - On failure: append a SnapshotWarning and default to "" for that table.
 
-        Returns
+        Returns:
         -------
         TableCommentBatchReadResult
             {FQTN -> comment string}, plus warnings.
@@ -95,11 +97,11 @@ class TableCommentReader:
 
             except Exception as error:
                 warning = SnapshotWarning.from_exception(
-                        aspect=Aspect.COMMENTS,
-                        error=error,
-                        table=name,
-                        prefix="Failed to read table comment",
-                    )
+                    aspect=Aspect.COMMENTS,
+                    error=error,
+                    table=name,
+                    prefix="Failed to read table comment",
+                )
                 warnings.append(warning)
 
                 # On failure, still produce a value so callers always see a complete map
@@ -112,6 +114,7 @@ class TableCommentReader:
 
 
 # ---------- helpers ----------
+
 
 def build_table_comment_from_rows(rows) -> str:
     """

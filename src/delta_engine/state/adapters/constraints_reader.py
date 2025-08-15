@@ -24,18 +24,20 @@ High-level flow
 from __future__ import annotations
 
 from typing import NamedTuple
+
 from pyspark.sql import SparkSession
 
-from src.delta_engine.state.ports import SnapshotWarning, Aspect
 from src.delta_engine.identifiers import FullyQualifiedTableName
-from src.delta_engine.state.states import PrimaryKeyState
 from src.delta_engine.state.adapters._sql_executor import select_primary_key_rows_for_table
+from src.delta_engine.state.ports import Aspect, SnapshotWarning
+from src.delta_engine.state.states import PrimaryKeyState
+
 
 class PrimaryKeyBatchReadResult(NamedTuple):
     """
     Aggregated result of reading primary keys for a set of tables.
 
-    Attributes
+    Attributes:
     ----------
     primary_key_by_table:
         A mapping from each requested FullyQualifiedTableName to either:
@@ -45,6 +47,7 @@ class PrimaryKeyBatchReadResult(NamedTuple):
         A list of SnapshotWarning objects describing failures encountered
         while reading metadata. Absence of a PK does **not** produce a warning.
     """
+
     primary_key_by_table: dict[FullyQualifiedTableName, PrimaryKeyState | None]
     warnings: list[SnapshotWarning]
 
@@ -62,7 +65,7 @@ class ConstraintsReader:
     PrimaryKeyBatchReadResult with a complete map of inputs to either a
     PrimaryKeyState (ordered by `ordinal_position`) or None, plus any warnings.
 
-    Notes
+    Notes:
     -----
     - This reader does **not** determine whether the table exists. It treats
       “no rows” or a NULL constraint name as “no primary key.”
@@ -91,7 +94,7 @@ class ConstraintsReader:
         table_names:
             A tuple of FullyQualifiedTableName values to inspect.
 
-        Returns
+        Returns:
         -------
         PrimaryKeyBatchReadResult
             {FQTN -> PrimaryKeyState | None} and a list of warnings.
@@ -118,7 +121,7 @@ class ConstraintsReader:
                     prefix="Failed to read primary key",
                 )
                 warnings.append(warning)
-                
+
                 # On failure, still produce a value so callers always see a complete map
                 primary_key_by_table.setdefault(name, None)
 
@@ -129,6 +132,7 @@ class ConstraintsReader:
 
 
 # ---------- helpers ----------
+
 
 def build_primary_key_state_from_rows(rows) -> PrimaryKeyState | None:
     """
@@ -149,7 +153,7 @@ def build_primary_key_state_from_rows(rows) -> PrimaryKeyState | None:
         - column_name
         - ordinal_position
 
-    Returns
+    Returns:
     -------
     PrimaryKeyState | None
         The constructed state if a constraint exists, otherwise None.
@@ -170,9 +174,7 @@ def build_primary_key_state_from_rows(rows) -> PrimaryKeyState | None:
     return PrimaryKeyState(name=str(constraint_name), columns=tuple(ordered_columns))
 
 
-def _ordered_column_names_by_position(
-    entries: list[tuple[int | None, str | None]]
-) -> list[str]:
+def _ordered_column_names_by_position(entries: list[tuple[int | None, str | None]]) -> list[str]:
     """
     Turn (ordinal_position, column_name) pairs into an ordered list of column names.
 
@@ -187,7 +189,7 @@ def _ordered_column_names_by_position(
     entries:
         List of (ordinal_position, column_name) tuples.
 
-    Returns
+    Returns:
     -------
     list[str]
         Column names ordered by `ordinal_position`.

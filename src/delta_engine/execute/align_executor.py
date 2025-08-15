@@ -2,19 +2,18 @@ from __future__ import annotations
 
 from pyspark.sql import SparkSession
 
-from src.delta_engine.identifiers import FullyQualifiedTableName
 from src.delta_engine.execute.ddl_executor import DDLExecutor
+from src.delta_engine.identifiers import FullyQualifiedTableName
 from src.delta_engine.plan.actions import (
-    AlignTable,
     AddColumns,
+    AddPrimaryKey,
+    AlignTable,
     AlterColumnNullability,
+    DropPrimaryKey,
     SetColumnComments,
     SetTableComment,
     SetTableProperties,
-    AddPrimaryKey,
-    DropPrimaryKey,
 )
-from src.delta_engine.models import Column
 
 
 class AlignExecutor:

@@ -2,15 +2,15 @@ from __future__ import annotations
 
 from pyspark.sql import SparkSession
 
-from src.delta_engine.identifiers import FullyQualifiedTableName
 from src.delta_engine.execute.ddl_executor import DDLExecutor
-from src.delta_engine.plan.actions import (
-    CreateTable,
-    SetTableProperties,
-    SetTableComment,
-    AddPrimaryKey,
-)
+from src.delta_engine.identifiers import FullyQualifiedTableName
 from src.delta_engine.models import Column
+from src.delta_engine.plan.actions import (
+    AddPrimaryKey,
+    CreateTable,
+    SetTableComment,
+    SetTableProperties,
+)
 
 
 class CreateExecutor:

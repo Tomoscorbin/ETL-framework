@@ -16,26 +16,23 @@ Design goals:
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Iterable, Tuple
 
 from src.delta_engine.desired.models import DesiredCatalog
+from src.delta_engine.execute.align_executor import AlignExecutor
+from src.delta_engine.execute.create_executor import CreateExecutor
+from src.delta_engine.execute.runner import PlanRunner
 from src.delta_engine.identifiers import FullyQualifiedTableName
+from src.delta_engine.plan.actions import Action
+from src.delta_engine.plan.differ import Differ, DiffOptions
+from src.delta_engine.plan.plan_builder import Plan, PlanBuilder
+from src.delta_engine.state.adapters.catalog_reader import CatalogReader
 from src.delta_engine.state.ports import Aspect, SnapshotPolicy, SnapshotRequest, SnapshotResult
 from src.delta_engine.state.states import CatalogState
-from src.delta_engine.state.adapters.catalog_reader import CatalogReader
-
-from src.delta_engine.plan.actions import Action
-from src.delta_engine.plan.plan_builder import Plan, PlanBuilder
-from src.delta_engine.plan.differ import Differ, DiffOptions
-from src.delta_engine.validation.validator import Validator
 from src.delta_engine.validation.diagnostics import ValidationReport
-
-from src.delta_engine.execute.create_executor import CreateExecutor
-from src.delta_engine.execute.align_executor import AlignExecutor
-from src.delta_engine.execute.runner import TablePlan, PlanRunner
-
+from src.delta_engine.validation.validator import Validator
 
 # ---------- orchestration inputs/outputs ----------
+
 
 @dataclass(frozen=True)
 class OrchestratorOptions:
@@ -46,6 +43,7 @@ class OrchestratorOptions:
     - execute: if False, stop after planning+validation (no changes applied)
     - fail_on_validation_errors: if True, block execution when validation has any ERROR
     """
+
     aspects: frozenset[Aspect]
     snapshot_policy: SnapshotPolicy = SnapshotPolicy.PERMISSIVE
     execute: bool = True
@@ -55,11 +53,14 @@ class OrchestratorOptions:
 @dataclass(frozen=True)
 class OrchestrationReport:
     """Everything a caller would want to inspect or log from a single run."""
+
     snapshot: SnapshotResult
     plan: Plan
     validation: ValidationReport
 
+
 # ---------- orchestrator ----------
+
 
 class Orchestrator:
     """
@@ -92,7 +93,9 @@ class Orchestrator:
 
         if options.snapshot_policy is SnapshotPolicy.STRICT and snapshot.warnings:
             # Strict means: do not even plan if snapshot had warnings (e.g., permissions)
-            raise RuntimeError(f"Snapshot produced {len(snapshot.warnings)} warning(s) under STRICT policy")
+            raise RuntimeError(
+                f"Snapshot produced {len(snapshot.warnings)} warning(s) under STRICT policy"
+            )
 
         plan = self._plan(desired, snapshot.state, options.aspects)
         validation = self._validate(desired, snapshot.state, plan, snapshot.warnings)
@@ -111,7 +114,7 @@ class Orchestrator:
         policy: SnapshotPolicy,
     ) -> SnapshotResult:
         """Ask the CatalogReader for the live state of the requested tables."""
-        tables: Tuple[FullyQualifiedTableName, ...] = tuple(
+        tables: tuple[FullyQualifiedTableName, ...] = tuple(
             t.fully_qualified_table_name for t in desired.tables
         )
         request = SnapshotRequest(tables=tables, aspects=aspects, policy=policy)
@@ -129,7 +132,6 @@ class Orchestrator:
             manage_table_comment=(Aspect.COMMENTS in aspects),
             manage_properties=(Aspect.PROPERTIES in aspects),
             manage_primary_key=(Aspect.PRIMARY_KEY in aspects),
-            
         )
         actions: list[Action] = self._differ.diff(desired=desired, live=live, options=options)
         return self._plan_builder.build(actions)

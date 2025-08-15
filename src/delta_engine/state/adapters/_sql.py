@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from src.delta_engine.utils import escape_sql_literal
 
+
 def sql_select_primary_key_for_table(
     catalog: str,
     schema: str,
@@ -33,6 +34,7 @@ def sql_select_primary_key_for_table(
       AND tc.constraint_type = 'PRIMARY KEY'
     """
 
+
 def sql_select_column_comments_for_table(
     catalog: str,
     schema: str,
@@ -55,6 +57,7 @@ def sql_select_column_comments_for_table(
       AND table_schema  = '{schema_lit}'
       AND table_name    = '{table_lit}'
     """
+
 
 def sql_select_table_comment_for_table(
     catalog: str,

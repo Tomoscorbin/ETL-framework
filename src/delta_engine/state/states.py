@@ -21,14 +21,15 @@ from dataclasses import dataclass, field
 from types import MappingProxyType
 from typing import Self
 
-from src.delta_engine.identifiers import FullyQualifiedTableName
-
 import pyspark.sql.types as T
+
+from src.delta_engine.identifiers import FullyQualifiedTableName
 
 
 @dataclass(frozen=True, slots=True)
 class ColumnState:
     """Observed column state: name, Spark SQL data type, nullability, and optional comment."""
+
     name: str
     data_type: T.DataType
     is_nullable: bool
@@ -38,6 +39,7 @@ class ColumnState:
 @dataclass(frozen=True, slots=True)
 class PrimaryKeyState:
     """Observed PRIMARY KEY constraint: constraint name and ordered column list."""
+
     name: str
     columns: tuple[str, ...]
 
@@ -62,6 +64,7 @@ class TableState:
     primary_key : PrimaryKeyState | None
         Present when a PRIMARY KEY exists.
     """
+
     catalog_name: str
     schema_name: str
     table_name: str

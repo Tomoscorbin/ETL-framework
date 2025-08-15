@@ -24,18 +24,19 @@ Design notes
 from __future__ import annotations
 
 from typing import NamedTuple
+
 from pyspark.sql import SparkSession
 
-from src.delta_engine.state.ports import SnapshotWarning, Aspect
 from src.delta_engine.identifiers import FullyQualifiedTableName
 from src.delta_engine.state.adapters._sql_executor import select_column_comment_rows_for_table
+from src.delta_engine.state.ports import Aspect, SnapshotWarning
 
 
 class ColumnCommentsBatchReadResult(NamedTuple):
     """
     Aggregated result of reading column comments for a set of tables.
 
-    Attributes
+    Attributes:
     ----------
     comments_by_table:
         Mapping from FullyQualifiedTableName to a dict of
@@ -43,6 +44,7 @@ class ColumnCommentsBatchReadResult(NamedTuple):
     warnings:
         Warnings raised while reading metadata (permissions, metastore issues, etc.).
     """
+
     comments_by_table: dict[FullyQualifiedTableName, dict[str, str]]
     warnings: list[SnapshotWarning]
 
@@ -82,7 +84,7 @@ class ColumnCommentsReader:
         table_names:
             A tuple of FullyQualifiedTableName values to inspect.
 
-        Returns
+        Returns:
         -------
         ColumnCommentsBatchReadResult
             {FQTN -> {lower_col -> comment}} and a list of warnings.
@@ -103,11 +105,11 @@ class ColumnCommentsReader:
 
             except Exception as error:
                 warning = SnapshotWarning.from_exception(
-                        aspect=Aspect.COMMENTS,
-                        error=error,
-                        table=name,
-                        prefix="Failed to read column comments",
-                    )
+                    aspect=Aspect.COMMENTS,
+                    error=error,
+                    table=name,
+                    prefix="Failed to read column comments",
+                )
                 warnings.append(warning)
 
                 # Still provide an entry so the result is complete
@@ -120,6 +122,7 @@ class ColumnCommentsReader:
 
 
 # ---------- helpers ----------
+
 
 def build_column_comments_from_rows(rows) -> dict[str, str]:
     """

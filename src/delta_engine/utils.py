@@ -1,9 +1,11 @@
 from __future__ import annotations
+
 from collections.abc import Mapping
 
 
 def quote_identifier(identifier: str) -> str:
     return f"`{identifier.replace('`', '``')}`"
+
 
 def escape_sql_literal(value: str) -> str:
     """
@@ -11,6 +13,7 @@ def escape_sql_literal(value: str) -> str:
     Doubles single quotes per SQL rules. Empty/None → empty string.
     """
     return (value or "").replace("'", "''")
+
 
 def format_tblproperties(props: Mapping[str, str]) -> str:
     """

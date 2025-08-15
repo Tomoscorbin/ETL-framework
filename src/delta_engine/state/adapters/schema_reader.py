@@ -115,9 +115,9 @@ class SchemaReader:
             try:
                 struct = load_table_struct(
                     self.spark,
-                    catalog=full_table_name.catalog,
-                    schema=full_table_name.schema,
-                    table=full_table_name.table,
+                    catalog_name=full_table_name.catalog,
+                    schema_name=full_table_name.schema,
+                    table_name=full_table_name.table,
                 )
                 columns_by_table[full_table_name] = _column_states_from_struct(struct)
             except Exception as error:

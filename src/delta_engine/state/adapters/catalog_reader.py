@@ -97,36 +97,39 @@ class CatalogReader:
         )
         warnings.extend(warnings_schema)
 
+        # Only query existing tables for the remaining slices
+        existing_tables = tuple(t for t in full_table_names if existence_by_table.get(t, False))
+
         # 2) per-column comments (only if schema present to merge)
         column_comments_by_table, warnings_column_comments = self._step_column_comments(
-            tables=full_table_names,
+            tables=existing_tables,
             enabled=(Aspect.COMMENTS in aspects and Aspect.SCHEMA in aspects),
         )
         warnings.extend(warnings_column_comments)
 
         # 3) table-level comment
         table_comment_by_table, warnings_table_comment = self._step_table_comment(
-            tables=full_table_names,
+            tables=existing_tables,
             enabled=(Aspect.COMMENTS in aspects),
         )
         warnings.extend(warnings_table_comment)
 
         # 4) table properties
         properties_by_table, warnings_properties = self._step_properties(
-            tables=full_table_names,
+            tables=existing_tables,
             enabled=(Aspect.PROPERTIES in aspects),
         )
         warnings.extend(warnings_properties)
 
         # 5) primary key
         primary_keys_by_table, warnings_primary_keys = self._step_primary_keys(
-            tables=full_table_names,
+            tables=existing_tables,
             enabled=(Aspect.PRIMARY_KEY in aspects),
         )
         warnings.extend(warnings_primary_keys)
 
         # 6) assemble final state
-        catalog_state: CatalogState = self.builder.assemble(
+        catalog_state = self.builder.assemble(
             tables=full_table_names,
             exists=existence_by_table,
             schema=columns_by_table,
@@ -154,12 +157,18 @@ class CatalogReader:
         dict[FullyQualifiedTableName, tuple[ColumnState, ...]],
         list[SnapshotWarning],
     ]:
-        """Read existence for all tables, and optionally their physical schema."""
+        """
+        Read existence for all tables, and optionally their physical schema.
+
+        Returns:
+        (existence_by_table, columns_by_table, warnings)
+        """
         result = self.schema_reader.read_schema(tables, include_schema)
-        existence_by_table = result.existence_by_table
-        columns_by_table = result.columns_by_table
-        warnings = list(result.warnings)
-        return existence_by_table, columns_by_table, warnings
+        return (
+            result.existence_by_table,
+            result.columns_by_table,
+            list(result.warnings),
+        )
 
     def _step_column_comments(
         self,
@@ -167,14 +176,14 @@ class CatalogReader:
         tables: tuple[FullyQualifiedTableName, ...],
         enabled: bool,
     ) -> tuple[dict[FullyQualifiedTableName, dict[str, str]], list[SnapshotWarning]]:
-        """Read per-column comments as {lower_name -> comment}. If disabled, return empty dicts."""
-        if not enabled:
-            empty_map = {t: {} for t in tables}
-            return empty_map, []
+        """
+        Read per-column comments as {lower_name -> comment}. When disabled or
+        there are no tables to query, return ({}, []) and let the builder apply defaults.
+        """
+        if not enabled or not tables:
+            return ({}, [])
         result = self.column_comments_reader.read_column_comments(tables)
-        comments_by_table = result.comments_by_table
-        warnings = list(result.warnings)
-        return comments_by_table, warnings
+        return (result.comments_by_table, list(result.warnings))
 
     def _step_table_comment(
         self,
@@ -182,14 +191,14 @@ class CatalogReader:
         tables: tuple[FullyQualifiedTableName, ...],
         enabled: bool,
     ) -> tuple[dict[FullyQualifiedTableName, str], list[SnapshotWarning]]:
-        """Read table-level comments as strings. If disabled, return empty strings."""
-        if not enabled:
-            empty_comments = dict.fromkeys(tables, "")
-            return empty_comments, []
+        """
+        Read table-level comments as strings. When disabled or there are no tables,
+        return ({}, []) and let the builder apply defaults.
+        """
+        if not enabled or not tables:
+            return ({}, [])
         result = self.table_comment_reader.read_table_comments(tables)
-        comment_by_table = result.comment_by_table
-        warnings = list(result.warnings)
-        return comment_by_table, warnings
+        return (result.comment_by_table, list(result.warnings))
 
     def _step_properties(
         self,
@@ -197,14 +206,15 @@ class CatalogReader:
         tables: tuple[FullyQualifiedTableName, ...],
         enabled: bool,
     ) -> tuple[dict[FullyQualifiedTableName, dict[str, str]], list[SnapshotWarning]]:
-        """Read table properties (Delta configuration) as {key -> value}. If disabled, return empty dicts."""
-        if not enabled:
-            empty_map = {t: {} for t in tables}
-            return empty_map, []
+        """
+        Read table properties as {key -> value}. When disabled or there are no tables,
+        return ({}, []) and let the builder apply defaults.
+        """
+        if not enabled or not tables:
+            return ({}, [])
         result = self.table_properties_reader.read_table_properties(tables)
-        properties_by_table = result.properties_by_table
-        warnings = list(result.warnings)
-        return properties_by_table, warnings
+        return (result.properties_by_table, list(result.warnings))
+
 
     def _step_primary_keys(
         self,
@@ -212,11 +222,11 @@ class CatalogReader:
         tables: tuple[FullyQualifiedTableName, ...],
         enabled: bool,
     ) -> tuple[dict[FullyQualifiedTableName, PrimaryKeyState | None], list[SnapshotWarning]]:
-        """Read primary keys (name + ordered columns). If disabled, return None for all."""
-        if not enabled:
-            none_map = dict.fromkeys(tables)
-            return none_map, []
+        """
+        Read primary keys (name + ordered columns). When disabled or there are no tables,
+        return ({}, []) and let the builder apply defaults.
+        """
+        if not enabled or not tables:
+            return ({}, [])
         result = self.primary_key_reader.read_primary_keys(tables)
-        primary_key_by_table = result.primary_key_by_table
-        warnings = list(result.warnings)
-        return primary_key_by_table, warnings
+        return (result.primary_key_by_table, list(result.warnings))

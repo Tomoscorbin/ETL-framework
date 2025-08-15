@@ -127,7 +127,7 @@ class Orchestrator:
     ) -> SnapshotResult:
         """Ask the CatalogReader for the live state of the requested tables."""
         tables: tuple[FullyQualifiedTableName, ...] = tuple(
-            t.fully_qualified_table_name for t in desired.tables
+            t.full_table_name for t in desired.tables
         )
         request = SnapshotRequest(tables=tables, aspects=aspects, policy=policy)
         result = self._catalog_reader.snapshot(request)

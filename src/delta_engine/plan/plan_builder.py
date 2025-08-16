@@ -49,6 +49,7 @@ class PlanBuilder:
     """
 
     def build(self, actions: Iterable[Action]) -> Plan:
+        """Build an ordered plan from a collection of actions."""
         # 1) Group by catalog → schema → table
         grouped: dict[str, dict[str, dict[str, list[Action]]]] = {}
         for action in actions:
@@ -73,6 +74,7 @@ class PlanBuilder:
         return Plan(actions=tuple(ordered))
 
     def _order_for_one_table(self, actions: list[Action]) -> list[Action]:
+        """Order actions for a single table."""
         creates: list[Action] = []
         aligns: list[Action] = []
         leftovers: list[Action] = []

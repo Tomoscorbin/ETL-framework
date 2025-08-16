@@ -30,6 +30,7 @@ from src.delta_engine.state.states import CatalogState
 
 @dataclass(frozen=True)
 class PlanOutcome:
+    """Result of planning: the ordered plan plus any snapshot warnings."""
     plan: Plan
     warnings: tuple[SnapshotWarning, ...]
 
@@ -47,6 +48,7 @@ class Planner:
         differ: Differ | None = None,
         plan_builder: PlanBuilder | None = None,
     ) -> None:
+        """Initialize the planner."""
         self.catalog_reader = catalog_reader
         self.differ = differ or Differ()
         self.plan_builder = plan_builder or PlanBuilder()
@@ -59,6 +61,7 @@ class Planner:
         policy: SnapshotPolicy = SnapshotPolicy.PERMISSIVE,
         live_state: CatalogState | None = None,
     ) -> PlanOutcome:
+        """Build a plan to reconcile desired and live catalog state."""
         aspects_frozen = frozenset(aspects)
         options = _options_from_aspects(aspects_frozen)
 
@@ -74,7 +77,7 @@ class Planner:
             warnings = snapshot.warnings
         else:
             live = live_state
-            warnings = tuple()
+            warnings = ()
 
         actions = self.differ.diff(desired, live, options)
         plan = self.plan_builder.build(actions)

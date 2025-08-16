@@ -59,9 +59,25 @@ class DiffOptions:
 
 
 class Differ:
+    """
+    Compute differences between desired and live catalog state.
+
+    The `Differ` produces a list of `Action` objects representing
+    the changes required to reconcile the live state with the desired
+    specification.
+
+    Workflow
+    --------
+    1. For each desired table, compare against the corresponding live table.
+    2. If the table does not exist, generate a full CREATE action.
+    3. Otherwise, compute granular diffs (properties, comments, schema, PK).
+    4. Coalesce granular diffs into an `AlignTable` action, if needed.
+
+    """
     def diff(
         self, desired: DesiredCatalog, live: CatalogState, options: DiffOptions
     ) -> list[Action]:
+        """Compute all actions needed to align desired vs. live catalog state."""
         return self._diff_catalog(desired, live, options)
 
     def _diff_catalog(
@@ -194,7 +210,8 @@ def _diff_table_comment(desired: DesiredTable, live: TableState) -> list[Action]
 
 def _diff_columns(desired: DesiredTable, live: TableState) -> list[object]:
     """
-    Return granular sub-actions (AddColumns, DropColumns, SetColumnNullability, SetColumnComments).
+    Return granular sub-actions 
+    (AddColumns, DropColumns, SetColumnNullability, SetColumnComments).
     """
     sub_actions: list[object] = []
     live_by_lower: dict[str, ColumnState] = {c.name.lower(): c for c in live.columns}
@@ -366,7 +383,10 @@ def _compute_nullability_actions(
     desired_columns: Sequence[Column],
     live_by_lower: dict[str, ColumnState],
 ) -> list[SetColumnNullability]:
-    """Generate one SetColumnNullability action per column where desired nullability differs from live."""
+    """
+    Generate one SetColumnNullability action per column 
+    where desired nullability differs from live.
+    """
     actions: list[SetColumnNullability] = []
     for column in desired_columns:
         live_col = live_by_lower.get(column.name.lower())

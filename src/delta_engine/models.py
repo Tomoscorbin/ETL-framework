@@ -17,6 +17,7 @@ from src.delta_engine.identifiers import (
 
 
 class TableProperty(StrEnum):
+    """Table properties."""
     ENABLE_DELETION_VECTORS = "delta.enableDeletionVectors"
     ENABLE_TYPE_WIDENING = "delta.enableTypeWidening"
     COLUMN_MAPPING_MODE = "delta.columnMapping.mode"
@@ -68,7 +69,7 @@ class Table:
     @property
     def primary_key_columns(self) -> tuple[str, ...]:
         """Primary-key column names (empty tuple if none)."""
-        return tuple(self.primary_key) if self.primary_key else tuple()
+        return tuple(self.primary_key) if self.primary_key else ()
 
     @property
     def primary_key_name(self) -> str | None:

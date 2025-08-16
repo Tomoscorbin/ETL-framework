@@ -87,7 +87,7 @@ class TableStateBuilder:
         Empty or missing comments are treated as "".
         """
         if not columns:
-            return tuple()
+            return ()
 
         out: list[ColumnState] = []
         for column in columns:

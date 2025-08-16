@@ -22,6 +22,11 @@ TableKey: TypeAlias = str
 
 
 class DiagnosticLevel(StrEnum):
+    """
+    Severity levels for diagnostics.
+
+    Levels indicate the seriousness of a diagnostic emitted by a rule.
+    """
     ERROR = "error"
     WARNING = "warning"
     INFO = "info"
@@ -59,4 +64,9 @@ class ValidationReport:
 
     @property
     def ok(self) -> bool:
+        """
+        Whether the validation report contains no ERROR-level diagnostics.
+
+        Returns True if no diagnostics have level `ERROR`; False otherwise.
+        """
         return not any(d.level == DiagnosticLevel.ERROR for d in self.diagnostics)

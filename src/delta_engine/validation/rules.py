@@ -21,6 +21,13 @@ from src.delta_engine.validation.diagnostics import Diagnostic, DiagnosticLevel
 
 
 class RuleCode(StrEnum):
+    """
+    Enumeration of rule codes for diagnostics.
+
+    Each value uniquely identifies a validation rule or guardrail.
+    Codes are used when emitting diagnostics so they can be traced
+    back to a specific policy.
+    """
     PRIMARY_KEY_COLUMNS_PRESENT = "PRIMARY_KEY_COLUMNS_PRESENT"
     TYPE_NARROWING_FORBIDDEN = "TYPE_NARROWING_FORBIDDEN"
     DROP_PRIMARY_KEY_REQUIRES_EXPLICIT_NONE = "DROP_PRIMARY_KEY_REQUIRES_EXPLICIT_NONE"
@@ -31,6 +38,7 @@ class RuleCode(StrEnum):
 
 
 def _table_key_from_desired(desired: DesiredTable) -> str:
+    """Return the fully qualified table key for a desired table."""
     return format_fully_qualified_table_name_from_parts(
         desired.full_table_name.catalog,
         desired.full_table_name.schema,
@@ -39,6 +47,7 @@ def _table_key_from_desired(desired: DesiredTable) -> str:
 
 
 def _table_key_from_warning_table(obj: object | None) -> str:
+    """Safely extract a fully qualified table key from a snapshot warning object."""
     if obj is None:
         return ""
     try:
@@ -58,6 +67,7 @@ class PrimaryKeyColumnsMustBePresent:
     description = "Primary key columns must exist in the desired column list."
 
     def check(self, desired: DesiredTable) -> list[Diagnostic]:
+        """Validate that all primary key columns are present in the desired schema."""
         pk_columns = desired.primary_key_columns
         if not pk_columns:
             return []
@@ -123,6 +133,7 @@ class TypeNarrowingForbidden:
     description = "Changing a column to a narrower type is forbidden."
 
     def check(self, desired: DesiredTable, live: TableState | None) -> list[Diagnostic]:
+        """Validate that no column types are narrowed between the live and desired schema."""
         if live is None or not live.exists:
             return []
 
@@ -185,9 +196,9 @@ class DropPrimaryKeyRequiresExplicitNone:
     def check(
         self,
         desired: DesiredTable,
-        live: TableState | None,
         planned_actions: tuple[Action, ...],
     ) -> list[Diagnostic]:
+        """Validate that primary key drops are explicitly confirmed."""
         will_drop = any(isinstance(a, DropPrimaryKey) for a in planned_actions)
         if not will_drop:
             return []
@@ -210,9 +221,13 @@ class DropPrimaryKeyRequiresExplicitNone:
                 level=DiagnosticLevel.ERROR,
                 code=self.code,
                 message=(
-                    "Plan drops a primary key but the desired spec did not explicitly request 'no primary key'."
+                    "Plan drops a primary key but the desired spec did"
+                    " not explicitly request 'no primary key'."
                 ),
-                hint="Set desired.primary_key_columns=() to affirm the drop, or update the desired primary key.",
+                hint=(
+                    "Set desired.primary_key_columns=() to affirm the drop,"
+                    " or update the desired primary key.",
+                )
             )
         ]
 
@@ -227,6 +242,7 @@ class WarningsToDiagnostics:
     description = "Convert snapshot warnings into diagnostics."
 
     def check(self, warnings: tuple[SnapshotWarning, ...]) -> list[Diagnostic]:
+        """Convert snapshot warnings into diagnostics according to policy."""
         out: list[Diagnostic] = []
         for warning in warnings:
             level = (
@@ -241,7 +257,10 @@ class WarningsToDiagnostics:
                     level=level,
                     code=f"{self.code}_{warning.aspect.name}",
                     message=warning.message,
-                    hint="Investigate snapshot permissions/connectivity or adjust requested aspects.",
+                    hint=(
+                        "Investigate snapshot permissions/connectivity"
+                        " or adjust requested aspects.",
+                    )
                 )
             )
         return out
@@ -257,7 +276,7 @@ def default_rule_set() -> tuple[
     tuple[object, ...],  # warnings rules
 ]:
     """
-    Return a default bundle of rules as 4 tuples that you can pass to Validator:
+    Return a default bundle of rules as 4 tuples to pass to Validator:
 
         model_rules, state_rules, plan_rules, warnings_rules = default_rule_set()
         validator = Validator(

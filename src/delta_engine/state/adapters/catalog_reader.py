@@ -53,6 +53,7 @@ def _format_warning_line(w) -> str:
         table_key = "<unknown>"
     return f"[{w.aspect.value}] {table_key}: {w.message}"
 
+
 def _strict_error_message(warnings: list) -> str:
     lines = [_format_warning_line(w) for w in warnings]
     # show all; or do lines[:5] + ["..."] if you prefer truncation
@@ -214,7 +215,6 @@ class CatalogReader:
             return ({}, [])
         result = self.table_properties_reader.read_table_properties(tables)
         return (result.properties_by_table, list(result.warnings))
-
 
     def _step_primary_keys(
         self,

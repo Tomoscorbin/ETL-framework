@@ -57,9 +57,7 @@ class SchemaBatchReadResult(NamedTuple):
 
 
 class SchemaReader:
-    """
-    Read table existence and physical schema, one table at a time.
-    """
+    """Read table existence and physical schema, one table at a time."""
 
     def __init__(self, spark: SparkSession) -> None:
         """Store the Spark session used to access catalog/Delta metadata."""
@@ -103,12 +101,12 @@ class SchemaReader:
                     )
                 )
                 existence_by_table[full_table_name] = False
-                columns_by_table[full_table_name] = tuple()
+                columns_by_table[full_table_name] = ()
                 continue
 
             # 2) Short-circuit if absent or schema not requested
             if not existence_by_table[full_table_name] or not include_schema:
-                columns_by_table[full_table_name] = tuple()
+                columns_by_table[full_table_name] = ()
                 continue
 
             # 3) Load StructType and convert to ColumnState
@@ -130,7 +128,7 @@ class SchemaReader:
                     )
                 )
                 # Existence stays True; columns empty for this read.
-                columns_by_table[full_table_name] = tuple()
+                columns_by_table[full_table_name] = ()
 
         return SchemaBatchReadResult(
             existence_by_table=existence_by_table,

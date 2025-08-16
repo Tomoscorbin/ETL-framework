@@ -16,9 +16,7 @@ def check_table_exists(
     schema_name: str,
     table_name: str,
 ) -> bool:
-    """
-    Return True if the three-part table exists in the Spark catalog.
-    """
+    """Return True if the three-part table exists in the Spark catalog."""
     full_name = quote_fully_qualified_table_name_from_parts(catalog_name, schema_name, table_name)
     return spark.catalog.tableExists(full_name)
 

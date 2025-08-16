@@ -41,12 +41,39 @@ from src.delta_engine.plan.actions import (
 
 
 class AlignExecutor:
-    """Execute a single per-table `AlignTable` action by delegating all DDL to `DDLExecutor`."""
+    """
+    Executor that applies a single per-table `AlignTable` action.
+
+    Responsibilities:
+    ----------------
+    - Delegates all DDL operations to `DDLExecutor`.
+    - Applies granular changes for one table in a consistent order:
+        0. Drop primary key (if requested).
+        1. Add columns.
+        2. [Subsequent steps: drop columns, set comments, update properties, etc.]
+    - Halts execution early if `policy.stop_on_first_error` is True and a step fails.
+
+    Notes:
+    -----
+    Align actions represent the coalesced set of diffs for one table
+    (columns, comments, properties, constraints).
+    """
 
     def __init__(self, spark: SparkSession) -> None:
+        """Initialize the executor."""
         self._ddl = DDLExecutor(spark)
 
     def apply(self, action: AlignTable, *, policy: ExecutionPolicy) -> tuple[ActionResult, ...]:
+        """
+        Apply an `AlignTable` action by executing the necessary DDL steps.
+
+        Workflow:
+        --------
+        0. Drop primary key (if specified).
+        1. Add new columns.
+        2. Apply subsequent alignment steps (column drops, comments,
+           properties, nullability changes, primary key adds, etc.).
+        """
         results: list[ActionResult] = []
         full_table_name: FullyQualifiedTableName = action.full_table_name
 
@@ -155,7 +182,10 @@ class AlignExecutor:
                     ActionResult(
                         action=action,
                         status=ApplyStatus.FAILED,
-                        message=f"Failed to add column {table_str}.{column.name}: {type(error).__name__}: {error}",
+                        message=(
+                            f"Failed to add column {table_str}.{column.name}:"
+                            f" {type(error).__name__}: {error}",
+                        )
                     )
                 )
         return tuple(results)
@@ -188,7 +218,10 @@ class AlignExecutor:
             return ActionResult(
                 action=action,
                 status=ApplyStatus.FAILED,
-                message=f"Failed to drop columns from {table_str}: {type(error).__name__}: {error}",
+                message=(
+                    f"Failed to drop columns from {table_str}:"
+                    f" {type(error).__name__}: {error}",
+                )
             )
 
     def _set_nullability(
@@ -231,7 +264,10 @@ class AlignExecutor:
                     ActionResult(
                         action=action,
                         status=ApplyStatus.FAILED,
-                        message=f"Failed to set nullability on {table_str}.{change.column_name}: {type(error).__name__}: {error}",
+                        message=(
+                            f"Failed to set nullability on {table_str}.{change.column_name}:"
+                            f" {type(error).__name__}: {error}",
+                        )
                     )
                 )
         return tuple(results)
@@ -250,7 +286,7 @@ class AlignExecutor:
         results: list[ActionResult] = []
 
         if policy.dry_run:
-            for name in set_comments.comments.keys():
+            for name in set_comments.comments:
                 msg = f"(dry-run) set comment on column {table_str}.{name}"
                 results.append(ActionResult(action=action, status=ApplyStatus.SKIPPED, message=msg))
             return tuple(results)
@@ -274,7 +310,10 @@ class AlignExecutor:
                     ActionResult(
                         action=action,
                         status=ApplyStatus.FAILED,
-                        message=f"Failed to set comment on column {table_str}.{name}: {type(error).__name__}: {error}",
+                        message=(
+                            f"Failed to set comment on column {table_str}.{name}:"
+                            f" {type(error).__name__}: {error}",
+                        )
                     )
                 )
         return tuple(results)
@@ -308,7 +347,10 @@ class AlignExecutor:
             return ActionResult(
                 action=action,
                 status=ApplyStatus.FAILED,
-                message=f"Failed to set table comment on {table_str}: {type(error).__name__}: {error}",
+                message=(
+                    f"Failed to set table comment on {table_str}:"
+                    f" {type(error).__name__}: {error}",
+                )
             )
 
     def _set_table_properties(
@@ -340,7 +382,10 @@ class AlignExecutor:
             return ActionResult(
                 action=action,
                 status=ApplyStatus.FAILED,
-                message=f"Failed to set table properties on {table_str}: {type(error).__name__}: {error}",
+                message=(
+                    f"Failed to set table properties on {table_str}:"
+                    f" {type(error).__name__}: {error}",
+                )
             )
 
     def _add_primary_key(
@@ -375,7 +420,10 @@ class AlignExecutor:
             return ActionResult(
                 action=action,
                 status=ApplyStatus.FAILED,
-                message=f"Failed to add primary key on {table_str}: {type(error).__name__}: {error}",
+                message=(
+                    f"Failed to add primary key on {table_str}:"
+                    f" {type(error).__name__}: {error}",
+                )
             )
 
     def _drop_primary_key(
@@ -407,5 +455,8 @@ class AlignExecutor:
             return ActionResult(
                 action=action,
                 status=ApplyStatus.FAILED,
-                message=f"Failed to drop primary key on {table_str}: {type(error).__name__}: {error}",
+                message=(
+                    f"Failed to drop primary key on {table_str}:"
+                    f" {type(error).__name__}: {error}",
+                )
             )

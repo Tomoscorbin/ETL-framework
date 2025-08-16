@@ -107,6 +107,12 @@ class DDLExecutor:
         full_table_name: FullyQualifiedTableName,
         properties: Mapping[str, str],
     ) -> None:
+        """
+        Set one or more table properties.
+
+        Generates SQL of the form:
+        ALTER TABLE catalog.schema.table SET TBLPROPERTIES ('key'='value', ...)
+        """
         if not properties:
             return
         quoted = self._quoted(full_table_name)
@@ -119,6 +125,12 @@ class DDLExecutor:
         full_table_name: FullyQualifiedTableName,
         comment: str | None,
     ) -> None:
+        """
+        Set or clear the table comment.
+
+        Generates SQL of the form:
+        COMMENT ON TABLE catalog.schema.table IS '...'
+        """
         quoted = self._quoted(full_table_name)
         text = "" if comment is None else escape_sql_literal(comment)
         sql = f"COMMENT ON TABLE {quoted} IS '{text}'"
@@ -130,6 +142,12 @@ class DDLExecutor:
         column_name: str,
         comment: str | None,
     ) -> None:
+        """
+        Set or clear a column comment.
+
+        Generates SQL of the form:
+        COMMENT ON COLUMN catalog.schema.table.column IS '...'
+        """
         quoted = self._quoted(full_table_name)
         text = "" if comment is None else escape_sql_literal(comment)
         sql = f"COMMENT ON COLUMN {quoted}.{quote_identifier(column_name)} IS '{text}'"
@@ -145,6 +163,12 @@ class DDLExecutor:
         is_nullable: bool,
         comment: str | None,
     ) -> None:
+        """
+        Add a new column to a table.
+
+        Generates SQL of the form:
+        ALTER TABLE catalog.schema.table ADD COLUMNS (col TYPE [COMMENT '...'])
+        """
         quoted = self._quoted(full_table_name)
         column_sql = self._render_column_definition_from_parts(
             column_name=column_name,
@@ -160,6 +184,12 @@ class DDLExecutor:
         full_table_name: FullyQualifiedTableName,
         column_names: Iterable[str],
     ) -> None:
+        """
+        Drop one or more columns from a table.
+
+        Generates SQL of the form:
+        ALTER TABLE catalog.schema.table DROP COLUMNS (col1, col2, ...)
+        """
         column_list = list(column_names)
         if not column_list:
             return
@@ -174,6 +204,12 @@ class DDLExecutor:
         column_name: str,
         make_nullable: bool,
     ) -> None:
+        """
+        Change a column's nullability.
+
+        Generates SQL of the form:
+        ALTER TABLE catalog.schema.table ALTER COLUMN col [DROP|SET] NOT NULL
+        """
         quoted = self._quoted(full_table_name)
         column_ident = quote_identifier(column_name)
         if make_nullable:
@@ -190,6 +226,12 @@ class DDLExecutor:
         constraint_name: str,
         column_names: tuple[str, ...],
     ) -> None:
+        """
+        Add a primary key constraint.
+
+        Generates SQL of the form:
+        ALTER TABLE catalog.schema.table ADD CONSTRAINT name PRIMARY KEY (col1, col2, ...)
+        """
         quoted = self._quoted(full_table_name)
         cols_sql = ", ".join(quote_identifier(c) for c in column_names)
         constraint_ident = quote_identifier(constraint_name)
@@ -201,6 +243,12 @@ class DDLExecutor:
         full_table_name: FullyQualifiedTableName,
         constraint_name: str,
     ) -> None:
+        """
+        Drop a primary key constraint.
+
+        Generates SQL of the form:
+        ALTER TABLE catalog.schema.table DROP CONSTRAINT name
+        """
         quoted = self._quoted(full_table_name)
         constraint_ident = quote_identifier(constraint_name)
         sql = f"ALTER TABLE {quoted} DROP CONSTRAINT {constraint_ident}"

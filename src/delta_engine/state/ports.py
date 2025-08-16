@@ -20,6 +20,7 @@ _MAX_WARNING_LENGTH = 300
 
 
 class Aspect(StrEnum):
+    """Aspects of a table that can be included in a catalog snapshot."""
     SCHEMA = "SCHEMA"
     PRIMARY_KEY = "PRIMARY_KEY"
     COMMENTS = "COMMENTS"
@@ -27,6 +28,7 @@ class Aspect(StrEnum):
 
 
 class SnapshotPolicy(StrEnum):
+    """Policies controlling snapshot behavior when reading catalog state."""
     PERMISSIVE = "permissive"
     STRICT = "strict"
 
@@ -109,4 +111,6 @@ class SnapshotWarning:
 class CatalogStateReader(Protocol):
     """Port for implementations that can read catalog state."""
 
-    def snapshot(self, request: SnapshotRequest) -> SnapshotResult: ...
+    def snapshot(self, request: SnapshotRequest) -> SnapshotResult: 
+        """Capture a snapshot of the catalog state."""
+        ...

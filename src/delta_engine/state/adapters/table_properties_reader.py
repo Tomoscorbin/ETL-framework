@@ -107,9 +107,7 @@ class TablePropertiesReader:
 
 
 def _normalize_properties(props: Mapping[Any, Any]) -> dict[str, str]:
-    """
-    Coerce mapping keys/values to strings; supports TableProperty keys.
-    """
+    """Coerce mapping keys/values to strings; supports TableProperty keys."""
     normalized: dict[str, str] = {}
     for k, v in dict(props).items():
         key = k.value if isinstance(k, TableProperty) else str(k)

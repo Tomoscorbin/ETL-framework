@@ -42,7 +42,9 @@ class ModelRule(Protocol):
     code: str
     description: str
 
-    def check(self, desired: DesiredTable) -> list[Diagnostic]: ...
+    def check(self, desired: DesiredTable) -> list[Diagnostic]:
+        """Check the model against the rule."""
+        ...
 
 
 class StateRule(Protocol):
@@ -58,7 +60,9 @@ class StateRule(Protocol):
     code: str
     description: str
 
-    def check(self, desired: DesiredTable, live: TableState | None) -> list[Diagnostic]: ...
+    def check(self, desired: DesiredTable, live: TableState | None) -> list[Diagnostic]:
+        """Check the desired table against the live state."""
+        ...
 
 
 class PlanRule(Protocol):
@@ -80,7 +84,12 @@ class PlanRule(Protocol):
         desired: DesiredTable,
         live: TableState | None,
         planned_actions: tuple[Action, ...],
-    ) -> list[Diagnostic]: ...
+    ) -> list[Diagnostic]:
+        """
+        Check the desired specification, live state, and planned actions for a single table
+        against the rule.
+        """
+        ...
 
 
 class WarningsRule(Protocol):
@@ -96,7 +105,9 @@ class WarningsRule(Protocol):
     code: str
     description: str
 
-    def check(self, warnings: tuple[SnapshotWarning, ...]) -> list[Diagnostic]: ...
+    def check(self, warnings: tuple[SnapshotWarning, ...]) -> list[Diagnostic]:
+        """Process snapshot warnings into diagnostics."""
+        ...
 
 
 # ---------- helpers ----------
@@ -105,15 +116,13 @@ class WarningsRule(Protocol):
 def _table_key_from_desired(desired: DesiredTable) -> str:
     """Render the unquoted table key 'catalog.schema.table' from a DesiredTable."""
     fq = desired.full_table_name
-    key = format_fully_qualified_table_name_from_parts(fq.catalog, fq.schema, fq.table)
-    return key
+    return format_fully_qualified_table_name_from_parts(fq.catalog, fq.schema, fq.table)
 
 
 def _table_key_from_action(action: Action) -> str:
     """Render the unquoted table key 'catalog.schema.table' from an Action."""
     fq = action.full_table_name
-    key = format_fully_qualified_table_name_from_parts(fq.catalog, fq.schema, fq.table)
-    return key
+    return format_fully_qualified_table_name_from_parts(fq.catalog, fq.schema, fq.table)
 
 
 def _index_actions_by_table(plan: Plan) -> dict[str, tuple[Action, ...]]:
@@ -221,5 +230,4 @@ class Validator:
                 findings = rule.check(snapshot_warnings)
                 diagnostics.extend(findings)
 
-        report = ValidationReport(diagnostics=tuple(diagnostics))
-        return report
+        return ValidationReport(diagnostics=tuple(diagnostics))

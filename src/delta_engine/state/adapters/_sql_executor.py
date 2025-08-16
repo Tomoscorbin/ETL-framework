@@ -31,8 +31,7 @@ def select_primary_key_rows_for_table(
         schema_name=schema_name,
         table_name=table_name,
     )
-    rows = spark.sql(query).collect()
-    return rows
+    return spark.sql(query).collect()
 
 
 def select_column_comment_rows_for_table(
@@ -51,8 +50,7 @@ def select_column_comment_rows_for_table(
         schema_name=schema_name,
         table_name=table_name,
     )
-    rows = spark.sql(query).collect()
-    return rows
+    return spark.sql(query).collect()
 
 
 def select_table_comment_rows_for_table(
@@ -71,5 +69,4 @@ def select_table_comment_rows_for_table(
         schema_name=schema_name,
         table_name=table_name,
     )
-    rows = spark.sql(query).collect()
-    return rows
+    return spark.sql(query).collect()

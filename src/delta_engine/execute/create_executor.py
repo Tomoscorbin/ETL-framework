@@ -33,12 +33,33 @@ from src.delta_engine.plan.actions import (
 
 
 class CreateExecutor:
-    """Execute a `CreateTable` action by delegating all DDL to `DDLExecutor`."""
+    """
+    Executor that applies a `CreateTable` action.
+
+    Responsibilities
+    ----------------
+    - Delegates all DDL operations to `DDLExecutor`.
+    - Ensures the table exists (with columns and optional table comment).
+    - Sets table properties, if any are provided.
+    - Applies column comments (non-empty only).
+    - Adds a primary key constraint, if specified.
+    """
 
     def __init__(self, spark: SparkSession) -> None:
+        """Initialize the executor."""
         self._ddl = DDLExecutor(spark)
 
     def apply(self, action: CreateTable, *, policy: ExecutionPolicy) -> tuple[ActionResult, ...]:
+        """
+        Apply a `CreateTable` action by executing DDL in steps.
+
+        Workflow
+        --------
+        1. Ensure the table exists, creating it if needed.
+        2. Apply table properties (if any).
+        3. Apply column comments (non-empty only).
+        4. Add primary key constraint (if specified).
+        """
         results: list[ActionResult] = []
 
         full_table_name: FullyQualifiedTableName = action.full_table_name
@@ -93,7 +114,7 @@ class CreateExecutor:
 
         return tuple(results)
 
-    # ---------- helpers (no SQL here) ----------
+    # ---------- helpers ----------
 
     def _ensure_table_exists(
         self,
@@ -127,7 +148,10 @@ class CreateExecutor:
             return ActionResult(
                 action=action,
                 status=ApplyStatus.FAILED,
-                message=f"Failed to ensure table {table_str}: {type(error).__name__}: {error}",
+                message=(
+                    f"Failed to ensure table {table_str}:"
+                    f"{type(error).__name__}: {error}",
+                )
             )
 
     def _set_table_properties(
@@ -164,7 +188,10 @@ class CreateExecutor:
                 ActionResult(
                     action=action,
                     status=ApplyStatus.FAILED,
-                    message=f"Failed to set table properties on {table_str}: {type(error).__name__}: {error}",
+                    message=(
+                        f"Failed to set table properties on {table_str}:"
+                        f" {type(error).__name__}: {error}",
+                    )
                 ),
             )
 
@@ -208,7 +235,10 @@ class CreateExecutor:
                     ActionResult(
                         action=action,
                         status=ApplyStatus.FAILED,
-                        message=f"Failed to set comment on column {table_str}.{column_name}: {type(error).__name__}: {error}",
+                        message=(
+                            f"Failed to set comment on column {table_str}.{column_name}:"
+                            f" {type(error).__name__}: {error}"
+                        ),
                     )
                 )
         return tuple(results)
@@ -246,7 +276,10 @@ class CreateExecutor:
             return ActionResult(
                 action=action,
                 status=ApplyStatus.FAILED,
-                message=f"Failed to add primary key on {table_str}: {type(error).__name__}: {error}",
+                message=(
+                    f"Failed to add primary key on {table_str}:"
+                    f" {type(error).__name__}: {error}",
+                )
             )
 
     @staticmethod

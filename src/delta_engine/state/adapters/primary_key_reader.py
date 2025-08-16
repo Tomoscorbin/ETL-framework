@@ -47,9 +47,7 @@ class PrimaryKeyBatchReadResult(NamedTuple):
 
 
 class PrimaryKeyReader:
-    """
-    Read primary key metadata from `information_schema`, one table at a time.
-    """
+    """Read primary key metadata from `information_schema`, one table at a time."""
 
     def __init__(self, spark: SparkSession) -> None:
         """Initialise the reader."""

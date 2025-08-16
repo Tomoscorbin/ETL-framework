@@ -95,7 +95,7 @@ class TableState:
     @property
     def primary_key_columns(self) -> tuple[str, ...]:
         """Ordered PK columns (empty tuple if no PK)."""
-        return self.primary_key.columns if self.primary_key else tuple()
+        return self.primary_key.columns if self.primary_key else ()
 
     @classmethod
     def empty(cls, catalog_name: str, schema_name: str, table_name: str) -> Self:
@@ -110,9 +110,7 @@ class TableState:
 
 @dataclass(frozen=True, slots=True)
 class CatalogState:
-    """
-    Point-in-time snapshot of multiple tables, keyed by FullyQualifiedTableName.
-    """
+    """Point-in-time snapshot of multiple tables, keyed by FullyQualifiedTableName."""
 
     tables: Mapping[FullyQualifiedTableName, TableState]
 

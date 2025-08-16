@@ -115,9 +115,7 @@ class CreateTable(Action):
 
 @dataclass(frozen=True)
 class AlignTable(Action):
-    """
-    Coalesced, per-table alignment. Any field None/empty => no-op for that slice.
-    """
+    """Coalesced, per-table alignment. Any field None/empty => no-op for that slice."""
 
     add_columns: AddColumns | None = None
     drop_columns: DropColumns | None = None

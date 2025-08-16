@@ -130,8 +130,7 @@ class Orchestrator:
             t.full_table_name for t in desired.tables
         )
         request = SnapshotRequest(tables=tables, aspects=aspects, policy=policy)
-        result = self._catalog_reader.snapshot(request)
-        return result
+        return self._catalog_reader.snapshot(request)
 
     def _plan(
         self,
@@ -147,8 +146,7 @@ class Orchestrator:
             manage_primary_key=(Aspect.PRIMARY_KEY in aspects),
         )
         actions: list[Action] = self._differ.diff(desired=desired, live=live, options=options)
-        plan = self._plan_builder.build(actions)
-        return plan
+        return self._plan_builder.build(actions)
 
     def _validate(
         self,
@@ -159,22 +157,18 @@ class Orchestrator:
     ) -> ValidationReport:
         """Run model/state/plan rules and transform snapshot warnings into diagnostics."""
         warnings_tuple = tuple(snapshot_warnings)
-        report = self._validator.validate(
+        return self._validator.validate(
             desired=desired,
             live=live,
             plan=plan,
             snapshot_warnings=warnings_tuple,
         )
-        return report
 
     def _execute(self, plan: Plan, policy: ExecutionPolicy) -> ApplyReport:
-        """
-        Create first, then align (per-table). Uses PlanRunner which delegates to executors.
-        """
+        """Create first, then align (per-table). Uses PlanRunner which delegates to executors."""
         table_plan = _to_table_plan(plan)
         runner = PlanRunner(self._create_executor, self._align_executor)
-        report = runner.apply(table_plan, policy=policy)
-        return report
+        return runner.apply(table_plan, policy=policy)
 
 
 # ---------- tiny helpers ----------

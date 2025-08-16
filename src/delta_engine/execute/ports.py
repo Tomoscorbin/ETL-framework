@@ -17,6 +17,7 @@ from src.delta_engine.plan.plan_builder import Plan
 
 
 class ApplyStatus(StrEnum):
+    """Status of an applied action or plan."""
     OK = "ok"
     FAILED = "failed"
     SKIPPED = "skipped"  # e.g., dry-run or short-circuited after a failure
@@ -41,12 +42,13 @@ class ActionResult:
 
 @dataclass(frozen=True)
 class ApplyReport:
-    """Outcome for applying a whole plan."""
+    """Outcome of applying a whole plan."""
 
     results: tuple[ActionResult, ...]
 
     @property
     def ok(self) -> bool:
+        """Whether all actions in the plan applied successfully."""
         return all(result.status == ApplyStatus.OK for result in self.results)
 
 
@@ -55,16 +57,22 @@ class CreateExecutor(Protocol):
 
     def apply(
         self, action: CreateTable, *, policy: ExecutionPolicy
-    ) -> tuple[ActionResult, ...]: ...
+    ) -> tuple[ActionResult, ...]: 
+        """Apply a `CreateTable` action."""
+        ...
 
 
 class AlignExecutor(Protocol):
     """Executor capable of applying an AlignTable action (coalesced sub-actions)."""
 
-    def apply(self, action: AlignTable, *, policy: ExecutionPolicy) -> tuple[ActionResult, ...]: ...
+    def apply(self, action: AlignTable, *, policy: ExecutionPolicy) -> tuple[ActionResult, ...]: 
+        """Apply an `AlignTable` action."""
+        ...
 
 
 class PlanExecutor(Protocol):
     """High-level executor that applies an entire Plan."""
 
-    def apply(self, plan: Plan, *, policy: ExecutionPolicy) -> ApplyReport: ...
+    def apply(self, plan: Plan, *, policy: ExecutionPolicy) -> ApplyReport: 
+        """Apply all actions in a plan."""
+        ...
